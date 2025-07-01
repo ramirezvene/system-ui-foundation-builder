@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -18,7 +19,7 @@ interface Produto {
   produto: string
   cod_grupo: number | null
   grupo: string | null
-  ncm: string | null
+  ncm: number | null
   pmc_rs: number | null
   pmc_sc: number | null
   pmc_pr: number | null
