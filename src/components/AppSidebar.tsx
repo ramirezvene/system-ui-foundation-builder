@@ -1,0 +1,139 @@
+
+import { useState } from "react"
+import { NavLink, useLocation } from "react-router-dom"
+import { 
+  Settings, 
+  Package, 
+  Calculator,
+  ChevronDown
+} from "lucide-react"
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  useSidebar,
+} from "@/components/ui/sidebar"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+
+const menuItems = [
+  {
+    title: "Emulador",
+    url: "/emulador",
+    icon: Calculator,
+  },
+  {
+    title: "Conf. Desconto Token",
+    icon: Settings,
+    items: [
+      {
+        title: "Desconto Subgrupo",
+        url: "/configuracao-desconto-subgrupo",
+      },
+    ],
+  },
+  {
+    title: "Conf. Imposto",
+    icon: Package,
+    items: [
+      {
+        title: "NCM",
+        url: "/configuracao-ncm",
+      },
+    ],
+  },
+]
+
+export function AppSidebar() {
+  const { state } = useSidebar()
+  const location = useLocation()
+  const currentPath = location.pathname
+  const [openGroups, setOpenGroups] = useState<string[]>([])
+
+  const isActive = (path: string) => currentPath === path
+
+  const toggleGroup = (groupTitle: string) => {
+    setOpenGroups(prev => 
+      prev.includes(groupTitle) 
+        ? prev.filter(g => g !== groupTitle)
+        : [...prev, groupTitle]
+    )
+  }
+
+  return (
+    <Sidebar className="border-r border-sidebar-border">
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/70">
+            Menu Principal
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  {item.items ? (
+                    <Collapsible
+                      open={openGroups.includes(item.title)}
+                      onOpenChange={() => toggleGroup(item.title)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton 
+                          className="w-full justify-between"
+                          onClick={() => toggleGroup(item.title)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <item.icon className="w-4 h-4" />
+                            {state !== "collapsed" && <span>{item.title}</span>}
+                          </div>
+                          {state !== "collapsed" && (
+                            <ChevronDown 
+                              className={`w-4 h-4 transition-transform ${
+                                openGroups.includes(item.title) ? 'rotate-180' : ''
+                              }`} 
+                            />
+                          )}
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.items.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton asChild isActive={isActive(subItem.url)}>
+                                <NavLink to={subItem.url}>
+                                  <span>{subItem.title}</span>
+                                </NavLink>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink to={item.url} className="flex items-center gap-2">
+                        <item.icon className="w-4 h-4" />
+                        {state !== "collapsed" && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  )}
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+  )
+}
