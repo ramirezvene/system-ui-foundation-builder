@@ -1,10 +1,39 @@
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
+
+interface Loja {
+  cod_loja: number
+  loja: string
+  estado: string
+}
+
+interface Produto {
+  cod_prod: number
+  produto: string
+  cod_grupo: number
+  grupo: string
+  ncm: string
+  pmc_rs: number
+  pmc_sc: number
+  pmc_pr: number
+  sugerido_rs: number
+  sugerido_sc: number
+  sugerido_pr: number
+}
 
 export default function Emulador() {
+  const { toast } = useToast()
+  const [lojas, setLojas] = useState<Loja[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
+  const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
+  const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null)
+  
   const [formData, setFormData] = useState({
     idLojaEstado: "",
     idProduto: "",
@@ -21,11 +50,97 @@ export default function Emulador() {
     observacao: ""
   })
 
+  useEffect(() => {
+    fetchLojas()
+    fetchProdutos()
+  }, [])
+
+  const fetchLojas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cadastro_loja')
+        .select('*')
+        .order('loja')
+      
+      if (error) throw error
+      setLojas(data || [])
+    } catch (error) {
+      console.error('Erro ao buscar lojas:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as lojas",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const fetchProdutos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cadastro_produto')
+        .select('*')
+        .order('produto')
+      
+      if (error) throw error
+      setProdutos(data || [])
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os produtos",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleLojaChange = (value: string) => {
+    const loja = lojas.find(l => l.cod_loja.toString() === value)
+    setSelectedLoja(loja || null)
+    setFormData(prev => ({
+      ...prev,
+      idLojaEstado: loja ? `${loja.cod_loja} - ${loja.loja} - ${loja.estado}` : ""
+    }))
+  }
+
+  const handleProdutoChange = (value: string) => {
+    const produto = produtos.find(p => p.cod_prod.toString() === value)
+    setSelectedProduto(produto || null)
+    setFormData(prev => ({
+      ...prev,
+      idProduto: produto ? `${produto.cod_prod} - ${produto.produto}` : "",
+      precoRegular: getPrecoRegular(produto, selectedLoja?.estado || 'RS').toString()
+    }))
+  }
+
+  const getPrecoRegular = (produto: Produto | null, estado: string): number => {
+    if (!produto) return 0
+    switch (estado) {
+      case 'RS': return produto.pmc_rs || 0
+      case 'SC': return produto.pmc_sc || 0
+      case 'PR': return produto.pmc_pr || 0
+      default: return produto.pmc_rs || 0
+    }
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
+
+    // Calcular percentual de desconto quando valor solicitado ou preço regular mudarem
+    if (field === 'valorSolicitado' || field === 'precoRegular') {
+      const valorSolicitado = field === 'valorSolicitado' ? parseFloat(value) : parseFloat(formData.valorSolicitado)
+      const precoRegular = field === 'precoRegular' ? parseFloat(value) : parseFloat(formData.precoRegular)
+      
+      if (valorSolicitado && precoRegular && precoRegular > 0) {
+        const percentual = ((precoRegular - valorSolicitado) / precoRegular * 100).toFixed(2)
+        setFormData(prev => ({
+          ...prev,
+          percentualDesconto: percentual
+        }))
+      }
+    }
   }
 
   return (
@@ -38,24 +153,36 @@ export default function Emulador() {
             <Label htmlFor="idLojaEstado" className="text-sm font-medium">
               ID/Loja/Estado
             </Label>
-            <Input
-              id="idLojaEstado"
-              placeholder="ID - Nome - UF"
-              value={formData.idLojaEstado}
-              onChange={(e) => handleInputChange("idLojaEstado", e.target.value)}
-            />
+            <Select onValueChange={handleLojaChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma loja" />
+              </SelectTrigger>
+              <SelectContent>
+                {lojas.map((loja) => (
+                  <SelectItem key={loja.cod_loja} value={loja.cod_loja.toString()}>
+                    {loja.cod_loja} - {loja.loja} - {loja.estado}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="idProduto" className="text-sm font-medium">
               ID/Produto
             </Label>
-            <Input
-              id="idProduto"
-              placeholder="ID - Descrição"
-              value={formData.idProduto}
-              onChange={(e) => handleInputChange("idProduto", e.target.value)}
-            />
+            <Select onValueChange={handleProdutoChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+              <SelectContent>
+                {produtos.map((produto) => (
+                  <SelectItem key={produto.cod_prod} value={produto.cod_prod.toString()}>
+                    {produto.cod_prod} - {produto.produto}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -77,6 +204,8 @@ export default function Emulador() {
             <Input
               id="valorSolicitado"
               placeholder="Valor Solicitado"
+              type="number"
+              step="0.01"
               value={formData.valorSolicitado}
               onChange={(e) => handleInputChange("valorSolicitado", e.target.value)}
             />

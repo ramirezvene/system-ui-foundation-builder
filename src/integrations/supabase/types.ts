@@ -42,6 +42,92 @@ export type Database = {
         }
         Relationships: []
       }
+      cadastro_loja: {
+        Row: {
+          cod_loja: number
+          estado: string
+          loja: string
+        }
+        Insert: {
+          cod_loja: number
+          estado: string
+          loja: string
+        }
+        Update: {
+          cod_loja?: number
+          estado?: string
+          loja?: string
+        }
+        Relationships: []
+      }
+      cadastro_produto: {
+        Row: {
+          cod_barras: string | null
+          cod_grupo: number | null
+          cod_prod: number
+          grupo: string | null
+          imposto_pr: number | null
+          imposto_rs: number | null
+          imposto_sc: number | null
+          ncm: string | null
+          pmc_pr: number | null
+          pmc_rs: number | null
+          pmc_sc: number | null
+          produto: string
+          reg_ms: string | null
+          subgrupo: string | null
+          sugerido_pr: number | null
+          sugerido_rs: number | null
+          sugerido_sc: number | null
+        }
+        Insert: {
+          cod_barras?: string | null
+          cod_grupo?: number | null
+          cod_prod: number
+          grupo?: string | null
+          imposto_pr?: number | null
+          imposto_rs?: number | null
+          imposto_sc?: number | null
+          ncm?: string | null
+          pmc_pr?: number | null
+          pmc_rs?: number | null
+          pmc_sc?: number | null
+          produto: string
+          reg_ms?: string | null
+          subgrupo?: string | null
+          sugerido_pr?: number | null
+          sugerido_rs?: number | null
+          sugerido_sc?: number | null
+        }
+        Update: {
+          cod_barras?: string | null
+          cod_grupo?: number | null
+          cod_prod?: number
+          grupo?: string | null
+          imposto_pr?: number | null
+          imposto_rs?: number | null
+          imposto_sc?: number | null
+          ncm?: string | null
+          pmc_pr?: number | null
+          pmc_rs?: number | null
+          pmc_sc?: number | null
+          produto?: string
+          reg_ms?: string | null
+          subgrupo?: string | null
+          sugerido_pr?: number | null
+          sugerido_rs?: number | null
+          sugerido_sc?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cadastro_produto_cod_grupo_fkey"
+            columns: ["cod_grupo"]
+            isOneToOne: false
+            referencedRelation: "margem_subgrupo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionarios: {
         Row: {
           created_at: string
@@ -106,6 +192,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      margem_subgrupo: {
+        Row: {
+          cond: number
+          data_final: string
+          data_inicio: string
+          descricao: string
+          id: number
+          montante: number
+        }
+        Insert: {
+          cond: number
+          data_final: string
+          data_inicio: string
+          descricao: string
+          id: number
+          montante: number
+        }
+        Update: {
+          cond?: number
+          data_final?: string
+          data_inicio?: string
+          descricao?: string
+          id?: number
+          montante?: number
+        }
+        Relationships: []
+      }
+      ncm_aliq: {
+        Row: {
+          aliq_pr: number | null
+          aliq_rs: number | null
+          aliq_sc: number | null
+          ncm: string
+          pis_cofins: number | null
+        }
+        Insert: {
+          aliq_pr?: number | null
+          aliq_rs?: number | null
+          aliq_sc?: number | null
+          ncm: string
+          pis_cofins?: number | null
+        }
+        Update: {
+          aliq_pr?: number | null
+          aliq_rs?: number | null
+          aliq_sc?: number | null
+          ncm?: string
+          pis_cofins?: number | null
+        }
+        Relationships: []
       }
       produtos: {
         Row: {

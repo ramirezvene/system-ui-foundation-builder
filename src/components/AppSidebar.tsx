@@ -90,8 +90,7 @@ export function AppSidebar() {
                     >
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton 
-                          className="w-full justify-between"
-                          onClick={() => toggleGroup(item.title)}
+                          className="w-full justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         >
                           <div className="flex items-center gap-2">
                             <item.icon className="w-4 h-4" />
@@ -111,7 +110,12 @@ export function AppSidebar() {
                           {item.items.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton asChild isActive={isActive(subItem.url)}>
-                                <NavLink to={subItem.url}>
+                                <NavLink 
+                                  to={subItem.url}
+                                  className={({ isActive }) => 
+                                    `flex items-center gap-2 ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`
+                                  }
+                                >
                                   <span>{subItem.title}</span>
                                 </NavLink>
                               </SidebarMenuSubButton>
@@ -122,7 +126,12 @@ export function AppSidebar() {
                     </Collapsible>
                   ) : (
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <NavLink to={item.url} className="flex items-center gap-2">
+                      <NavLink 
+                        to={item.url} 
+                        className={({ isActive }) => 
+                          `flex items-center gap-2 ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`
+                        }
+                      >
                         <item.icon className="w-4 h-4" />
                         {state !== "collapsed" && <span>{item.title}</span>}
                       </NavLink>
