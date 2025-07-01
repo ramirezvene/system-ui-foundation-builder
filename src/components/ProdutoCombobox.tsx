@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -20,15 +20,15 @@ import {
 interface Produto {
   cod_prod: number
   produto: string
-  cod_grupo: number
-  grupo: string
-  ncm: string
-  pmc_rs: number
-  pmc_sc: number
-  pmc_pr: number
-  sugerido_rs: number
-  sugerido_sc: number
-  sugerido_pr: number
+  cod_grupo: number | null
+  grupo: string | null
+  ncm: number | null
+  pmc_rs: number | null
+  pmc_sc: number | null
+  pmc_pr: number | null
+  sugerido_rs: number | null
+  sugerido_sc: number | null
+  sugerido_pr: number | null
 }
 
 interface ProdutoComboboxProps {
@@ -38,36 +38,13 @@ interface ProdutoComboboxProps {
   placeholder?: string
 }
 
-export function ProdutoCombobox({ produtos, selectedProduto, onProdutoChange, placeholder = "Selecione um produto" }: ProdutoComboboxProps) {
+export function ProdutoCombobox({
+  produtos,
+  selectedProduto,
+  onProdutoChange,
+  placeholder = "Selecionar produto..."
+}: ProdutoComboboxProps) {
   const [open, setOpen] = useState(false)
-  const [inputValue, setInputValue] = useState("")
-
-  useEffect(() => {
-    if (selectedProduto) {
-      setInputValue(`${selectedProduto.cod_prod} - ${selectedProduto.produto}`)
-    } else {
-      setInputValue("")
-    }
-  }, [selectedProduto])
-
-  const filteredProdutos = produtos.filter(produto => {
-    const searchTerm = inputValue.toLowerCase()
-    return (
-      produto.cod_prod.toString().includes(searchTerm) ||
-      produto.produto.toLowerCase().includes(searchTerm)
-    )
-  })
-
-  const handleSelect = (produto: Produto) => {
-    onProdutoChange(produto)
-    setOpen(false)
-  }
-
-  const handleClear = () => {
-    onProdutoChange(null)
-    setInputValue("")
-    setOpen(false)
-  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -86,24 +63,18 @@ export function ProdutoCombobox({ produtos, selectedProduto, onProdutoChange, pl
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput 
-            placeholder="Buscar por código ou nome do produto..."
-            value={inputValue}
-            onValueChange={setInputValue}
-          />
+          <CommandInput placeholder="Buscar produto..." />
           <CommandList>
             <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
             <CommandGroup>
-              {inputValue && (
-                <CommandItem onSelect={handleClear}>
-                  <span className="text-muted-foreground">Limpar seleção</span>
-                </CommandItem>
-              )}
-              {filteredProdutos.map((produto) => (
+              {produtos.map((produto) => (
                 <CommandItem
                   key={produto.cod_prod}
-                  value={`${produto.cod_prod} - ${produto.produto}`}
-                  onSelect={() => handleSelect(produto)}
+                  value={`${produto.cod_prod} ${produto.produto}`}
+                  onSelect={() => {
+                    onProdutoChange(produto.cod_prod === selectedProduto?.cod_prod ? null : produto)
+                    setOpen(false)
+                  }}
                 >
                   <Check
                     className={cn(
