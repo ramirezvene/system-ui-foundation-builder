@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { LojaCombobox } from "@/components/LojaCombobox"
+import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 
 interface Loja {
   cod_loja: number
@@ -35,8 +35,6 @@ export default function Emulador() {
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null)
   
   const [formData, setFormData] = useState({
-    idLojaEstado: "",
-    idProduto: "",
     qtdeProduto: "",
     valorSolicitado: "",
     percentualDesconto: "",
@@ -93,23 +91,66 @@ export default function Emulador() {
     }
   }
 
-  const handleLojaChange = (value: string) => {
-    const loja = lojas.find(l => l.cod_loja.toString() === value)
-    setSelectedLoja(loja || null)
+  const resetCalculatedFields = () => {
     setFormData(prev => ({
       ...prev,
-      idLojaEstado: loja ? `${loja.cod_loja} - ${loja.loja} - ${loja.estado}` : ""
+      percentualDesconto: "",
+      precoMinimo: "",
+      cmgProduto: "",
+      precoRegular: "",
+      descontoAlcada: "",
+      margemUfLoja: "",
+      margemZvdc: "",
+      situacao: "",
+      observacao: ""
     }))
   }
 
-  const handleProdutoChange = (value: string) => {
-    const produto = produtos.find(p => p.cod_prod.toString() === value)
-    setSelectedProduto(produto || null)
-    setFormData(prev => ({
-      ...prev,
-      idProduto: produto ? `${produto.cod_prod} - ${produto.produto}` : "",
-      precoRegular: getPrecoRegular(produto, selectedLoja?.estado || 'RS').toString()
-    }))
+  const handleLojaChange = (loja: Loja | null) => {
+    setSelectedLoja(loja)
+    if (!loja) {
+      resetCalculatedFields()
+    } else if (selectedProduto) {
+      // Recalcular preço regular quando loja muda
+      const novoPrecoRegular = getPrecoRegular(selectedProduto, loja.estado)
+      setFormData(prev => ({
+        ...prev,
+        precoRegular: novoPrecoRegular.toString()
+      }))
+      
+      // Recalcular percentual se tiver valor solicitado
+      if (formData.valorSolicitado && novoPrecoRegular > 0) {
+        const valorSolicitado = parseFloat(formData.valorSolicitado)
+        const percentual = ((novoPrecoRegular - valorSolicitado) / novoPrecoRegular * 100).toFixed(2)
+        setFormData(prev => ({
+          ...prev,
+          percentualDesconto: percentual
+        }))
+      }
+    }
+  }
+
+  const handleProdutoChange = (produto: Produto | null) => {
+    setSelectedProduto(produto)
+    if (!produto) {
+      resetCalculatedFields()
+    } else {
+      const precoRegular = getPrecoRegular(produto, selectedLoja?.estado || 'RS')
+      setFormData(prev => ({
+        ...prev,
+        precoRegular: precoRegular.toString()
+      }))
+
+      // Recalcular percentual se tiver valor solicitado
+      if (formData.valorSolicitado && precoRegular > 0) {
+        const valorSolicitado = parseFloat(formData.valorSolicitado)
+        const percentual = ((precoRegular - valorSolicitado) / precoRegular * 100).toFixed(2)
+        setFormData(prev => ({
+          ...prev,
+          percentualDesconto: percentual
+        }))
+      }
+    }
   }
 
   const getPrecoRegular = (produto: Produto | null, estado: string): number => {
@@ -128,10 +169,10 @@ export default function Emulador() {
       [field]: value
     }))
 
-    // Calcular percentual de desconto quando valor solicitado ou preço regular mudarem
-    if (field === 'valorSolicitado' || field === 'precoRegular') {
-      const valorSolicitado = field === 'valorSolicitado' ? parseFloat(value) : parseFloat(formData.valorSolicitado)
-      const precoRegular = field === 'precoRegular' ? parseFloat(value) : parseFloat(formData.precoRegular)
+    // Calcular percentual de desconto quando valor solicitado muda
+    if (field === 'valorSolicitado' && selectedProduto && selectedLoja) {
+      const valorSolicitado = parseFloat(value)
+      const precoRegular = getPrecoRegular(selectedProduto, selectedLoja.estado)
       
       if (valorSolicitado && precoRegular && precoRegular > 0) {
         const percentual = ((precoRegular - valorSolicitado) / precoRegular * 100).toFixed(2)
@@ -139,7 +180,17 @@ export default function Emulador() {
           ...prev,
           percentualDesconto: percentual
         }))
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          percentualDesconto: ""
+        }))
       }
+    }
+
+    // Se o campo quantidade for limpo, resetar campos calculados
+    if (field === 'qtdeProduto' && value === "") {
+      resetCalculatedFields()
     }
   }
 
@@ -153,36 +204,24 @@ export default function Emulador() {
             <Label htmlFor="idLojaEstado" className="text-sm font-medium">
               ID/Loja/Estado
             </Label>
-            <Select onValueChange={handleLojaChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma loja" />
-              </SelectTrigger>
-              <SelectContent>
-                {lojas.map((loja) => (
-                  <SelectItem key={loja.cod_loja} value={loja.cod_loja.toString()}>
-                    {loja.cod_loja} - {loja.loja} - {loja.estado}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <LojaCombobox
+              lojas={lojas}
+              selectedLoja={selectedLoja}
+              onLojaChange={handleLojaChange}
+              placeholder="Buscar loja por código ou nome"
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="idProduto" className="text-sm font-medium">
               ID/Produto
             </Label>
-            <Select onValueChange={handleProdutoChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um produto" />
-              </SelectTrigger>
-              <SelectContent>
-                {produtos.map((produto) => (
-                  <SelectItem key={produto.cod_prod} value={produto.cod_prod.toString()}>
-                    {produto.cod_prod} - {produto.produto}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ProdutoCombobox
+              produtos={produtos}
+              selectedProduto={selectedProduto}
+              onProdutoChange={handleProdutoChange}
+              placeholder="Buscar produto por código ou nome"
+            />
           </div>
           
           <div className="space-y-2">
@@ -334,7 +373,7 @@ export default function Emulador() {
           </Label>
           <textarea
             id="observacao"
-            className="w-full min-h-[80px] px-3 py-2 border border-input bg-background rounded-md text-sm resize-none"
+            className="w-full min-h-[80px] px-3 py-2 border border-input bg-muted rounded-md text-sm resize-none"
             placeholder="Observação"
             value={formData.observacao}
             onChange={(e) => handleInputChange("observacao", e.target.value)}

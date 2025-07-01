@@ -69,7 +69,7 @@ export type Database = {
           imposto_pr: number | null
           imposto_rs: number | null
           imposto_sc: number | null
-          ncm: string | null
+          ncm: number | null
           pmc_pr: number | null
           pmc_rs: number | null
           pmc_sc: number | null
@@ -88,7 +88,7 @@ export type Database = {
           imposto_pr?: number | null
           imposto_rs?: number | null
           imposto_sc?: number | null
-          ncm?: string | null
+          ncm?: number | null
           pmc_pr?: number | null
           pmc_rs?: number | null
           pmc_sc?: number | null
@@ -107,7 +107,7 @@ export type Database = {
           imposto_pr?: number | null
           imposto_rs?: number | null
           imposto_sc?: number | null
-          ncm?: string | null
+          ncm?: number | null
           pmc_pr?: number | null
           pmc_rs?: number | null
           pmc_sc?: number | null
@@ -225,21 +225,24 @@ export type Database = {
           aliq_pr: number | null
           aliq_rs: number | null
           aliq_sc: number | null
-          ncm: string
+          id: number
+          ncm: string | null
           pis_cofins: number | null
         }
         Insert: {
           aliq_pr?: number | null
           aliq_rs?: number | null
           aliq_sc?: number | null
-          ncm: string
+          id: number
+          ncm?: string | null
           pis_cofins?: number | null
         }
         Update: {
           aliq_pr?: number | null
           aliq_rs?: number | null
           aliq_sc?: number | null
-          ncm?: string
+          id?: number
+          ncm?: string | null
           pis_cofins?: number | null
         }
         Relationships: []
