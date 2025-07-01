@@ -16,15 +16,15 @@ interface Loja {
 interface Produto {
   cod_prod: number
   produto: string
-  cod_grupo: number
-  grupo: string
-  ncm: string
-  pmc_rs: number
-  pmc_sc: number
-  pmc_pr: number
-  sugerido_rs: number
-  sugerido_sc: number
-  sugerido_pr: number
+  cod_grupo: number | null
+  grupo: string | null
+  ncm: string | null
+  pmc_rs: number | null
+  pmc_sc: number | null
+  pmc_pr: number | null
+  sugerido_rs: number | null
+  sugerido_sc: number | null
+  sugerido_pr: number | null
 }
 
 export default function Emulador() {
