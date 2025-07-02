@@ -19,6 +19,9 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Edit } from "lucide-react"
+import { FilterCombobox } from "@/components/FilterCombobox"
+import { DateRangePickerComponent } from "@/components/DateRangePickerComponent"
+import { DateRange } from "react-day-picker"
 
 interface DescontoSubgrupo {
   id: string
@@ -30,15 +33,16 @@ interface DescontoSubgrupo {
 }
 
 export default function ConfiguracaoDescontoSubgrupo() {
-  const [filtros, setFiltros] = useState("")
+  const [selectedFilter, setSelectedFilter] = useState("")
   const [filtro, setFiltro] = useState("")
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
   
   const [descontos] = useState<DescontoSubgrupo[]>([
     {
       id: "MED000039",
       descricao: "REFERENCIA ONEROSO CONTROLADO",
       condicao: "OK",
-      montante: 10,
+      montante: 10.00,
       dataInicio: "01/01/2025",
       dataFim: "01/01/2030"
     },
@@ -46,7 +50,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
       id: "CNV000009",
       descricao: "BEBIDAS",
       condicao: "OK",
-      montante: 4,
+      montante: 4.00,
       dataInicio: "01/01/2025",
       dataFim: "01/01/2030"
     },
@@ -54,7 +58,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
       id: "DER000001",
       descricao: "DERMO-COSMETICOS",
       condicao: "OK",
-      montante: 1,
+      montante: 1.00,
       dataInicio: "01/01/2025",
       dataFim: "01/01/2030"
     },
@@ -62,7 +66,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
       id: "MED000033",
       descricao: "REFERENCIA",
       condicao: "OK",
-      montante: 0,
+      montante: 0.00,
       dataInicio: "01/01/2025",
       dataFim: "01/01/2030"
     },
@@ -70,7 +74,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
       id: "PRF000002",
       descricao: "FRALDAS",
       condicao: "OK",
-      montante: 0,
+      montante: 0.00,
       dataInicio: "01/01/2025",
       dataFim: "01/01/2030"
     }
@@ -97,6 +101,12 @@ export default function ConfiguracaoDescontoSubgrupo() {
     setEditingItem(null)
   }
 
+  const handleLimpar = () => {
+    setSelectedFilter("")
+    setFiltro("")
+    setDateRange(undefined)
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-foreground mb-6">
@@ -104,27 +114,37 @@ export default function ConfiguracaoDescontoSubgrupo() {
       </h1>
       
       <div className="bg-card rounded-lg border p-6">
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1">
-            <Input
-              placeholder="Selecione Filtros"
-              value={filtros}
-              onChange={(e) => setFiltros(e.target.value)}
-            />
-          </div>
-          <div className="flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <FilterCombobox
+            selectedFilter={selectedFilter}
+            onSelectFilter={setSelectedFilter}
+          />
+          
+          {selectedFilter === "data_inicio" || selectedFilter === "data_fim" ? (
+            <div className="md:col-span-2">
+              <DateRangePickerComponent
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+                placeholder="Selecione o período"
+              />
+            </div>
+          ) : (
             <Input
               placeholder="Filtro"
               value={filtro}
               onChange={(e) => setFiltro(e.target.value)}
+              className="md:col-span-2"
             />
+          )}
+          
+          <div className="flex gap-2">
+            <Button className="bg-primary hover:bg-primary/90 flex-1">
+              FILTRAR
+            </Button>
+            <Button variant="outline" onClick={handleLimpar} className="flex-1">
+              LIMPAR
+            </Button>
           </div>
-          <Button className="bg-primary hover:bg-primary/90">
-            FILTRAR
-          </Button>
-          <Button variant="outline">
-            LIMPAR
-          </Button>
         </div>
 
         <div className="border rounded-lg">
@@ -146,7 +166,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                   <TableCell className="font-medium">{item.id}</TableCell>
                   <TableCell>{item.descricao}</TableCell>
                   <TableCell>{item.condicao}</TableCell>
-                  <TableCell>{item.montante}</TableCell>
+                  <TableCell>{item.montante.toFixed(2)}%</TableCell>
                   <TableCell>{item.dataInicio}</TableCell>
                   <TableCell>{item.dataFim}</TableCell>
                   <TableCell className="text-center">
@@ -170,6 +190,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                             <Input
                               id="montante"
                               type="number"
+                              step="0.01"
                               value={editForm.montante}
                               onChange={(e) => setEditForm(prev => ({
                                 ...prev,

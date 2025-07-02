@@ -1,444 +1,287 @@
 
 import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/integrations/supabase/client"
-import { useToast } from "@/hooks/use-toast"
 import { LojaCombobox } from "@/components/LojaCombobox"
 import { ProdutoCombobox } from "@/components/ProdutoCombobox"
+import { supabase } from "@/integrations/supabase/client"
+import { Tables } from "@/integrations/supabase/types"
 
-interface Loja {
-  cod_loja: number
-  loja: string
-  estado: string
-}
-
-interface Produto {
-  id_produto: number
-  nome_produto: string
-  subgrupo_id: number | null
-  ncm: string | null
-  alcada: number | null
-  aliq_rs: number | null
-  aliq_sc: number | null
-  aliq_pr: number | null
-  piscofins: number | null
-  observacao: string | null
-  pmc_rs: number | null
-  pmc_sc: number | null
-  pmc_pr: number | null
-  cmg_rs: number | null
-  cmg_sc: number | null
-  cmg_pr: number | null
-}
-
-interface SubgrupoMargem {
-  cod_subgrupo: number
-  nome_subgrupo: string
-  margem: number
-}
+type Loja = Tables<"cadastro_loja">
+type Produto = Tables<"cadastro_produto">
+type SubgrupoMargem = Tables<"subgrupo_margem">
 
 export default function Emulador() {
-  const { toast } = useToast()
   const [lojas, setLojas] = useState<Loja[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
-  const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([])
-  const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
-  const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null)
+  const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null)
+  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
+  const [subgrupoMargem, setSubgrupoMargem] = useState<SubgrupoMargem | null>(null)
+  const [valorSolicitado, setValorSolicitado] = useState("")
+  const [margemZVDC, setMargemZVDC] = useState("")
   
-  const [formData, setFormData] = useState({
-    qtdeProduto: "",
-    valorSolicitado: "",
-    percentualDesconto: "",
-    precoMinimo: "",
-    cmgProduto: "",
-    precoRegular: "",
-    descontoAlcada: "",
-    margemUfLoja: "",
-    margemZvdc: "",
-    situacao: "",
-    observacao: ""
-  })
+  // Campos calculados
+  const [precoMinimo, setPrecoMinimo] = useState("")
+  const [cmgProduto, setCmgProduto] = useState("")
+  const [precoRegular, setPrecoRegular] = useState("")
+  const [descontoAlcada, setDescontoAlcada] = useState("")
+  const [margemUFLoja, setMargemUFLoja] = useState("")
+  const [situacao, setSituacao] = useState("")
 
   useEffect(() => {
     fetchLojas()
     fetchProdutos()
-    fetchSubgrupos()
   }, [])
+
+  useEffect(() => {
+    if (produtoSelecionado) {
+      fetchSubgrupoMargem(produtoSelecionado.subgrupo_id)
+    }
+  }, [produtoSelecionado])
+
+  useEffect(() => {
+    if (subgrupoMargem) {
+      setMargemZVDC(`${subgrupoMargem.margem.toFixed(2)}%`)
+    }
+  }, [subgrupoMargem])
+
+  useEffect(() => {
+    calculateFields()
+  }, [lojaSelecionada, produtoSelecionado, subgrupoMargem, valorSolicitado])
 
   const fetchLojas = async () => {
     try {
       const { data, error } = await supabase
-        .from('cadastro_loja')
-        .select('*')
-        .order('loja')
+        .from("cadastro_loja")
+        .select("*")
+        .order("loja")
       
       if (error) throw error
       setLojas(data || [])
     } catch (error) {
-      console.error('Erro ao buscar lojas:', error)
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar as lojas",
-        variant: "destructive"
-      })
+      console.error("Erro ao buscar lojas:", error)
     }
   }
 
   const fetchProdutos = async () => {
     try {
       const { data, error } = await supabase
-        .from('cadastro_produto')
-        .select('*')
-        .order('nome_produto')
+        .from("cadastro_produto")
+        .select("*")
+        .order("nome_produto")
       
       if (error) throw error
       setProdutos(data || [])
     } catch (error) {
-      console.error('Erro ao buscar produtos:', error)
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os produtos",
-        variant: "destructive"
-      })
+      console.error("Erro ao buscar produtos:", error)
     }
   }
 
-  const fetchSubgrupos = async () => {
+  const fetchSubgrupoMargem = async (subgrupoId: number | null) => {
+    if (!subgrupoId) return
+    
     try {
       const { data, error } = await supabase
-        .from('subgrupo_margem')
-        .select('*')
-        .order('nome_subgrupo')
+        .from("subgrupo_margem")
+        .select("*")
+        .eq("cod_subgrupo", subgrupoId)
+        .single()
       
       if (error) throw error
-      setSubgrupos(data || [])
+      setSubgrupoMargem(data)
     } catch (error) {
-      console.error('Erro ao buscar subgrupos:', error)
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os subgrupos",
-        variant: "destructive"
-      })
+      console.error("Erro ao buscar subgrupo margem:", error)
     }
   }
 
-  const resetCalculatedFields = () => {
-    setFormData(prev => ({
-      ...prev,
-      percentualDesconto: "",
-      precoMinimo: "",
-      cmgProduto: "",
-      precoRegular: "",
-      descontoAlcada: "",
-      margemUfLoja: "",
-      margemZvdc: "",
-      situacao: "",
-      observacao: ""
-    }))
-  }
+  const calculateFields = () => {
+    if (!lojaSelecionada || !produtoSelecionado || !subgrupoMargem) {
+      resetCalculatedFields()
+      return
+    }
 
-  const calculateFields = (produto: Produto | null, loja: Loja | null, valorSolicitado: string) => {
-    if (!produto || !loja) return
-
-    const estado = loja.estado
+    const estado = lojaSelecionada.estado.toLowerCase()
     let aliq = 0
     let cmg = 0
     let pmc = 0
 
-    // Buscar valores baseados no estado
+    // Definir valores baseados no estado da loja
     switch (estado) {
-      case 'RS':
-        aliq = (produto.aliq_rs || 0) / 100
-        cmg = produto.cmg_rs || 0
-        pmc = produto.pmc_rs || 0
+      case 'rs':
+        aliq = produtoSelecionado.aliq_rs || 0
+        cmg = produtoSelecionado.cmg_rs || 0
+        pmc = produtoSelecionado.pmc_rs || 0
         break
-      case 'SC':
-        aliq = (produto.aliq_sc || 0) / 100
-        cmg = produto.cmg_sc || 0
-        pmc = produto.pmc_sc || 0
+      case 'sc':
+        aliq = produtoSelecionado.aliq_sc || 0
+        cmg = produtoSelecionado.cmg_sc || 0
+        pmc = produtoSelecionado.pmc_sc || 0
         break
-      case 'PR':
-        aliq = (produto.aliq_pr || 0) / 100
-        cmg = produto.cmg_pr || 0
-        pmc = produto.pmc_pr || 0
+      case 'pr':
+        aliq = produtoSelecionado.aliq_pr || 0
+        cmg = produtoSelecionado.cmg_pr || 0
+        pmc = produtoSelecionado.pmc_pr || 0
         break
     }
 
-    const piscofins = (produto.piscofins || 0) / 100
-    
-    // Buscar margem do subgrupo
-    const subgrupo = subgrupos.find(s => s.cod_subgrupo === produto.subgrupo_id)
-    const margem = subgrupo ? subgrupo.margem / 100 : 0
+    const piscofins = produtoSelecionado.piscofins || 0
+    const margemSubgrupo = subgrupoMargem.margem / 100 // Converter para decimal
 
     // Calcular Preço Mínimo
-    const precoMinimo = cmg / (1 - aliq - piscofins) / (1 - margem)
+    const precoMin = cmg / (1 - (aliq / 100 + piscofins / 100)) / (1 - margemSubgrupo)
+    setPrecoMinimo(precoMin.toFixed(2))
 
     // CMG Produto
-    const cmgProduto = cmg
+    setCmgProduto(cmg.toFixed(2))
 
     // Preço Regular
-    const precoRegular = pmc
+    setPrecoRegular(pmc.toFixed(2))
 
     // Desconto Alçada
-    const descontoAlcada = produto.alcada === 1 ? "SIM" : "NÃO"
+    setDescontoAlcada(produtoSelecionado.alcada === 1 ? "SIM" : "NÃO")
 
-    let margemUfLoja = ""
-    let situacao = ""
-    let percentualDesconto = ""
-
+    // Calcular Margem UF Loja se valor solicitado estiver preenchido
     if (valorSolicitado) {
-      const valor = parseFloat(valorSolicitado)
-      
-      // Calcular Margem UF Loja
-      const baseCalculo = valor * (1 - aliq - piscofins)
-      margemUfLoja = (((baseCalculo - cmg) / baseCalculo) * 100).toFixed(2)
+      const valorSolic = parseFloat(valorSolicitado)
+      const margemUF = ((valorSolic * (1 - aliq / 100 - piscofins / 100)) - cmg) / (valorSolic * (1 - aliq / 100 - piscofins / 100))
+      setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
 
-      // Calcular percentual de desconto
-      if (precoRegular > 0) {
-        percentualDesconto = (((precoRegular - valor) / precoRegular) * 100).toFixed(2)
-      }
-
-      // Calcular situação
-      situacao = valor >= precoMinimo ? "Aprovado" : "Reprovado"
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      precoMinimo: precoMinimo.toFixed(2),
-      cmgProduto: cmgProduto.toFixed(2),
-      precoRegular: precoRegular.toFixed(2),
-      descontoAlcada: descontoAlcada,
-      margemUfLoja: margemUfLoja,
-      percentualDesconto: percentualDesconto,
-      situacao: situacao
-    }))
-  }
-
-  const handleLojaChange = (loja: Loja | null) => {
-    setSelectedLoja(loja)
-    if (!loja) {
-      resetCalculatedFields()
+      // Situação
+      setSituacao(valorSolic >= precoMin ? "Aprovado" : "Reprovado")
     } else {
-      calculateFields(selectedProduto, loja, formData.valorSolicitado)
+      setMargemUFLoja("")
+      setSituacao("")
     }
   }
 
-  const handleProdutoChange = (produto: Produto | null) => {
-    setSelectedProduto(produto)
-    if (!produto) {
-      resetCalculatedFields()
-    } else {
-      calculateFields(produto, selectedLoja, formData.valorSolicitado)
-    }
+  const resetCalculatedFields = () => {
+    setPrecoMinimo("")
+    setCmgProduto("")
+    setPrecoRegular("")
+    setDescontoAlcada("")
+    setMargemUFLoja("")
+    setSituacao("")
+    setMargemZVDC("")
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-
-    // Recalcular campos quando valor solicitado muda
-    if (field === 'valorSolicitado') {
-      calculateFields(selectedProduto, selectedLoja, value)
-    }
-
-    // Se o campo quantidade for limpo, resetar campos calculados
-    if (field === 'qtdeProduto' && value === "") {
-      resetCalculatedFields()
-    }
+  const handleReset = () => {
+    setLojaSelecionada(null)
+    setProdutoSelecionado(null)
+    setSubgrupoMargem(null)
+    setValorSolicitado("")
+    resetCalculatedFields()
   }
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-foreground mb-6">Emulador</h1>
       
-      <div className="bg-card rounded-lg border p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="space-y-2">
-            <Label htmlFor="idLojaEstado" className="text-sm font-medium">
-              ID/Loja/Estado
-            </Label>
-            <LojaCombobox
-              lojas={lojas}
-              selectedLoja={selectedLoja}
-              onLojaChange={handleLojaChange}
-              placeholder="Buscar loja por código ou nome"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="idProduto" className="text-sm font-medium">
-              ID/Produto
-            </Label>
-            <ProdutoCombobox
-              produtos={produtos}
-              selectedProduto={selectedProduto}
-              onProdutoChange={handleProdutoChange}
-              placeholder="Buscar produto por código ou nome"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="qtdeProduto" className="text-sm font-medium">
-              Qtde.
-            </Label>
-            <Input
-              id="qtdeProduto"
-              placeholder="Qtde. Produto"
-              value={formData.qtdeProduto}
-              onChange={(e) => handleInputChange("qtdeProduto", e.target.value)}
-              className="h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="valorSolicitado" className="text-sm font-medium">
-              Valor
-            </Label>
-            <Input
-              id="valorSolicitado"
-              placeholder="Valor Solicitado"
-              type="number"
-              step="0.01"
-              value={formData.valorSolicitado}
-              onChange={(e) => handleInputChange("valorSolicitado", e.target.value)}
-              className="h-10"
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Painel de Seleção */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Seleção</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="loja">Loja</Label>
+              <LojaCombobox
+                lojas={lojas}
+                selectedLoja={lojaSelecionada}
+                onSelectLoja={setLojaSelecionada}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="space-y-2">
-            <Label htmlFor="percentualDesconto" className="text-sm font-medium">
-              % Desconto
-            </Label>
-            <Input
-              id="percentualDesconto"
-              placeholder="Percentual de Desconto"
-              value={formData.percentualDesconto}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="precoMinimo" className="text-sm font-medium">
-              Preço Mínimo
-            </Label>
-            <Input
-              id="precoMinimo"
-              placeholder="Preço Mínimo"
-              value={formData.precoMinimo}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="cmgProduto" className="text-sm font-medium">
-              CMG Produto
-            </Label>
-            <Input
-              id="cmgProduto"
-              placeholder="CMG Produto"
-              value={formData.cmgProduto}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="precoRegular" className="text-sm font-medium">
-              Preço Regular
-            </Label>
-            <Input
-              id="precoRegular"
-              placeholder="Preço Regular"
-              value={formData.precoRegular}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="produto">Produto</Label>
+              <ProdutoCombobox
+                produtos={produtos}
+                selectedProduto={produtoSelecionado}
+                onSelectProduto={setProdutoSelecionado}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="space-y-2">
-            <Label htmlFor="descontoAlcada" className="text-sm font-medium">
-              Desconto Alçada
-            </Label>
-            <Input
-              id="descontoAlcada"
-              placeholder="Desconto Alçada"
-              value={formData.descontoAlcada}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="margemUfLoja" className="text-sm font-medium">
-              Margem UF Loja
-            </Label>
-            <Input
-              id="margemUfLoja"
-              placeholder="% Margem"
-              value={formData.margemUfLoja ? `${formData.margemUfLoja}%` : ""}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="margemZvdc" className="text-sm font-medium">
-              Margem ZVDC
-            </Label>
-            <Input
-              id="margemZvdc"
-              placeholder="% Margem"
-              value={formData.margemZvdc}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="situacao" className="text-sm font-medium">
-              Situação
-            </Label>
-            <Input
-              id="situacao"
-              placeholder="Situação"
-              value={formData.situacao}
-              disabled
-              className="bg-muted h-10"
-            />
-          </div>
-        </div>
+            <div className="space-y-2">
+              <Label htmlFor="valorSolicitado">Valor Solicitado</Label>
+              <Input
+                id="valorSolicitado"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={valorSolicitado}
+                onChange={(e) => setValorSolicitado(e.target.value)}
+              />
+            </div>
 
-        <div className="space-y-2 mb-6">
-          <Label htmlFor="observacao" className="text-sm font-medium">
-            Observação
-          </Label>
-          <textarea
-            id="observacao"
-            className="w-full min-h-[80px] px-3 py-2 border border-input bg-muted rounded-md text-sm resize-none"
-            placeholder="Observação"
-            value={formData.observacao}
-            disabled
-          />
-        </div>
+            <div className="flex gap-2">
+              <Button 
+                className={`flex-1 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                disabled={!situacao}
+              >
+                APROVAR
+              </Button>
+              <Button variant="outline" onClick={handleReset}>
+                LIMPAR
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="flex justify-end gap-4">
-          <Button className="bg-[#03BA55] hover:bg-[#03BA55]/90 text-white">
-            APROVAR
-          </Button>
-          <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-            RECUSAR
-          </Button>
-        </div>
+        {/* Painel de Resultados */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Informações do Produto</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Preço Mínimo</Label>
+                <Input value={precoMinimo} readOnly className="bg-muted" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">CMG Produto</Label>
+                <Input value={cmgProduto} readOnly className="bg-muted" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Preço Regular</Label>
+                <Input value={precoRegular} readOnly className="bg-muted" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Desconto Alçada</Label>
+                <Input value={descontoAlcada} readOnly className="bg-muted" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Margem UF Loja</Label>
+                <Input value={margemUFLoja} readOnly className="bg-muted" />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Margem ZVDC</Label>
+                <Input value={margemZVDC} readOnly className="bg-muted" />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Situação</Label>
+                <Input 
+                  value={situacao} 
+                  readOnly 
+                  className={`bg-muted font-medium ${
+                    situacao === "Aprovado" ? "text-green-600" : 
+                    situacao === "Reprovado" ? "text-red-600" : ""
+                  }`}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
