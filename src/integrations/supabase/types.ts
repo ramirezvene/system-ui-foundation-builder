@@ -62,69 +62,66 @@ export type Database = {
       }
       cadastro_produto: {
         Row: {
-          cod_barras: string | null
-          cod_grupo: number | null
-          cod_prod: number
-          grupo: string | null
-          imposto_pr: number | null
-          imposto_rs: number | null
-          imposto_sc: number | null
-          ncm: number | null
+          alcada: number | null
+          aliq_pr: number | null
+          aliq_rs: number | null
+          aliq_sc: number | null
+          cmg_pr: number | null
+          cmg_rs: number | null
+          cmg_sc: number | null
+          id_produto: number
+          ncm: string | null
+          nome_produto: string
+          observacao: string | null
+          piscofins: number | null
           pmc_pr: number | null
           pmc_rs: number | null
           pmc_sc: number | null
-          produto: string
-          reg_ms: string | null
-          subgrupo: string | null
-          sugerido_pr: number | null
-          sugerido_rs: number | null
-          sugerido_sc: number | null
+          subgrupo_id: number | null
         }
         Insert: {
-          cod_barras?: string | null
-          cod_grupo?: number | null
-          cod_prod: number
-          grupo?: string | null
-          imposto_pr?: number | null
-          imposto_rs?: number | null
-          imposto_sc?: number | null
-          ncm?: number | null
+          alcada?: number | null
+          aliq_pr?: number | null
+          aliq_rs?: number | null
+          aliq_sc?: number | null
+          cmg_pr?: number | null
+          cmg_rs?: number | null
+          cmg_sc?: number | null
+          id_produto: number
+          ncm?: string | null
+          nome_produto: string
+          observacao?: string | null
+          piscofins?: number | null
           pmc_pr?: number | null
           pmc_rs?: number | null
           pmc_sc?: number | null
-          produto: string
-          reg_ms?: string | null
-          subgrupo?: string | null
-          sugerido_pr?: number | null
-          sugerido_rs?: number | null
-          sugerido_sc?: number | null
+          subgrupo_id?: number | null
         }
         Update: {
-          cod_barras?: string | null
-          cod_grupo?: number | null
-          cod_prod?: number
-          grupo?: string | null
-          imposto_pr?: number | null
-          imposto_rs?: number | null
-          imposto_sc?: number | null
-          ncm?: number | null
+          alcada?: number | null
+          aliq_pr?: number | null
+          aliq_rs?: number | null
+          aliq_sc?: number | null
+          cmg_pr?: number | null
+          cmg_rs?: number | null
+          cmg_sc?: number | null
+          id_produto?: number
+          ncm?: string | null
+          nome_produto?: string
+          observacao?: string | null
+          piscofins?: number | null
           pmc_pr?: number | null
           pmc_rs?: number | null
           pmc_sc?: number | null
-          produto?: string
-          reg_ms?: string | null
-          subgrupo?: string | null
-          sugerido_pr?: number | null
-          sugerido_rs?: number | null
-          sugerido_sc?: number | null
+          subgrupo_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "cadastro_produto_cod_grupo_fkey"
-            columns: ["cod_grupo"]
+            foreignKeyName: "cadastro_produto_subgrupo_id_fkey"
+            columns: ["subgrupo_id"]
             isOneToOne: false
-            referencedRelation: "margem_subgrupo"
-            referencedColumns: ["id"]
+            referencedRelation: "subgrupo_margem"
+            referencedColumns: ["cod_subgrupo"]
           },
         ]
       }
@@ -193,60 +190,6 @@ export type Database = {
           },
         ]
       }
-      margem_subgrupo: {
-        Row: {
-          cond: number
-          data_final: string
-          data_inicio: string
-          descricao: string
-          id: number
-          montante: number
-        }
-        Insert: {
-          cond: number
-          data_final: string
-          data_inicio: string
-          descricao: string
-          id: number
-          montante: number
-        }
-        Update: {
-          cond?: number
-          data_final?: string
-          data_inicio?: string
-          descricao?: string
-          id?: number
-          montante?: number
-        }
-        Relationships: []
-      }
-      ncm_aliq: {
-        Row: {
-          aliq_pr: number | null
-          aliq_rs: number | null
-          aliq_sc: number | null
-          id: number
-          ncm: string | null
-          pis_cofins: number | null
-        }
-        Insert: {
-          aliq_pr?: number | null
-          aliq_rs?: number | null
-          aliq_sc?: number | null
-          id: number
-          ncm?: string | null
-          pis_cofins?: number | null
-        }
-        Update: {
-          aliq_pr?: number | null
-          aliq_rs?: number | null
-          aliq_sc?: number | null
-          id?: number
-          ncm?: string | null
-          pis_cofins?: number | null
-        }
-        Relationships: []
-      }
       produtos: {
         Row: {
           auditoria_id: string
@@ -281,6 +224,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subgrupo_margem: {
+        Row: {
+          cod_subgrupo: number
+          margem: number
+          nome_subgrupo: string
+        }
+        Insert: {
+          cod_subgrupo: number
+          margem: number
+          nome_subgrupo: string
+        }
+        Update: {
+          cod_subgrupo?: number
+          margem?: number
+          nome_subgrupo?: string
+        }
+        Relationships: []
       }
     }
     Views: {

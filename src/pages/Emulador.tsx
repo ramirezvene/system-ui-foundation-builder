@@ -15,23 +15,35 @@ interface Loja {
 }
 
 interface Produto {
-  cod_prod: number
-  produto: string
-  cod_grupo: number | null
-  grupo: string | null
-  ncm: number | null
+  id_produto: number
+  nome_produto: string
+  subgrupo_id: number | null
+  ncm: string | null
+  alcada: number | null
+  aliq_rs: number | null
+  aliq_sc: number | null
+  aliq_pr: number | null
+  piscofins: number | null
+  observacao: string | null
   pmc_rs: number | null
   pmc_sc: number | null
   pmc_pr: number | null
-  sugerido_rs: number | null
-  sugerido_sc: number | null
-  sugerido_pr: number | null
+  cmg_rs: number | null
+  cmg_sc: number | null
+  cmg_pr: number | null
+}
+
+interface SubgrupoMargem {
+  cod_subgrupo: number
+  nome_subgrupo: string
+  margem: number
 }
 
 export default function Emulador() {
   const { toast } = useToast()
   const [lojas, setLojas] = useState<Loja[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([])
   const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null)
   
@@ -52,6 +64,7 @@ export default function Emulador() {
   useEffect(() => {
     fetchLojas()
     fetchProdutos()
+    fetchSubgrupos()
   }, [])
 
   const fetchLojas = async () => {
@@ -78,7 +91,7 @@ export default function Emulador() {
       const { data, error } = await supabase
         .from('cadastro_produto')
         .select('*')
-        .order('produto')
+        .order('nome_produto')
       
       if (error) throw error
       setProdutos(data || [])
@@ -87,6 +100,25 @@ export default function Emulador() {
       toast({
         title: "Erro",
         description: "Não foi possível carregar os produtos",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const fetchSubgrupos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subgrupo_margem')
+        .select('*')
+        .order('nome_subgrupo')
+      
+      if (error) throw error
+      setSubgrupos(data || [])
+    } catch (error) {
+      console.error('Erro ao buscar subgrupos:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os subgrupos",
         variant: "destructive"
       })
     }
@@ -107,27 +139,89 @@ export default function Emulador() {
     }))
   }
 
+  const calculateFields = (produto: Produto | null, loja: Loja | null, valorSolicitado: string) => {
+    if (!produto || !loja) return
+
+    const estado = loja.estado
+    let aliq = 0
+    let cmg = 0
+    let pmc = 0
+
+    // Buscar valores baseados no estado
+    switch (estado) {
+      case 'RS':
+        aliq = (produto.aliq_rs || 0) / 100
+        cmg = produto.cmg_rs || 0
+        pmc = produto.pmc_rs || 0
+        break
+      case 'SC':
+        aliq = (produto.aliq_sc || 0) / 100
+        cmg = produto.cmg_sc || 0
+        pmc = produto.pmc_sc || 0
+        break
+      case 'PR':
+        aliq = (produto.aliq_pr || 0) / 100
+        cmg = produto.cmg_pr || 0
+        pmc = produto.pmc_pr || 0
+        break
+    }
+
+    const piscofins = (produto.piscofins || 0) / 100
+    
+    // Buscar margem do subgrupo
+    const subgrupo = subgrupos.find(s => s.cod_subgrupo === produto.subgrupo_id)
+    const margem = subgrupo ? subgrupo.margem / 100 : 0
+
+    // Calcular Preço Mínimo
+    const precoMinimo = cmg / (1 - aliq - piscofins) / (1 - margem)
+
+    // CMG Produto
+    const cmgProduto = cmg
+
+    // Preço Regular
+    const precoRegular = pmc
+
+    // Desconto Alçada
+    const descontoAlcada = produto.alcada === 1 ? "SIM" : "NÃO"
+
+    let margemUfLoja = ""
+    let situacao = ""
+    let percentualDesconto = ""
+
+    if (valorSolicitado) {
+      const valor = parseFloat(valorSolicitado)
+      
+      // Calcular Margem UF Loja
+      const baseCalculo = valor * (1 - aliq - piscofins)
+      margemUfLoja = (((baseCalculo - cmg) / baseCalculo) * 100).toFixed(2)
+
+      // Calcular percentual de desconto
+      if (precoRegular > 0) {
+        percentualDesconto = (((precoRegular - valor) / precoRegular) * 100).toFixed(2)
+      }
+
+      // Calcular situação
+      situacao = valor >= precoMinimo ? "Aprovado" : "Reprovado"
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      precoMinimo: precoMinimo.toFixed(2),
+      cmgProduto: cmgProduto.toFixed(2),
+      precoRegular: precoRegular.toFixed(2),
+      descontoAlcada: descontoAlcada,
+      margemUfLoja: margemUfLoja,
+      percentualDesconto: percentualDesconto,
+      situacao: situacao
+    }))
+  }
+
   const handleLojaChange = (loja: Loja | null) => {
     setSelectedLoja(loja)
     if (!loja) {
       resetCalculatedFields()
-    } else if (selectedProduto) {
-      // Recalcular preço regular quando loja muda
-      const novoPrecoRegular = getPrecoRegular(selectedProduto, loja.estado)
-      setFormData(prev => ({
-        ...prev,
-        precoRegular: novoPrecoRegular.toString()
-      }))
-      
-      // Recalcular percentual se tiver valor solicitado
-      if (formData.valorSolicitado && novoPrecoRegular > 0) {
-        const valorSolicitado = parseFloat(formData.valorSolicitado)
-        const percentual = ((novoPrecoRegular - valorSolicitado) / novoPrecoRegular * 100).toFixed(2)
-        setFormData(prev => ({
-          ...prev,
-          percentualDesconto: percentual
-        }))
-      }
+    } else {
+      calculateFields(selectedProduto, loja, formData.valorSolicitado)
     }
   }
 
@@ -136,31 +230,7 @@ export default function Emulador() {
     if (!produto) {
       resetCalculatedFields()
     } else {
-      const precoRegular = getPrecoRegular(produto, selectedLoja?.estado || 'RS')
-      setFormData(prev => ({
-        ...prev,
-        precoRegular: precoRegular.toString()
-      }))
-
-      // Recalcular percentual se tiver valor solicitado
-      if (formData.valorSolicitado && precoRegular > 0) {
-        const valorSolicitado = parseFloat(formData.valorSolicitado)
-        const percentual = ((precoRegular - valorSolicitado) / precoRegular * 100).toFixed(2)
-        setFormData(prev => ({
-          ...prev,
-          percentualDesconto: percentual
-        }))
-      }
-    }
-  }
-
-  const getPrecoRegular = (produto: Produto | null, estado: string): number => {
-    if (!produto) return 0
-    switch (estado) {
-      case 'RS': return produto.pmc_rs || 0
-      case 'SC': return produto.pmc_sc || 0
-      case 'PR': return produto.pmc_pr || 0
-      default: return produto.pmc_rs || 0
+      calculateFields(produto, selectedLoja, formData.valorSolicitado)
     }
   }
 
@@ -170,23 +240,9 @@ export default function Emulador() {
       [field]: value
     }))
 
-    // Calcular percentual de desconto quando valor solicitado muda
-    if (field === 'valorSolicitado' && selectedProduto && selectedLoja) {
-      const valorSolicitado = parseFloat(value)
-      const precoRegular = getPrecoRegular(selectedProduto, selectedLoja.estado)
-      
-      if (valorSolicitado && precoRegular && precoRegular > 0) {
-        const percentual = ((precoRegular - valorSolicitado) / precoRegular * 100).toFixed(2)
-        setFormData(prev => ({
-          ...prev,
-          percentualDesconto: percentual
-        }))
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          percentualDesconto: ""
-        }))
-      }
+    // Recalcular campos quando valor solicitado muda
+    if (field === 'valorSolicitado') {
+      calculateFields(selectedProduto, selectedLoja, value)
     }
 
     // Se o campo quantidade for limpo, resetar campos calculados
@@ -234,6 +290,7 @@ export default function Emulador() {
               placeholder="Qtde. Produto"
               value={formData.qtdeProduto}
               onChange={(e) => handleInputChange("qtdeProduto", e.target.value)}
+              className="h-10"
             />
           </div>
           
@@ -248,6 +305,7 @@ export default function Emulador() {
               step="0.01"
               value={formData.valorSolicitado}
               onChange={(e) => handleInputChange("valorSolicitado", e.target.value)}
+              className="h-10"
             />
           </div>
         </div>
@@ -261,9 +319,8 @@ export default function Emulador() {
               id="percentualDesconto"
               placeholder="Percentual de Desconto"
               value={formData.percentualDesconto}
-              onChange={(e) => handleInputChange("percentualDesconto", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
           
@@ -275,9 +332,8 @@ export default function Emulador() {
               id="precoMinimo"
               placeholder="Preço Mínimo"
               value={formData.precoMinimo}
-              onChange={(e) => handleInputChange("precoMinimo", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
           
@@ -289,9 +345,8 @@ export default function Emulador() {
               id="cmgProduto"
               placeholder="CMG Produto"
               value={formData.cmgProduto}
-              onChange={(e) => handleInputChange("cmgProduto", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
           
@@ -303,9 +358,8 @@ export default function Emulador() {
               id="precoRegular"
               placeholder="Preço Regular"
               value={formData.precoRegular}
-              onChange={(e) => handleInputChange("precoRegular", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
         </div>
@@ -319,9 +373,8 @@ export default function Emulador() {
               id="descontoAlcada"
               placeholder="Desconto Alçada"
               value={formData.descontoAlcada}
-              onChange={(e) => handleInputChange("descontoAlcada", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
           
@@ -332,10 +385,9 @@ export default function Emulador() {
             <Input
               id="margemUfLoja"
               placeholder="% Margem"
-              value={formData.margemUfLoja}
-              onChange={(e) => handleInputChange("margemUfLoja", e.target.value)}
+              value={formData.margemUfLoja ? `${formData.margemUfLoja}%` : ""}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
           
@@ -347,9 +399,8 @@ export default function Emulador() {
               id="margemZvdc"
               placeholder="% Margem"
               value={formData.margemZvdc}
-              onChange={(e) => handleInputChange("margemZvdc", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
           
@@ -361,9 +412,8 @@ export default function Emulador() {
               id="situacao"
               placeholder="Situação"
               value={formData.situacao}
-              onChange={(e) => handleInputChange("situacao", e.target.value)}
               disabled
-              className="bg-muted"
+              className="bg-muted h-10"
             />
           </div>
         </div>
@@ -377,13 +427,12 @@ export default function Emulador() {
             className="w-full min-h-[80px] px-3 py-2 border border-input bg-muted rounded-md text-sm resize-none"
             placeholder="Observação"
             value={formData.observacao}
-            onChange={(e) => handleInputChange("observacao", e.target.value)}
             disabled
           />
         </div>
 
         <div className="flex justify-end gap-4">
-          <Button className="bg-success hover:bg-success/90 text-success-foreground">
+          <Button className="bg-[#03BA55] hover:bg-[#03BA55]/90 text-white">
             APROVAR
           </Button>
           <Button className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">

@@ -18,17 +18,22 @@ import {
 } from "@/components/ui/popover"
 
 interface Produto {
-  cod_prod: number
-  produto: string
-  cod_grupo: number | null
-  grupo: string | null
-  ncm: number | null
+  id_produto: number
+  nome_produto: string
+  subgrupo_id: number | null
+  ncm: string | null
+  alcada: number | null
+  aliq_rs: number | null
+  aliq_sc: number | null
+  aliq_pr: number | null
+  piscofins: number | null
+  observacao: string | null
   pmc_rs: number | null
   pmc_sc: number | null
   pmc_pr: number | null
-  sugerido_rs: number | null
-  sugerido_sc: number | null
-  sugerido_pr: number | null
+  cmg_rs: number | null
+  cmg_sc: number | null
+  cmg_pr: number | null
 }
 
 interface ProdutoComboboxProps {
@@ -56,7 +61,7 @@ export function ProdutoCombobox({
           className="w-full justify-between"
         >
           {selectedProduto
-            ? `${selectedProduto.cod_prod} - ${selectedProduto.produto}`
+            ? `${selectedProduto.id_produto} - ${selectedProduto.nome_produto}`
             : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -69,20 +74,20 @@ export function ProdutoCombobox({
             <CommandGroup>
               {produtos.map((produto) => (
                 <CommandItem
-                  key={produto.cod_prod}
-                  value={`${produto.cod_prod} ${produto.produto}`}
+                  key={produto.id_produto}
+                  value={`${produto.id_produto} ${produto.nome_produto}`}
                   onSelect={() => {
-                    onProdutoChange(produto.cod_prod === selectedProduto?.cod_prod ? null : produto)
+                    onProdutoChange(produto.id_produto === selectedProduto?.id_produto ? null : produto)
                     setOpen(false)
                   }}
                 >
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      selectedProduto?.cod_prod === produto.cod_prod ? "opacity-100" : "opacity-0"
+                      selectedProduto?.id_produto === produto.id_produto ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {produto.cod_prod} - {produto.produto}
+                  {produto.id_produto} - {produto.nome_produto}
                 </CommandItem>
               ))}
             </CommandGroup>

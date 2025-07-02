@@ -3,7 +3,6 @@ import { useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import { 
   Settings, 
-  Package, 
   Calculator,
   ChevronDown
 } from "lucide-react"
@@ -41,16 +40,6 @@ const menuItems = [
       {
         title: "Desconto Subgrupo",
         url: "/configuracao-desconto-subgrupo",
-      },
-    ],
-  },
-  {
-    title: "Conf. Imposto",
-    icon: Package,
-    items: [
-      {
-        title: "NCM",
-        url: "/configuracao-ncm",
       },
     ],
   },

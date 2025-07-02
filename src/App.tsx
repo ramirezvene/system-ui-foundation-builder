@@ -10,7 +10,6 @@ import { AppHeader } from "@/components/AppHeader";
 import Index from "./pages/Index";
 import Emulador from "./pages/Emulador";
 import ConfiguracaoDescontoSubgrupo from "./pages/ConfiguracaoDescontoSubgrupo";
-import ConfiguracaoNCM from "./pages/ConfiguracaoNCM";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +30,6 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/emulador" element={<Emulador />} />
                   <Route path="/configuracao-desconto-subgrupo" element={<ConfiguracaoDescontoSubgrupo />} />
-                  <Route path="/configuracao-ncm" element={<ConfiguracaoNCM />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
