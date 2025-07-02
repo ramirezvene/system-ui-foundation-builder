@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -190,7 +189,7 @@ export default function Emulador() {
               <LojaCombobox
                 lojas={lojas}
                 selectedLoja={lojaSelecionada}
-                onSelectLoja={setLojaSelecionada}
+                onLojaChange={setLojaSelecionada}
               />
             </div>
 
@@ -199,7 +198,7 @@ export default function Emulador() {
               <ProdutoCombobox
                 produtos={produtos}
                 selectedProduto={produtoSelecionado}
-                onSelectProduto={setProdutoSelecionado}
+                onProdutoChange={setProdutoSelecionado}
               />
             </div>
 
