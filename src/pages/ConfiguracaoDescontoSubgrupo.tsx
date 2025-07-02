@@ -1,5 +1,5 @@
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { 
@@ -22,12 +22,13 @@ import { Edit } from "lucide-react"
 import { FilterCombobox } from "@/components/FilterCombobox"
 import { DateRangePickerComponent } from "@/components/DateRangePickerComponent"
 import { DateRange } from "react-day-picker"
+import { supabase } from "@/integrations/supabase/client"
+import { Tables } from "@/integrations/supabase/types"
 
-interface DescontoSubgrupo {
-  id: string
-  descricao: string
+type SubgrupoMargem = Tables<"subgrupo_margem">
+
+interface DescontoSubgrupo extends SubgrupoMargem {
   condicao: string
-  montante: number
   dataInicio: string
   dataFim: string
 }
@@ -36,75 +37,144 @@ export default function ConfiguracaoDescontoSubgrupo() {
   const [selectedFilter, setSelectedFilter] = useState("")
   const [filtro, setFiltro] = useState("")
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  
-  const [descontos] = useState<DescontoSubgrupo[]>([
-    {
-      id: "MED000039",
-      descricao: "REFERENCIA ONEROSO CONTROLADO",
-      condicao: "OK",
-      montante: 10.00,
-      dataInicio: "01/01/2025",
-      dataFim: "01/01/2030"
-    },
-    {
-      id: "CNV000009",
-      descricao: "BEBIDAS",
-      condicao: "OK",
-      montante: 4.00,
-      dataInicio: "01/01/2025",
-      dataFim: "01/01/2030"
-    },
-    {
-      id: "DER000001",
-      descricao: "DERMO-COSMETICOS",
-      condicao: "OK",
-      montante: 1.00,
-      dataInicio: "01/01/2025",
-      dataFim: "01/01/2030"
-    },
-    {
-      id: "MED000033",
-      descricao: "REFERENCIA",
-      condicao: "OK",
-      montante: 0.00,
-      dataInicio: "01/01/2025",
-      dataFim: "01/01/2030"
-    },
-    {
-      id: "PRF000002",
-      descricao: "FRALDAS",
-      condicao: "OK",
-      montante: 0.00,
-      dataInicio: "01/01/2025",
-      dataFim: "01/01/2030"
-    }
-  ])
-
+  const [descontos, setDescontos] = useState<DescontoSubgrupo[]>([])
+  const [filteredDescontos, setFilteredDescontos] = useState<DescontoSubgrupo[]>([])
   const [editingItem, setEditingItem] = useState<DescontoSubgrupo | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editForm, setEditForm] = useState({
-    montante: "",
+    margem: "",
     dataInicio: "",
     dataFim: ""
   })
 
+  useEffect(() => {
+    fetchSubgrupoMargem()
+  }, [])
+
+  useEffect(() => {
+    applyFilters()
+  }, [descontos, selectedFilter, filtro, dateRange])
+
+  const fetchSubgrupoMargem = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("subgrupo_margem")
+        .select("*")
+        .order("cod_subgrupo")
+      
+      if (error) throw error
+      
+      // Transformar dados para incluir campos necessários
+      const transformedData: DescontoSubgrupo[] = (data || []).map(item => ({
+        ...item,
+        condicao: "OK",
+        dataInicio: "01/01/2025",
+        dataFim: "01/01/2030"
+      }))
+      
+      setDescontos(transformedData)
+      setFilteredDescontos(transformedData)
+    } catch (error) {
+      console.error("Erro ao buscar subgrupos:", error)
+    }
+  }
+
+  const applyFilters = () => {
+    let filtered = [...descontos]
+
+    if (selectedFilter && filtro) {
+      switch (selectedFilter) {
+        case "cod_subgrupo":
+          filtered = filtered.filter(item => 
+            item.cod_subgrupo.toString().includes(filtro)
+          )
+          break
+        case "nome_subgrupo":
+          filtered = filtered.filter(item => 
+            item.nome_subgrupo.toLowerCase().includes(filtro.toLowerCase())
+          )
+          break
+        case "condicao":
+          filtered = filtered.filter(item => 
+            item.condicao.toLowerCase().includes(filtro.toLowerCase())
+          )
+          break
+        case "margem":
+          filtered = filtered.filter(item => 
+            item.margem.toString().includes(filtro)
+          )
+          break
+      }
+    }
+
+    if (selectedFilter === "data_inicio" || selectedFilter === "data_fim") {
+      if (dateRange?.from && dateRange?.to) {
+        // Aqui você implementaria a filtragem por data
+        // Por agora, mantém todos os registros
+        filtered = filtered
+      }
+    }
+
+    setFilteredDescontos(filtered)
+  }
+
   const handleEdit = (item: DescontoSubgrupo) => {
     setEditingItem(item)
     setEditForm({
-      montante: item.montante.toString(),
+      margem: item.margem.toString(),
       dataInicio: item.dataInicio,
       dataFim: item.dataFim
     })
+    setIsDialogOpen(true)
   }
 
-  const handleSave = () => {
-    console.log("Salvando alterações:", editForm)
+  const handleSave = async () => {
+    if (!editingItem) return
+
+    try {
+      const { error } = await supabase
+        .from("subgrupo_margem")
+        .update({
+          margem: parseFloat(editForm.margem)
+        })
+        .eq("cod_subgrupo", editingItem.cod_subgrupo)
+
+      if (error) throw error
+
+      // Atualizar dados locais
+      const updatedDescontos = descontos.map(item => 
+        item.cod_subgrupo === editingItem.cod_subgrupo 
+          ? { ...item, margem: parseFloat(editForm.margem) }
+          : item
+      )
+      setDescontos(updatedDescontos)
+      setIsDialogOpen(false)
+      setEditingItem(null)
+      
+      console.log("Desconto atualizado com sucesso!")
+    } catch (error) {
+      console.error("Erro ao salvar:", error)
+    }
+  }
+
+  const handleCancel = () => {
+    setIsDialogOpen(false)
     setEditingItem(null)
+    setEditForm({
+      margem: "",
+      dataInicio: "",
+      dataFim: ""
+    })
   }
 
   const handleLimpar = () => {
     setSelectedFilter("")
     setFiltro("")
     setDateRange(undefined)
+  }
+
+  const handleFiltrar = () => {
+    applyFilters()
   }
 
   return (
@@ -138,7 +208,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
           )}
           
           <div className="flex gap-2">
-            <Button className="bg-primary hover:bg-primary/90 flex-1">
+            <Button onClick={handleFiltrar} className="bg-primary hover:bg-primary/90 flex-1">
               FILTRAR
             </Button>
             <Button variant="outline" onClick={handleLimpar} className="flex-1">
@@ -161,74 +231,22 @@ export default function ConfiguracaoDescontoSubgrupo() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {descontos.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.id}</TableCell>
-                  <TableCell>{item.descricao}</TableCell>
+              {filteredDescontos.map((item) => (
+                <TableRow key={item.cod_subgrupo}>
+                  <TableCell className="font-medium">{item.cod_subgrupo}</TableCell>
+                  <TableCell>{item.nome_subgrupo}</TableCell>
                   <TableCell>{item.condicao}</TableCell>
-                  <TableCell>{item.montante.toFixed(2)}%</TableCell>
+                  <TableCell>{item.margem.toFixed(2)}%</TableCell>
                   <TableCell>{item.dataInicio}</TableCell>
                   <TableCell>{item.dataFim}</TableCell>
                   <TableCell className="text-center">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Editar Desconto - {item.id}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="montante">Montante (%)</Label>
-                            <Input
-                              id="montante"
-                              type="number"
-                              step="0.01"
-                              value={editForm.montante}
-                              onChange={(e) => setEditForm(prev => ({
-                                ...prev,
-                                montante: e.target.value
-                              }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="dataInicio">Data Início</Label>
-                            <Input
-                              id="dataInicio"
-                              type="date"
-                              value={editForm.dataInicio.split("/").reverse().join("-")}
-                              onChange={(e) => setEditForm(prev => ({
-                                ...prev,
-                                dataInicio: e.target.value.split("-").reverse().join("/")
-                              }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="dataFim">Data Fim</Label>
-                            <Input
-                              id="dataFim"
-                              type="date"
-                              value={editForm.dataFim.split("/").reverse().join("-")}
-                              onChange={(e) => setEditForm(prev => ({
-                                ...prev,
-                                dataFim: e.target.value.split("-").reverse().join("/")
-                              }))}
-                            />
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline">Cancelar</Button>
-                            <Button onClick={handleSave}>Salvar</Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(item)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -237,7 +255,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         </div>
 
         <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-          <span>1-5 de 5</span>
+          <span>1-{filteredDescontos.length} de {descontos.length}</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled>
               &lt;
@@ -248,6 +266,57 @@ export default function ConfiguracaoDescontoSubgrupo() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Desconto - {editingItem?.cod_subgrupo}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="margem">Montante (%)</Label>
+              <Input
+                id="margem"
+                type="number"
+                step="0.01"
+                value={editForm.margem}
+                onChange={(e) => setEditForm(prev => ({
+                  ...prev,
+                  margem: e.target.value
+                }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataInicio">Data Início</Label>
+              <Input
+                id="dataInicio"
+                type="date"
+                value={editForm.dataInicio.split("/").reverse().join("-")}
+                onChange={(e) => setEditForm(prev => ({
+                  ...prev,
+                  dataInicio: e.target.value.split("-").reverse().join("/")
+                }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataFim">Data Fim</Label>
+              <Input
+                id="dataFim"
+                type="date"
+                value={editForm.dataFim.split("/").reverse().join("-")}
+                onChange={(e) => setEditForm(prev => ({
+                  ...prev,
+                  dataFim: e.target.value.split("-").reverse().join("/")
+                }))}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
+              <Button onClick={handleSave}>Salvar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

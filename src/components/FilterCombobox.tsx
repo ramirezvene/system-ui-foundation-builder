@@ -21,10 +21,10 @@ import {
 } from "@/components/ui/popover"
 
 const filterOptions = [
-  { value: "id", label: "ID" },
-  { value: "descricao", label: "Descrição" },
+  { value: "cod_subgrupo", label: "ID" },
+  { value: "nome_subgrupo", label: "Descrição" },
   { value: "condicao", label: "Condição" },
-  { value: "montante", label: "Montante" },
+  { value: "margem", label: "Montante" },
   { value: "data_inicio", label: "Data Início" },
   { value: "data_fim", label: "Data Fim" },
 ]

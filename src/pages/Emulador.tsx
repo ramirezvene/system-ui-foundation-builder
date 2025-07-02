@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { LojaCombobox } from "@/components/LojaCombobox"
 import { ProdutoCombobox } from "@/components/ProdutoCombobox"
+import { CurrencyInput } from "@/components/CurrencyInput"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 
@@ -19,6 +20,7 @@ export default function Emulador() {
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
   const [subgrupoMargem, setSubgrupoMargem] = useState<SubgrupoMargem | null>(null)
   const [valorSolicitado, setValorSolicitado] = useState("")
+  const [quantidade, setQuantidade] = useState("1")
   const [margemZVDC, setMargemZVDC] = useState("")
   
   // Campos calculados
@@ -27,6 +29,8 @@ export default function Emulador() {
   const [precoRegular, setPrecoRegular] = useState("")
   const [descontoAlcada, setDescontoAlcada] = useState("")
   const [margemUFLoja, setMargemUFLoja] = useState("")
+  const [percentualDesconto, setPercentualDesconto] = useState("")
+  const [observacao, setObservacao] = useState("")
   const [situacao, setSituacao] = useState("")
 
   useEffect(() => {
@@ -141,18 +145,31 @@ export default function Emulador() {
     // Desconto Alçada
     setDescontoAlcada(produtoSelecionado.alcada === 1 ? "SIM" : "NÃO")
 
-    // Calcular Margem UF Loja se valor solicitado estiver preenchido
+    // Observação
+    setObservacao(produtoSelecionado.observacao || "")
+
+    // Calcular campos se valor solicitado estiver preenchido
     if (valorSolicitado) {
-      const valorSolic = parseFloat(valorSolicitado)
+      const valorSolic = parseMoneyValue(valorSolicitado)
       const margemUF = ((valorSolic * (1 - aliq / 100 - piscofins / 100)) - cmg) / (valorSolic * (1 - aliq / 100 - piscofins / 100))
       setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
+
+      // % Desconto = ((preço regular - valor solicitado) / preço regular) * 100
+      const desconto = ((pmc - valorSolic) / pmc) * 100
+      setPercentualDesconto(`${desconto.toFixed(2)}%`)
 
       // Situação
       setSituacao(valorSolic >= precoMin ? "Aprovado" : "Reprovado")
     } else {
       setMargemUFLoja("")
+      setPercentualDesconto("")
       setSituacao("")
     }
+  }
+
+  const parseMoneyValue = (value: string): number => {
+    if (!value) return 0
+    return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0
   }
 
   const resetCalculatedFields = () => {
@@ -161,6 +178,8 @@ export default function Emulador() {
     setPrecoRegular("")
     setDescontoAlcada("")
     setMargemUFLoja("")
+    setPercentualDesconto("")
+    setObservacao("")
     setSituacao("")
     setMargemZVDC("")
   }
@@ -170,6 +189,7 @@ export default function Emulador() {
     setProdutoSelecionado(null)
     setSubgrupoMargem(null)
     setValorSolicitado("")
+    setQuantidade("1")
     resetCalculatedFields()
   }
 
@@ -203,25 +223,34 @@ export default function Emulador() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="valorSolicitado">Valor Solicitado</Label>
+              <Label htmlFor="quantidade">Quantidade</Label>
               <Input
-                id="valorSolicitado"
+                id="quantidade"
                 type="number"
-                step="0.01"
-                placeholder="0,00"
+                min="1"
+                placeholder="1"
+                value={quantidade}
+                onChange={(e) => setQuantidade(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="valorSolicitado">Valor Solicitado</Label>
+              <CurrencyInput
                 value={valorSolicitado}
-                onChange={(e) => setValorSolicitado(e.target.value)}
+                onChange={setValorSolicitado}
+                placeholder="R$ 0,00"
               />
             </div>
 
             <div className="flex gap-2">
               <Button 
-                className={`flex-1 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                className={`flex-1 h-10 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
                 disabled={!situacao}
               >
                 APROVAR
               </Button>
-              <Button variant="outline" onClick={handleReset}>
+              <Button variant="outline" onClick={handleReset} className="flex-1 h-10">
                 LIMPAR
               </Button>
             </div>
@@ -251,6 +280,11 @@ export default function Emulador() {
               </div>
               
               <div className="space-y-2">
+                <Label className="text-sm font-medium">% Desconto</Label>
+                <Input value={percentualDesconto} readOnly className="bg-muted" />
+              </div>
+              
+              <div className="space-y-2">
                 <Label className="text-sm font-medium">Desconto Alçada</Label>
                 <Input value={descontoAlcada} readOnly className="bg-muted" />
               </div>
@@ -260,10 +294,15 @@ export default function Emulador() {
                 <Input value={margemUFLoja} readOnly className="bg-muted" />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-2">
                 <Label className="text-sm font-medium">Margem ZVDC</Label>
                 <Input value={margemZVDC} readOnly className="bg-muted" />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Observação</Label>
+              <Input value={observacao} readOnly className="bg-muted" />
             </div>
 
             <div className="pt-4 border-t">
