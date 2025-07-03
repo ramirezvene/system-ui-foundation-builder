@@ -135,7 +135,7 @@ export default function Emulador() {
 
     // Calcular Preço Mínimo com a fórmula corrigida
     // (cmg / (1 - (aliq + piscofins))) / (1 - margem_subgrupo)
-    const denominador1 = 1 - ((aliq + piscofins) / 100)
+    const denominador1 = 1 - ((aliq + piscofins))
     const denominador2 = 1 - margemSubgrupo
     const precoMin = (cmg / denominador1) / denominador2
     setPrecoMinimo(precoMin.toFixed(2))
@@ -155,7 +155,7 @@ export default function Emulador() {
     // Calcular campos se valor solicitado estiver preenchido
     if (valorSolicitado) {
       const valorSolic = parseMoneyValue(valorSolicitado)
-      const margemUF = ((valorSolic * (1 - (aliq + piscofins) / 100)) - cmg) / (valorSolic * (1 - (aliq + piscofins) / 100))
+      const margemUF = ((valorSolic * (1 - (aliq + piscofins))) - cmg) / (valorSolic * (1 - (aliq + piscofins)))
       setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
 
       // % Desconto = ((preço regular - valor solicitado) / preço regular) * 100
