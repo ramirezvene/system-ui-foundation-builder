@@ -4,7 +4,8 @@ import { NavLink, useLocation } from "react-router-dom"
 import { 
   Settings, 
   Calculator,
-  ChevronDown
+  ChevronDown,
+  Eye
 } from "lucide-react"
 
 import {
@@ -41,7 +42,16 @@ const menuItems = [
         title: "Desconto Subgrupo",
         url: "/configuracao-desconto-subgrupo",
       },
+      {
+        title: "Token Loja",
+        url: "/configuracao-token-loja",
+      },
     ],
+  },
+  {
+    title: "Visualização Tokens",
+    url: "/visualizacao-tokens",
+    icon: Eye,
   },
 ]
 

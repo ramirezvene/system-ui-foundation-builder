@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -149,8 +148,12 @@ export default function Emulador() {
     // Desconto Alçada
     setDescontoAlcada(produtoSelecionado.alcada === 1 ? "SIM" : "NÃO")
 
-    // Observação
-    setObservacao(produtoSelecionado.observacao || "")
+    // Verificar status da loja para observação
+    if (lojaSelecionada.st_token === 0) {
+      setObservacao("Loja bloqueada para geração de Token.")
+    } else {
+      setObservacao(produtoSelecionado.observacao || "")
+    }
 
     // Calcular campos se valor solicitado estiver preenchido
     if (valorSolicitado) {
@@ -186,6 +189,59 @@ export default function Emulador() {
     setObservacao("")
     setSituacao("")
     setMargemZVDC("")
+  }
+
+  const handleAprovar = async () => {
+    if (!lojaSelecionada || !produtoSelecionado || !valorSolicitado || situacao !== "Aprovado") {
+      return
+    }
+
+    try {
+      // Gerar código do token
+      const { data: tokenCode } = await supabase.rpc('generate_token_code')
+      
+      if (!tokenCode) {
+        throw new Error("Erro ao gerar código do token")
+      }
+
+      // Criar registro na tabela token_loja
+      const { data: tokenLoja, error: tokenError } = await supabase
+        .from("token_loja")
+        .insert({
+          codigo_token: tokenCode,
+          cod_loja: lojaSelecionada.cod_loja
+        })
+        .select()
+        .single()
+
+      if (tokenError) throw tokenError
+
+      // Criar registro na tabela token_loja_detalhado
+      const { error: detalheError } = await supabase
+        .from("token_loja_detalhado")
+        .insert({
+          codigo_token: tokenLoja.id,
+          produto: produtoSelecionado.nome_produto,
+          qtde_solic: parseInt(quantidade),
+          vlr_solic: parseMoneyValue(valorSolicitado),
+          preco_min: parseFloat(precoMinimo),
+          cmg_produto: parseFloat(cmgProduto),
+          preco_regul: parseFloat(precoRegular),
+          desconto: percentualDesconto,
+          desc_alcada: descontoAlcada,
+          margem_uf: margemUFLoja,
+          margem_zvdc: margemZVDC,
+          observacao: observacao
+        })
+
+      if (detalheError) throw detalheError
+
+      alert(`Token gerado com sucesso: ${tokenCode}`)
+      handleReset()
+    } catch (error) {
+      console.error("Erro ao gerar token:", error)
+      alert("Erro ao gerar token. Tente novamente.")
+    }
   }
 
   const handleReset = () => {
@@ -252,7 +308,8 @@ export default function Emulador() {
             <div className="flex gap-4 mt-6">
               <Button 
                 className={`px-8 py-3 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
-                disabled={!situacao}
+                disabled={!situacao || situacao !== "Aprovado"}
+                onClick={handleAprovar}
               >
                 APROVAR
               </Button>

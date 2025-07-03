@@ -47,16 +47,22 @@ export type Database = {
           cod_loja: number
           estado: string
           loja: string
+          qtde_token: number | null
+          st_token: number | null
         }
         Insert: {
           cod_loja: number
           estado: string
           loja: string
+          qtde_token?: number | null
+          st_token?: number | null
         }
         Update: {
           cod_loja?: number
           estado?: string
           loja?: string
+          qtde_token?: number | null
+          st_token?: number | null
         }
         Relationships: []
       }
@@ -249,12 +255,100 @@ export type Database = {
         }
         Relationships: []
       }
+      token_loja: {
+        Row: {
+          cod_loja: number
+          codigo_token: string
+          data_criacao: string | null
+          id: number
+        }
+        Insert: {
+          cod_loja: number
+          codigo_token: string
+          data_criacao?: string | null
+          id?: number
+        }
+        Update: {
+          cod_loja?: number
+          codigo_token?: string
+          data_criacao?: string | null
+          id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_loja_cod_loja_fkey"
+            columns: ["cod_loja"]
+            isOneToOne: false
+            referencedRelation: "cadastro_loja"
+            referencedColumns: ["cod_loja"]
+          },
+        ]
+      }
+      token_loja_detalhado: {
+        Row: {
+          cmg_produto: number | null
+          codigo_token: number
+          desc_alcada: string | null
+          desconto: string | null
+          id: number
+          margem_uf: string | null
+          margem_zvdc: string | null
+          observacao: string | null
+          preco_min: number | null
+          preco_regul: number | null
+          produto: string | null
+          qtde_solic: number | null
+          vlr_solic: number | null
+        }
+        Insert: {
+          cmg_produto?: number | null
+          codigo_token: number
+          desc_alcada?: string | null
+          desconto?: string | null
+          id?: number
+          margem_uf?: string | null
+          margem_zvdc?: string | null
+          observacao?: string | null
+          preco_min?: number | null
+          preco_regul?: number | null
+          produto?: string | null
+          qtde_solic?: number | null
+          vlr_solic?: number | null
+        }
+        Update: {
+          cmg_produto?: number | null
+          codigo_token?: number
+          desc_alcada?: string | null
+          desconto?: string | null
+          id?: number
+          margem_uf?: string | null
+          margem_zvdc?: string | null
+          observacao?: string | null
+          preco_min?: number | null
+          preco_regul?: number | null
+          produto?: string | null
+          qtde_solic?: number | null
+          vlr_solic?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_loja_detalhado_codigo_token_fkey"
+            columns: ["codigo_token"]
+            isOneToOne: false
+            referencedRelation: "token_loja"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_token_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
