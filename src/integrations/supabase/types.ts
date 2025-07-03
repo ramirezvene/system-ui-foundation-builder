@@ -228,16 +228,22 @@ export type Database = {
       subgrupo_margem: {
         Row: {
           cod_subgrupo: number
+          data_fim: string | null
+          data_inicio: string | null
           margem: number
           nome_subgrupo: string
         }
         Insert: {
           cod_subgrupo: number
+          data_fim?: string | null
+          data_inicio?: string | null
           margem: number
           nome_subgrupo: string
         }
         Update: {
           cod_subgrupo?: number
+          data_fim?: string | null
+          data_inicio?: string | null
           margem?: number
           nome_subgrupo?: string
         }

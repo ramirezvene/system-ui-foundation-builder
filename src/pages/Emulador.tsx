@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -132,8 +133,11 @@ export default function Emulador() {
     const piscofins = produtoSelecionado.piscofins || 0
     const margemSubgrupo = subgrupoMargem.margem / 100 // Converter para decimal
 
-    // Calcular Preço Mínimo
-    const precoMin = cmg / (1 - (aliq / 100 + piscofins / 100)) / (1 - margemSubgrupo)
+    // Calcular Preço Mínimo com a fórmula corrigida
+    // (cmg / (1 - (aliq + piscofins))) / (1 - margem_subgrupo)
+    const denominador1 = 1 - ((aliq + piscofins) / 100)
+    const denominador2 = 1 - margemSubgrupo
+    const precoMin = (cmg / denominador1) / denominador2
     setPrecoMinimo(precoMin.toFixed(2))
 
     // CMG Produto
@@ -151,7 +155,7 @@ export default function Emulador() {
     // Calcular campos se valor solicitado estiver preenchido
     if (valorSolicitado) {
       const valorSolic = parseMoneyValue(valorSolicitado)
-      const margemUF = ((valorSolic * (1 - aliq / 100 - piscofins / 100)) - cmg) / (valorSolic * (1 - aliq / 100 - piscofins / 100))
+      const margemUF = ((valorSolic * (1 - (aliq + piscofins) / 100)) - cmg) / (valorSolic * (1 - (aliq + piscofins) / 100))
       setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
 
       // % Desconto = ((preço regular - valor solicitado) / preço regular) * 100
@@ -197,60 +201,62 @@ export default function Emulador() {
     <div className="p-6">
       <h1 className="text-2xl font-bold text-foreground mb-6">Emulador</h1>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         {/* Painel de Seleção */}
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Seleção</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="loja">Loja</Label>
-              <LojaCombobox
-                lojas={lojas}
-                selectedLoja={lojaSelecionada}
-                onLojaChange={setLojaSelecionada}
-              />
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="loja">Loja</Label>
+                <LojaCombobox
+                  lojas={lojas}
+                  selectedLoja={lojaSelecionada}
+                  onLojaChange={setLojaSelecionada}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="produto">Produto</Label>
+                <ProdutoCombobox
+                  produtos={produtos}
+                  selectedProduto={produtoSelecionado}
+                  onProdutoChange={setProdutoSelecionado}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quantidade">Quantidade</Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  min="1"
+                  placeholder="1"
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valorSolicitado">Valor Solicitado</Label>
+                <CurrencyInput
+                  value={valorSolicitado}
+                  onChange={setValorSolicitado}
+                  placeholder="R$ 0,00"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="produto">Produto</Label>
-              <ProdutoCombobox
-                produtos={produtos}
-                selectedProduto={produtoSelecionado}
-                onProdutoChange={setProdutoSelecionado}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="quantidade">Quantidade</Label>
-              <Input
-                id="quantidade"
-                type="number"
-                min="1"
-                placeholder="1"
-                value={quantidade}
-                onChange={(e) => setQuantidade(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="valorSolicitado">Valor Solicitado</Label>
-              <CurrencyInput
-                value={valorSolicitado}
-                onChange={setValorSolicitado}
-                placeholder="R$ 0,00"
-              />
-            </div>
-
-            <div className="flex gap-2">
+            <div className="flex gap-4 mt-6">
               <Button 
-                className={`flex-1 h-10 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                className={`px-8 py-3 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
                 disabled={!situacao}
               >
                 APROVAR
               </Button>
-              <Button variant="outline" onClick={handleReset} className="flex-1 h-10">
+              <Button variant="outline" onClick={handleReset} className="px-8 py-3">
                 LIMPAR
               </Button>
             </div>
@@ -258,12 +264,12 @@ export default function Emulador() {
         </Card>
 
         {/* Painel de Resultados */}
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Informações do Produto</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Preço Mínimo</Label>
                 <Input value={precoMinimo} readOnly className="bg-muted" />
@@ -294,18 +300,11 @@ export default function Emulador() {
                 <Input value={margemUFLoja} readOnly className="bg-muted" />
               </div>
               
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2">
                 <Label className="text-sm font-medium">Margem ZVDC</Label>
                 <Input value={margemZVDC} readOnly className="bg-muted" />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Observação</Label>
-              <Input value={observacao} readOnly className="bg-muted" />
-            </div>
-
-            <div className="pt-4 border-t">
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Situação</Label>
                 <Input 
@@ -317,6 +316,11 @@ export default function Emulador() {
                   }`}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Observação</Label>
+              <Input value={observacao} readOnly className="bg-muted" />
             </div>
           </CardContent>
         </Card>
