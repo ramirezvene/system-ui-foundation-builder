@@ -16,12 +16,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Tables } from "@/integrations/supabase/types"
 
-interface Loja {
-  cod_loja: number
-  loja: string
-  estado: string
-}
+type Loja = Tables<"cadastro_loja">
 
 interface LojaComboboxProps {
   lojas: Loja[]
