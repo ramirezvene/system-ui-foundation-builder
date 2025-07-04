@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,12 +9,14 @@ import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 import { CurrencyInput } from "@/components/CurrencyInput"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
+import { useNavigate } from "react-router-dom"
 
 type Loja = Tables<"cadastro_loja">
 type Produto = Tables<"cadastro_produto">
 type SubgrupoMargem = Tables<"subgrupo_margem">
 
 export default function Emulador() {
+  const navigate = useNavigate()
   const [lojas, setLojas] = useState<Loja[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null)
@@ -22,6 +25,7 @@ export default function Emulador() {
   const [valorSolicitado, setValorSolicitado] = useState("")
   const [quantidade, setQuantidade] = useState("1")
   const [margemZVDC, setMargemZVDC] = useState("")
+  const [tokensNoMes, setTokensNoMes] = useState(0)
   
   // Campos calculados
   const [precoMinimo, setPrecoMinimo] = useState("")
@@ -53,6 +57,12 @@ export default function Emulador() {
   useEffect(() => {
     calculateFields()
   }, [lojaSelecionada, produtoSelecionado, subgrupoMargem, valorSolicitado])
+
+  useEffect(() => {
+    if (lojaSelecionada) {
+      checkTokensThisMonth()
+    }
+  }, [lojaSelecionada])
 
   const fetchLojas = async () => {
     try {
@@ -96,6 +106,28 @@ export default function Emulador() {
       setSubgrupoMargem(data)
     } catch (error) {
       console.error("Erro ao buscar subgrupo margem:", error)
+    }
+  }
+
+  const checkTokensThisMonth = async () => {
+    if (!lojaSelecionada) return
+
+    try {
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
+
+      const { data, error } = await supabase
+        .from("token_loja")
+        .select("*")
+        .eq("cod_loja", lojaSelecionada.cod_loja)
+        .gte("data_criacao", startOfMonth.toISOString())
+        .lte("data_criacao", endOfMonth.toISOString())
+
+      if (error) throw error
+      setTokensNoMes(data?.length || 0)
+    } catch (error) {
+      console.error("Erro ao verificar tokens do mês:", error)
     }
   }
 
@@ -191,10 +223,31 @@ export default function Emulador() {
     setMargemZVDC("")
   }
 
-  const handleAprovar = async () => {
-    if (!lojaSelecionada || !produtoSelecionado || !valorSolicitado || situacao !== "Aprovado") {
-      return
+  const canApprove = () => {
+    if (!lojaSelecionada || !valorSolicitado || !produtoSelecionado || situacao !== "Aprovado") {
+      return false
     }
+    
+    // Se a loja está bloqueada (st_token = 0), não pode aprovar
+    if (lojaSelecionada.st_token === 0) {
+      return false
+    }
+
+    // Verificar limite de tokens por mês
+    const limiteTokens = lojaSelecionada.qtde_token || 0
+    if (tokensNoMes >= limiteTokens) {
+      return false
+    }
+
+    return true
+  }
+
+  const canReprove = () => {
+    return lojaSelecionada && produtoSelecionado && valorSolicitado
+  }
+
+  const handleAprovar = async () => {
+    if (!canApprove()) return
 
     try {
       // Gerar código do token
@@ -209,7 +262,7 @@ export default function Emulador() {
         .from("token_loja")
         .insert({
           codigo_token: tokenCode,
-          cod_loja: lojaSelecionada.cod_loja,
+          cod_loja: lojaSelecionada!.cod_loja,
           st_aprovado: 1
         })
         .select()
@@ -222,7 +275,7 @@ export default function Emulador() {
         .from("token_loja_detalhado")
         .insert({
           codigo_token: tokenLoja.id,
-          produto: produtoSelecionado.nome_produto,
+          produto: produtoSelecionado!.nome_produto,
           qtde_solic: parseInt(quantidade),
           vlr_solic: parseMoneyValue(valorSolicitado),
           preco_min: parseFloat(precoMinimo),
@@ -246,9 +299,7 @@ export default function Emulador() {
   }
 
   const handleReprovar = async () => {
-    if (!lojaSelecionada || !produtoSelecionado || !valorSolicitado) {
-      return
-    }
+    if (!canReprove()) return
 
     try {
       // Criar registro na tabela token_loja sem código de token
@@ -256,7 +307,7 @@ export default function Emulador() {
         .from("token_loja")
         .insert({
           codigo_token: "REPROVADO",
-          cod_loja: lojaSelecionada.cod_loja,
+          cod_loja: lojaSelecionada!.cod_loja,
           st_aprovado: 0
         })
         .select()
@@ -269,7 +320,7 @@ export default function Emulador() {
         .from("token_loja_detalhado")
         .insert({
           codigo_token: tokenLoja.id,
-          produto: produtoSelecionado.nome_produto,
+          produto: produtoSelecionado!.nome_produto,
           qtde_solic: parseInt(quantidade),
           vlr_solic: parseMoneyValue(valorSolicitado),
           preco_min: parseFloat(precoMinimo),
@@ -298,12 +349,17 @@ export default function Emulador() {
     setSubgrupoMargem(null)
     setValorSolicitado("")
     setQuantidade("1")
+    setTokensNoMes(0)
     resetCalculatedFields()
+  }
+
+  const handleVoltar = () => {
+    navigate("/solicitacao-tokens")
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Emulador</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Aprovação Token</h1>
       
       <div className="space-y-6">
         {/* Painel de Seleção */}
@@ -353,10 +409,20 @@ export default function Emulador() {
               </div>
             </div>
 
+            {lojaSelecionada && (
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <div className="text-sm text-muted-foreground">
+                  Limite de tokens no mês: {lojaSelecionada.qtde_token || 0} | 
+                  Tokens já utilizados: {tokensNoMes} | 
+                  Status da loja: {lojaSelecionada.st_token === 1 ? "Ativa" : "Bloqueada"}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-4 mt-6">
               <Button 
-                className={`px-8 py-3 ${situacao === "Aprovado" ? "bg-green-600 hover:bg-green-700" : ""}`}
-                disabled={!situacao || situacao !== "Aprovado"}
+                className={`px-8 py-3 ${canApprove() ? "bg-green-600 hover:bg-green-700" : ""}`}
+                disabled={!canApprove()}
                 onClick={handleAprovar}
               >
                 APROVAR
@@ -364,13 +430,13 @@ export default function Emulador() {
               <Button 
                 className="px-8 py-3 text-white hover:opacity-90"
                 style={{ backgroundColor: "#E52E20" }}
-                disabled={!valorSolicitado || !lojaSelecionada || !produtoSelecionado}
+                disabled={!canReprove()}
                 onClick={handleReprovar}
               >
                 REPROVAR
               </Button>
-              <Button variant="outline" onClick={handleReset} className="px-8 py-3">
-                LIMPAR
+              <Button variant="outline" onClick={handleVoltar} className="px-8 py-3">
+                VOLTAR
               </Button>
             </div>
           </CardContent>

@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AppHeader } from "@/components/AppHeader";
 import Index from "./pages/Index";
 import Emulador from "./pages/Emulador";
+import SolicitacaoTokens from "./pages/SolicitacaoTokens";
 import ConfiguracaoDescontoSubgrupo from "./pages/ConfiguracaoDescontoSubgrupo";
 import ConfiguracaoTokenLoja from "./pages/ConfiguracaoTokenLoja";
 import VisualizacaoTokens from "./pages/VisualizacaoTokens";
@@ -31,6 +32,8 @@ const App = () => (
               <main className="flex-1 bg-background">
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/solicitacao-tokens" element={<SolicitacaoTokens />} />
+                  <Route path="/aprovacao-token" element={<Emulador />} />
                   <Route path="/emulador" element={<Emulador />} />
                   <Route path="/configuracao-desconto-subgrupo" element={<ConfiguracaoDescontoSubgrupo />} />
                   <Route path="/configuracao-token-loja" element={<ConfiguracaoTokenLoja />} />

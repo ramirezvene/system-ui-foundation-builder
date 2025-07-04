@@ -6,7 +6,8 @@ import {
   Calculator,
   ChevronDown,
   Eye,
-  BarChart
+  BarChart,
+  FileText
 } from "lucide-react"
 
 import {
@@ -31,8 +32,13 @@ import {
 
 const menuItems = [
   {
-    title: "Emulador",
-    url: "/emulador",
+    title: "Solicitação Token",
+    url: "/solicitacao-tokens",
+    icon: FileText,
+  },
+  {
+    title: "Aprovação Token",
+    url: "/aprovacao-token",
     icon: Calculator,
   },
   {
