@@ -37,7 +37,7 @@ export default function TokenChart() {
       // Processar dados por dia
       const dailyData: { [key: string]: { total: number, aprovado: number, reprovado: number } } = {}
       
-      // Inicializar todos os dias do mês
+      // Inicializar todos os dias do mês (01 até último dia)
       for (let day = 1; day <= endDate.getDate(); day++) {
         const dayKey = day.toString().padStart(2, '0')
         dailyData[dayKey] = { total: 0, aprovado: 0, reprovado: 0 }
@@ -49,18 +49,22 @@ export default function TokenChart() {
         dailyData[day].total++
         if (token.st_aprovado === 1) {
           dailyData[day].aprovado++
-        } else {
+        } else if (token.st_aprovado === 0) {
           dailyData[day].reprovado++
         }
       })
 
-      // Converter para array
-      const chartData: ChartData[] = Object.entries(dailyData).map(([day, counts]) => ({
-        day,
-        total: counts.total,
-        aprovado: counts.aprovado,
-        reprovado: counts.reprovado
-      }))
+      // Converter para array ordenado do dia 01 até o último dia
+      const chartData: ChartData[] = []
+      for (let day = 1; day <= endDate.getDate(); day++) {
+        const dayKey = day.toString().padStart(2, '0')
+        chartData.push({
+          day: dayKey,
+          total: dailyData[dayKey].total,
+          aprovado: dailyData[dayKey].aprovado,
+          reprovado: dailyData[dayKey].reprovado
+        })
+      }
 
       setData(chartData)
     } catch (error) {
@@ -82,6 +86,23 @@ export default function TokenChart() {
     { value: 11, label: "Novembro" },
     { value: 12, label: "Dezembro" }
   ]
+
+  // Tooltip customizado para melhor visualização
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
+          <p className="font-medium">{`Dia ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
 
   return (
     <Card className="w-full">
@@ -106,9 +127,16 @@ export default function TokenChart() {
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="day" label={{ value: 'Dia', position: 'insideBottom', offset: -5 }} />
-            <YAxis label={{ value: 'Quantidade', angle: -90, position: 'insideLeft' }} />
-            <Tooltip />
+            <XAxis 
+              dataKey="day" 
+              label={{ value: 'Dia', position: 'insideBottom', offset: -5 }}
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis 
+              label={{ value: 'Quantidade', angle: -90, position: 'insideLeft' }}
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Bar dataKey="total" fill="#8884d8" name="Total" />
             <Bar dataKey="aprovado" fill="#82ca9d" name="Aprovados" />
