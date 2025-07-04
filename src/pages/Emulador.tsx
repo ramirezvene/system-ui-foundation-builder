@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -210,7 +209,8 @@ export default function Emulador() {
         .from("token_loja")
         .insert({
           codigo_token: tokenCode,
-          cod_loja: lojaSelecionada.cod_loja
+          cod_loja: lojaSelecionada.cod_loja,
+          st_aprovado: 1
         })
         .select()
         .single()
@@ -242,6 +242,53 @@ export default function Emulador() {
     } catch (error) {
       console.error("Erro ao gerar token:", error)
       alert("Erro ao gerar token. Tente novamente.")
+    }
+  }
+
+  const handleReprovar = async () => {
+    if (!lojaSelecionada || !produtoSelecionado || !valorSolicitado) {
+      return
+    }
+
+    try {
+      // Criar registro na tabela token_loja sem código de token
+      const { data: tokenLoja, error: tokenError } = await supabase
+        .from("token_loja")
+        .insert({
+          codigo_token: "REPROVADO",
+          cod_loja: lojaSelecionada.cod_loja,
+          st_aprovado: 0
+        })
+        .select()
+        .single()
+
+      if (tokenError) throw tokenError
+
+      // Criar registro na tabela token_loja_detalhado
+      const { error: detalheError } = await supabase
+        .from("token_loja_detalhado")
+        .insert({
+          codigo_token: tokenLoja.id,
+          produto: produtoSelecionado.nome_produto,
+          qtde_solic: parseInt(quantidade),
+          vlr_solic: parseMoneyValue(valorSolicitado),
+          preco_min: parseFloat(precoMinimo),
+          cmg_produto: parseFloat(cmgProduto),
+          preco_regul: parseFloat(precoRegular),
+          desconto: percentualDesconto,
+          desc_alcada: descontoAlcada,
+          margem_uf: margemUFLoja,
+          margem_zvdc: margemZVDC,
+          observacao: observacao
+        })
+
+      if (detalheError) throw detalheError
+
+      alert("Solicitação reprovada e registrada com sucesso!")
+      handleReset()
+    } catch (error) {
+      console.error("Erro ao reprovar:", error)
+      alert("Erro ao reprovar. Tente novamente.")
     }
   }
 
@@ -313,6 +360,14 @@ export default function Emulador() {
                 onClick={handleAprovar}
               >
                 APROVAR
+              </Button>
+              <Button 
+                className="px-8 py-3 text-white hover:opacity-90"
+                style={{ backgroundColor: "#E52E20" }}
+                disabled={!valorSolicitado || !lojaSelecionada || !produtoSelecionado}
+                onClick={handleReprovar}
+              >
+                REPROVAR
               </Button>
               <Button variant="outline" onClick={handleReset} className="px-8 py-3">
                 LIMPAR

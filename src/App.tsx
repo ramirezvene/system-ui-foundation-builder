@@ -12,6 +12,7 @@ import Emulador from "./pages/Emulador";
 import ConfiguracaoDescontoSubgrupo from "./pages/ConfiguracaoDescontoSubgrupo";
 import ConfiguracaoTokenLoja from "./pages/ConfiguracaoTokenLoja";
 import VisualizacaoTokens from "./pages/VisualizacaoTokens";
+import Relatorios from "./pages/Relatorios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
                   <Route path="/configuracao-desconto-subgrupo" element={<ConfiguracaoDescontoSubgrupo />} />
                   <Route path="/configuracao-token-loja" element={<ConfiguracaoTokenLoja />} />
                   <Route path="/visualizacao-tokens" element={<VisualizacaoTokens />} />
+                  <Route path="/relatorios" element={<Relatorios />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

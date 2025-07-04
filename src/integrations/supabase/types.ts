@@ -261,18 +261,21 @@ export type Database = {
           codigo_token: string
           data_criacao: string | null
           id: number
+          st_aprovado: number | null
         }
         Insert: {
           cod_loja: number
           codigo_token: string
           data_criacao?: string | null
           id?: number
+          st_aprovado?: number | null
         }
         Update: {
           cod_loja?: number
           codigo_token?: string
           data_criacao?: string | null
           id?: number
+          st_aprovado?: number | null
         }
         Relationships: [
           {

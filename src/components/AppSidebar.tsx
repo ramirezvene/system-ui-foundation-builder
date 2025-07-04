@@ -5,7 +5,8 @@ import {
   Settings, 
   Calculator,
   ChevronDown,
-  Eye
+  Eye,
+  BarChart
 } from "lucide-react"
 
 import {
@@ -52,6 +53,11 @@ const menuItems = [
     title: "Visualização Tokens",
     url: "/visualizacao-tokens",
     icon: Eye,
+  },
+  {
+    title: "Relatórios",
+    url: "/relatorios",
+    icon: BarChart,
   },
 ]
 
