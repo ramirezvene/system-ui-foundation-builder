@@ -50,7 +50,7 @@ export default function SolicitacaoTokens() {
             estado
           ),
           token_loja_detalhado (
-            produto
+            *
           )
         `)
         .is("st_aprovado", null)
