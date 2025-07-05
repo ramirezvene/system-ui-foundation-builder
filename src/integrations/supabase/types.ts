@@ -260,6 +260,7 @@ export type Database = {
           cod_loja: number
           codigo_token: string
           data_criacao: string | null
+          data_validacao: string | null
           id: number
           st_aprovado: number | null
         }
@@ -267,6 +268,7 @@ export type Database = {
           cod_loja: number
           codigo_token: string
           data_criacao?: string | null
+          data_validacao?: string | null
           id?: number
           st_aprovado?: number | null
         }
@@ -274,6 +276,7 @@ export type Database = {
           cod_loja?: number
           codigo_token?: string
           data_criacao?: string | null
+          data_validacao?: string | null
           id?: number
           st_aprovado?: number | null
         }

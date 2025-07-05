@@ -26,13 +26,25 @@ export default function TokenChart() {
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
       
-      const { data: tokens, error } = await supabase
+      // Buscar tokens usando data_criacao para o total
+      const { data: tokensTotal, error: errorTotal } = await supabase
         .from("token_loja")
-        .select("data_criacao, st_aprovado")
+        .select("data_criacao")
         .gte("data_criacao", startDate.toISOString())
         .lte("data_criacao", endDate.toISOString())
 
-      if (error) throw error
+      if (errorTotal) throw errorTotal
+
+      // Buscar tokens aprovados/reprovados usando data_validacao
+      const { data: tokensValidados, error: errorValidados } = await supabase
+        .from("token_loja")
+        .select("data_validacao, st_aprovado")
+        .not("st_aprovado", "is", null)
+        .not("data_validacao", "is", null)
+        .gte("data_validacao", startDate.toISOString())
+        .lte("data_validacao", endDate.toISOString())
+
+      if (errorValidados) throw errorValidados
 
       // Processar dados por dia
       const dailyData: { [key: string]: { total: number, aprovado: number, reprovado: number } } = {}
@@ -43,10 +55,15 @@ export default function TokenChart() {
         dailyData[dayKey] = { total: 0, aprovado: 0, reprovado: 0 }
       }
 
-      // Contar tokens por dia
-      tokens?.forEach(token => {
+      // Contar tokens totais por dia usando data_criacao
+      tokensTotal?.forEach(token => {
         const day = new Date(token.data_criacao!).getDate().toString().padStart(2, '0')
         dailyData[day].total++
+      })
+
+      // Contar tokens aprovados/reprovados por dia usando data_validacao
+      tokensValidados?.forEach(token => {
+        const day = new Date(token.data_validacao!).getDate().toString().padStart(2, '0')
         if (token.st_aprovado === 1) {
           dailyData[day].aprovado++
         } else if (token.st_aprovado === 0) {

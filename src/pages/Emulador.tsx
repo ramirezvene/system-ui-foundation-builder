@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -292,10 +293,13 @@ export default function Emulador() {
 
     try {
       if (tokenData) {
-        // Atualizar o token existente
+        // Atualizar o token existente com st_aprovado = 1 e data_validacao
         const { error } = await supabase
           .from("token_loja")
-          .update({ st_aprovado: 1 })
+          .update({ 
+            st_aprovado: 1,
+            data_validacao: new Date().toISOString()
+          })
           .eq("id", tokenData.id)
 
         if (error) throw error
@@ -317,7 +321,8 @@ export default function Emulador() {
           .insert({
             codigo_token: tokenCode,
             cod_loja: lojaSelecionada!.cod_loja,
-            st_aprovado: 1
+            st_aprovado: 1,
+            data_validacao: new Date().toISOString()
           })
           .select()
           .single()
@@ -365,10 +370,13 @@ export default function Emulador() {
 
     try {
       if (tokenData) {
-        // Atualizar o token existente
+        // Atualizar o token existente com st_aprovado = 0 e data_validacao
         const { error } = await supabase
           .from("token_loja")
-          .update({ st_aprovado: 0 })
+          .update({ 
+            st_aprovado: 0,
+            data_validacao: new Date().toISOString()
+          })
           .eq("id", tokenData.id)
 
         if (error) throw error
@@ -384,7 +392,8 @@ export default function Emulador() {
           .insert({
             codigo_token: "REPROVADO",
             cod_loja: lojaSelecionada!.cod_loja,
-            st_aprovado: 0
+            st_aprovado: 0,
+            data_validacao: new Date().toISOString()
           })
           .select()
           .single()
@@ -461,8 +470,12 @@ export default function Emulador() {
                   lojas={lojas}
                   selectedLoja={lojaSelecionada}
                   onLojaChange={setLojaSelecionada}
-                  disabled={!!tokenData}
                 />
+                {tokenData && (
+                  <div className="text-xs text-muted-foreground">
+                    Campo bloqueado durante validação
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -471,8 +484,12 @@ export default function Emulador() {
                   produtos={produtos}
                   selectedProduto={produtoSelecionado}
                   onProdutoChange={setProdutoSelecionado}
-                  disabled={!!tokenData}
                 />
+                {tokenData && (
+                  <div className="text-xs text-muted-foreground">
+                    Campo bloqueado durante validação
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -486,6 +503,11 @@ export default function Emulador() {
                   onChange={(e) => setQuantidade(e.target.value)}
                   disabled={!!tokenData}
                 />
+                {tokenData && (
+                  <div className="text-xs text-muted-foreground">
+                    Campo bloqueado durante validação
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -496,6 +518,11 @@ export default function Emulador() {
                   placeholder="R$ 0,00"
                   disabled={!!tokenData}
                 />
+                {tokenData && (
+                  <div className="text-xs text-muted-foreground">
+                    Campo bloqueado durante validação
+                  </div>
+                )}
               </div>
             </div>
 
