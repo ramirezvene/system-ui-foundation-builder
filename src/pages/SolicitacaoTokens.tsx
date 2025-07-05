@@ -70,9 +70,22 @@ export default function SolicitacaoTokens() {
     }
   }
 
-  const handleValidarToken = (tokenId: number) => {
-    // Redirecionar para a tela de Aprovação Token
-    navigate("/aprovacao-token")
+  const handleValidarToken = (token: TokenWithLoja) => {
+    // Passar os dados do token como state para a tela de aprovação
+    navigate("/aprovacao-token", { 
+      state: { 
+        tokenData: {
+          id: token.id,
+          codigo_token: token.codigo_token,
+          cod_loja: token.cod_loja,
+          loja_nome: token.cadastro_loja.loja,
+          loja_estado: token.cadastro_loja.estado,
+          produto: token.token_loja_detalhado[0]?.produto || "",
+          quantidade: token.token_loja_detalhado[0]?.qtde_solic || 1,
+          valor_solicitado: token.token_loja_detalhado[0]?.vlr_solic || 0
+        }
+      }
+    })
   }
 
   const formatDate = (dateString: string) => {
@@ -128,7 +141,7 @@ export default function SolicitacaoTokens() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleValidarToken(token.id)}
+                      onClick={() => handleValidarToken(token)}
                       className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     >
                       <Eye className="w-4 h-4 mr-1" />

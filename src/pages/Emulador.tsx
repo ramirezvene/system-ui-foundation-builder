@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,14 +8,30 @@ import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 import { CurrencyInput } from "@/components/CurrencyInput"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
+import { useToast } from "@/hooks/use-toast"
 
 type Loja = Tables<"cadastro_loja">
 type Produto = Tables<"cadastro_produto">
 type SubgrupoMargem = Tables<"subgrupo_margem">
 
+interface TokenData {
+  id: number
+  codigo_token: string
+  cod_loja: number
+  loja_nome: string
+  loja_estado: string
+  produto: string
+  quantidade: number
+  valor_solicitado: number
+}
+
 export default function Emulador() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { toast } = useToast()
+  const tokenData = location.state?.tokenData as TokenData
+  
   const [lojas, setLojas] = useState<Loja[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null)
@@ -41,6 +56,32 @@ export default function Emulador() {
     fetchLojas()
     fetchProdutos()
   }, [])
+
+  // Pré-preencher os dados se vier da tela de validação
+  useEffect(() => {
+    if (tokenData) {
+      setQuantidade(tokenData.quantidade.toString())
+      setValorSolicitado(tokenData.valor_solicitado.toFixed(2).replace('.', ','))
+    }
+  }, [tokenData])
+
+  useEffect(() => {
+    if (tokenData && lojas.length > 0) {
+      const loja = lojas.find(l => l.cod_loja === tokenData.cod_loja)
+      if (loja) {
+        setLojaSelecionada(loja)
+      }
+    }
+  }, [tokenData, lojas])
+
+  useEffect(() => {
+    if (tokenData && produtos.length > 0) {
+      const produto = produtos.find(p => p.nome_produto === tokenData.produto)
+      if (produto) {
+        setProdutoSelecionado(produto)
+      }
+    }
+  }, [tokenData, produtos])
 
   useEffect(() => {
     if (produtoSelecionado) {
@@ -250,51 +291,72 @@ export default function Emulador() {
     if (!canApprove()) return
 
     try {
-      // Gerar código do token
-      const { data: tokenCode } = await supabase.rpc('generate_token_code')
-      
-      if (!tokenCode) {
-        throw new Error("Erro ao gerar código do token")
+      if (tokenData) {
+        // Atualizar o token existente
+        const { error } = await supabase
+          .from("token_loja")
+          .update({ st_aprovado: 1 })
+          .eq("id", tokenData.id)
+
+        if (error) throw error
+
+        toast({
+          title: "Sucesso",
+          description: `Token ${tokenData.codigo_token} aprovado com sucesso!`,
+        })
+      } else {
+        // Lógica original para criar novo token
+        const { data: tokenCode } = await supabase.rpc('generate_token_code')
+        
+        if (!tokenCode) {
+          throw new Error("Erro ao gerar código do token")
+        }
+
+        const { data: tokenLoja, error: tokenError } = await supabase
+          .from("token_loja")
+          .insert({
+            codigo_token: tokenCode,
+            cod_loja: lojaSelecionada!.cod_loja,
+            st_aprovado: 1
+          })
+          .select()
+          .single()
+
+        if (tokenError) throw tokenError
+
+        const { error: detalheError } = await supabase
+          .from("token_loja_detalhado")
+          .insert({
+            codigo_token: tokenLoja.id,
+            produto: produtoSelecionado!.nome_produto,
+            qtde_solic: parseInt(quantidade),
+            vlr_solic: parseMoneyValue(valorSolicitado),
+            preco_min: parseFloat(precoMinimo),
+            cmg_produto: parseFloat(cmgProduto),
+            preco_regul: parseFloat(precoRegular),
+            desconto: percentualDesconto,
+            desc_alcada: descontoAlcada,
+            margem_uf: margemUFLoja,
+            margem_zvdc: margemZVDC,
+            observacao: observacao
+          })
+
+        if (detalheError) throw detalheError
+
+        toast({
+          title: "Sucesso",
+          description: `Token gerado com sucesso: ${tokenCode}`,
+        })
       }
 
-      // Criar registro na tabela token_loja
-      const { data: tokenLoja, error: tokenError } = await supabase
-        .from("token_loja")
-        .insert({
-          codigo_token: tokenCode,
-          cod_loja: lojaSelecionada!.cod_loja,
-          st_aprovado: 1
-        })
-        .select()
-        .single()
-
-      if (tokenError) throw tokenError
-
-      // Criar registro na tabela token_loja_detalhado
-      const { error: detalheError } = await supabase
-        .from("token_loja_detalhado")
-        .insert({
-          codigo_token: tokenLoja.id,
-          produto: produtoSelecionado!.nome_produto,
-          qtde_solic: parseInt(quantidade),
-          vlr_solic: parseMoneyValue(valorSolicitado),
-          preco_min: parseFloat(precoMinimo),
-          cmg_produto: parseFloat(cmgProduto),
-          preco_regul: parseFloat(precoRegular),
-          desconto: percentualDesconto,
-          desc_alcada: descontoAlcada,
-          margem_uf: margemUFLoja,
-          margem_zvdc: margemZVDC,
-          observacao: observacao
-        })
-
-      if (detalheError) throw detalheError
-
-      alert(`Token gerado com sucesso: ${tokenCode}`)
-      handleReset()
+      handleVoltar()
     } catch (error) {
-      console.error("Erro ao gerar token:", error)
-      alert("Erro ao gerar token. Tente novamente.")
+      console.error("Erro ao aprovar token:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao aprovar token. Tente novamente.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -302,44 +364,66 @@ export default function Emulador() {
     if (!canReprove()) return
 
     try {
-      // Criar registro na tabela token_loja sem código de token
-      const { data: tokenLoja, error: tokenError } = await supabase
-        .from("token_loja")
-        .insert({
-          codigo_token: "REPROVADO",
-          cod_loja: lojaSelecionada!.cod_loja,
-          st_aprovado: 0
+      if (tokenData) {
+        // Atualizar o token existente
+        const { error } = await supabase
+          .from("token_loja")
+          .update({ st_aprovado: 0 })
+          .eq("id", tokenData.id)
+
+        if (error) throw error
+
+        toast({
+          title: "Sucesso",
+          description: `Token ${tokenData.codigo_token} reprovado com sucesso!`,
         })
-        .select()
-        .single()
+      } else {
+        // Lógica original para reprovar
+        const { data: tokenLoja, error: tokenError } = await supabase
+          .from("token_loja")
+          .insert({
+            codigo_token: "REPROVADO",
+            cod_loja: lojaSelecionada!.cod_loja,
+            st_aprovado: 0
+          })
+          .select()
+          .single()
 
-      if (tokenError) throw tokenError
+        if (tokenError) throw tokenError
 
-      // Criar registro na tabela token_loja_detalhado
-      const { error: detalheError } = await supabase
-        .from("token_loja_detalhado")
-        .insert({
-          codigo_token: tokenLoja.id,
-          produto: produtoSelecionado!.nome_produto,
-          qtde_solic: parseInt(quantidade),
-          vlr_solic: parseMoneyValue(valorSolicitado),
-          preco_min: parseFloat(precoMinimo),
-          cmg_produto: parseFloat(cmgProduto),
-          preco_regul: parseFloat(precoRegular),
-          desconto: percentualDesconto,
-          desc_alcada: descontoAlcada,
-          margem_uf: margemUFLoja,
-          margem_zvdc: margemZVDC,
-          observacao: observacao
+        const { error: detalheError } = await supabase
+          .from("token_loja_detalhado")
+          .insert({
+            codigo_token: tokenLoja.id,
+            produto: produtoSelecionado!.nome_produto,
+            qtde_solic: parseInt(quantidade),
+            vlr_solic: parseMoneyValue(valorSolicitado),
+            preco_min: parseFloat(precoMinimo),
+            cmg_produto: parseFloat(cmgProduto),
+            preco_regul: parseFloat(precoRegular),
+            desconto: percentualDesconto,
+            desc_alcada: descontoAlcada,
+            margem_uf: margemUFLoja,
+            margem_zvdc: margemZVDC,
+            observacao: observacao
+          })
+
+        if (detalheError) throw detalheError
+
+        toast({
+          title: "Sucesso",
+          description: "Solicitação reprovada e registrada com sucesso!",
         })
+      }
 
-      if (detalheError) throw detalheError
-
-      alert("Solicitação reprovada e registrada com sucesso!")
-      handleReset()
+      handleVoltar()
     } catch (error) {
       console.error("Erro ao reprovar:", error)
-      alert("Erro ao reprovar. Tente novamente.")
+      toast({
+        title: "Erro",
+        description: "Erro ao reprovar. Tente novamente.",
+        variant: "destructive"
+      })
     }
   }
 
@@ -359,7 +443,9 @@ export default function Emulador() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Aprovação Token</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">
+        {tokenData ? `Aprovação Token - ${tokenData.codigo_token}` : "Aprovação Token"}
+      </h1>
       
       <div className="space-y-6">
         {/* Painel de Seleção */}
@@ -375,6 +461,7 @@ export default function Emulador() {
                   lojas={lojas}
                   selectedLoja={lojaSelecionada}
                   onLojaChange={setLojaSelecionada}
+                  disabled={!!tokenData}
                 />
               </div>
 
@@ -384,6 +471,7 @@ export default function Emulador() {
                   produtos={produtos}
                   selectedProduto={produtoSelecionado}
                   onProdutoChange={setProdutoSelecionado}
+                  disabled={!!tokenData}
                 />
               </div>
 
@@ -396,6 +484,7 @@ export default function Emulador() {
                   placeholder="1"
                   value={quantidade}
                   onChange={(e) => setQuantidade(e.target.value)}
+                  disabled={!!tokenData}
                 />
               </div>
 
@@ -405,6 +494,7 @@ export default function Emulador() {
                   value={valorSolicitado}
                   onChange={setValorSolicitado}
                   placeholder="R$ 0,00"
+                  disabled={!!tokenData}
                 />
               </div>
             </div>
