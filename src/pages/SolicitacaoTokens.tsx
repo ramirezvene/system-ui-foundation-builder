@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, XCircle } from "lucide-react"
+import { Eye } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "react-router-dom"
 
 type TokenLoja = Tables<"token_loja">
 type TokenLojaDetalhado = Tables<"token_loja_detalhado">
@@ -25,6 +26,7 @@ export default function SolicitacaoTokens() {
   const [filteredTokens, setFilteredTokens] = useState<TokenWithLoja[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchTokens()
@@ -68,30 +70,9 @@ export default function SolicitacaoTokens() {
     }
   }
 
-  const handleValidarToken = async (tokenId: number, aprovado: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("token_loja")
-        .update({ st_aprovado: aprovado ? 1 : 0 })
-        .eq("id", tokenId)
-      
-      if (error) throw error
-      
-      toast({
-        title: "Sucesso",
-        description: `Token ${aprovado ? 'aprovado' : 'reprovado'} com sucesso`,
-      })
-      
-      // Atualizar a lista removendo o token validado
-      setTokens(prev => prev.filter(token => token.id !== tokenId))
-    } catch (error) {
-      console.error("Erro ao validar token:", error)
-      toast({
-        title: "Erro",
-        description: "Erro ao validar token",
-        variant: "destructive"
-      })
-    }
+  const handleValidarToken = (tokenId: number) => {
+    // Redirecionar para a tela de Aprovação Token
+    navigate("/aprovacao-token")
   }
 
   const formatDate = (dateString: string) => {
@@ -144,26 +125,15 @@ export default function SolicitacaoTokens() {
                   <TableCell>{getProdutoInfo(token)}</TableCell>
                   <TableCell>{formatDate(token.data_criacao!)}</TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleValidarToken(token.id, true)}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Aprovar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleValidarToken(token.id, false)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <XCircle className="w-4 h-4 mr-1" />
-                        Reprovar
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleValidarToken(token.id)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Validar
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
