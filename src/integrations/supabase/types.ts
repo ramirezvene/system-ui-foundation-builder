@@ -45,22 +45,28 @@ export type Database = {
       cadastro_loja: {
         Row: {
           cod_loja: number
+          dre_negativo: number | null
           estado: string
           loja: string
+          meta_loja: number | null
           qtde_token: number | null
           st_token: number | null
         }
         Insert: {
           cod_loja: number
+          dre_negativo?: number | null
           estado: string
           loja: string
+          meta_loja?: number | null
           qtde_token?: number | null
           st_token?: number | null
         }
         Update: {
           cod_loja?: number
+          dre_negativo?: number | null
           estado?: string
           loja?: string
+          meta_loja?: number | null
           qtde_token?: number | null
           st_token?: number | null
         }
@@ -83,6 +89,8 @@ export type Database = {
           pmc_pr: number | null
           pmc_rs: number | null
           pmc_sc: number | null
+          st_pricing: number | null
+          st_ruptura: number | null
           subgrupo_id: number | null
         }
         Insert: {
@@ -101,6 +109,8 @@ export type Database = {
           pmc_pr?: number | null
           pmc_rs?: number | null
           pmc_sc?: number | null
+          st_pricing?: number | null
+          st_ruptura?: number | null
           subgrupo_id?: number | null
         }
         Update: {
@@ -119,6 +129,8 @@ export type Database = {
           pmc_pr?: number | null
           pmc_rs?: number | null
           pmc_sc?: number | null
+          st_pricing?: number | null
+          st_ruptura?: number | null
           subgrupo_id?: number | null
         }
         Relationships: [

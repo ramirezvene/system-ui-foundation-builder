@@ -14,6 +14,7 @@ import ConfiguracaoDescontoSubgrupo from "./pages/ConfiguracaoDescontoSubgrupo";
 import ConfiguracaoTokenLoja from "./pages/ConfiguracaoTokenLoja";
 import VisualizacaoTokens from "./pages/VisualizacaoTokens";
 import Relatorios from "./pages/Relatorios";
+import Vendas from "./pages/Vendas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <main className="flex-1 bg-background">
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/vendas" element={<Vendas />} />
                   <Route path="/solicitacao-tokens" element={<SolicitacaoTokens />} />
                   <Route path="/aprovacao-token" element={<Emulador />} />
                   <Route path="/emulador" element={<Emulador />} />

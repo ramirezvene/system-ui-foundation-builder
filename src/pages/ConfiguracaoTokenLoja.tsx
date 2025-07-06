@@ -20,7 +20,9 @@ export default function ConfiguracaoTokenLoja() {
   const [editingLoja, setEditingLoja] = useState<Loja | null>(null)
   const [formData, setFormData] = useState({
     st_token: 1,
-    qtde_token: 0
+    qtde_token: 0,
+    meta_loja: 1,
+    dre_negativo: 1
   })
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const { toast } = useToast()
@@ -61,7 +63,9 @@ export default function ConfiguracaoTokenLoja() {
     setEditingLoja(loja)
     setFormData({
       st_token: loja.st_token || 1,
-      qtde_token: loja.qtde_token || 0
+      qtde_token: loja.qtde_token || 0,
+      meta_loja: loja.meta_loja || 1,
+      dre_negativo: loja.dre_negativo || 1
     })
     setIsDialogOpen(true)
   }
@@ -74,7 +78,9 @@ export default function ConfiguracaoTokenLoja() {
         .from("cadastro_loja")
         .update({
           st_token: formData.st_token,
-          qtde_token: formData.qtde_token
+          qtde_token: formData.qtde_token,
+          meta_loja: formData.meta_loja,
+          dre_negativo: formData.dre_negativo
         })
         .eq("cod_loja", editingLoja.cod_loja)
 
@@ -95,6 +101,16 @@ export default function ConfiguracaoTokenLoja() {
         variant: "destructive"
       })
     }
+  }
+
+  const getStatusBadge = (status: number | null, activeText: string, inactiveText: string) => {
+    return (
+      <span className={`px-2 py-1 rounded text-sm ${
+        status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      }`}>
+        {status === 1 ? activeText : inactiveText}
+      </span>
+    )
   }
 
   return (
@@ -122,6 +138,8 @@ export default function ConfiguracaoTokenLoja() {
                 <TableHead>Estado</TableHead>
                 <TableHead>Status Token</TableHead>
                 <TableHead>Qtde Token</TableHead>
+                <TableHead>Meta Loja</TableHead>
+                <TableHead>DRE</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -132,13 +150,15 @@ export default function ConfiguracaoTokenLoja() {
                   <TableCell>{loja.loja}</TableCell>
                   <TableCell>{loja.estado}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded text-sm ${
-                      loja.st_token === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {loja.st_token === 1 ? 'Ativo' : 'Inativo'}
-                    </span>
+                    {getStatusBadge(loja.st_token, 'Ativo', 'Inativo')}
                   </TableCell>
                   <TableCell>{loja.qtde_token || 0}</TableCell>
+                  <TableCell>
+                    {getStatusBadge(loja.meta_loja, 'Regular', 'Irregular')}
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(loja.dre_negativo, 'Regular', 'Irregular')}
+                  </TableCell>
                   <TableCell>
                     <Dialog open={isDialogOpen && editingLoja?.cod_loja === loja.cod_loja} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
@@ -191,6 +211,31 @@ export default function ConfiguracaoTokenLoja() {
                                 value={formData.qtde_token}
                                 onChange={(e) => setFormData({...formData, qtde_token: parseInt(e.target.value) || 0})}
                               />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Meta Loja</Label>
+                              <select
+                                className="w-full px-3 py-2 border border-input rounded-md"
+                                value={formData.meta_loja}
+                                onChange={(e) => setFormData({...formData, meta_loja: parseInt(e.target.value)})}
+                              >
+                                <option value={1}>Regular</option>
+                                <option value={0}>Irregular</option>
+                              </select>
+                            </div>
+                            <div>
+                              <Label>DRE</Label>
+                              <select
+                                className="w-full px-3 py-2 border border-input rounded-md"
+                                value={formData.dre_negativo}
+                                onChange={(e) => setFormData({...formData, dre_negativo: parseInt(e.target.value)})}
+                              >
+                                <option value={1}>Regular</option>
+                                <option value={0}>Irregular</option>
+                              </select>
                             </div>
                           </div>
 

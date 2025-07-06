@@ -7,7 +7,8 @@ import {
   ChevronDown,
   Eye,
   BarChart,
-  FileText
+  FileText,
+  ShoppingCart
 } from "lucide-react"
 
 import {
@@ -31,6 +32,11 @@ import {
 } from "@/components/ui/collapsible"
 
 const menuItems = [
+  {
+    title: "Vendas",
+    url: "/vendas",
+    icon: ShoppingCart,
+  },
   {
     title: "Solicitação Token",
     url: "/solicitacao-tokens",
