@@ -16,30 +16,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-interface Produto {
-  id_produto: number
-  nome_produto: string
-  subgrupo_id: number | null
-  ncm: string | null
-  alcada: number | null
-  aliq_rs: number | null
-  aliq_sc: number | null
-  aliq_pr: number | null
-  piscofins: number | null
-  observacao: string | null
-  pmc_rs: number | null
-  pmc_sc: number | null
-  pmc_pr: number | null
-  cmg_rs: number | null
-  cmg_sc: number | null
-  cmg_pr: number | null
-}
+import { Tables } from "@/integrations/supabase/types"
 
 interface ProdutoComboboxProps {
-  produtos: Produto[]
-  selectedProduto: Produto | null
-  onProdutoChange: (produto: Produto | null) => void
+  produtos: Tables<"cadastro_produto">[]
+  selectedProduto: Tables<"cadastro_produto"> | null
+  onProdutoChange: (produto: Tables<"cadastro_produto"> | null) => void
   placeholder?: string
 }
 
