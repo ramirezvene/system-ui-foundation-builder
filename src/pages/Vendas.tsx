@@ -87,7 +87,7 @@ export default function Vendas() {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
 
     // Validar alçada do produto
-    if (selectedProduto.alcada !== 1) {
+    if (selectedProduto.alcada !== 0) {
       return "O produto não permite solicitar Token."
     }
 
