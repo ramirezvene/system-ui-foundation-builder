@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -77,9 +76,25 @@ export default function Emulador() {
 
   useEffect(() => {
     if (tokenData && produtos.length > 0) {
-      const produto = produtos.find(p => p.nome_produto === tokenData.produto)
-      if (produto) {
-        setProdutoSelecionado(produto)
+      // O campo produto em token_loja_detalhado tem formato "id_produto - nome_produto"
+      // Vamos extrair o ID do produto para fazer a busca correta
+      const produtoInfo = tokenData.produto
+      if (produtoInfo) {
+        // Tentar extrair o ID do formato "123 - Nome do Produto"
+        const idMatch = produtoInfo.match(/^(\d+)\s*-/)
+        if (idMatch) {
+          const produtoId = parseInt(idMatch[1])
+          const produto = produtos.find(p => p.id_produto === produtoId)
+          if (produto) {
+            setProdutoSelecionado(produto)
+          }
+        } else {
+          // Fallback: buscar pelo nome completo se não conseguir extrair o ID
+          const produto = produtos.find(p => produtoInfo.includes(p.nome_produto))
+          if (produto) {
+            setProdutoSelecionado(produto)
+          }
+        }
       }
     }
   }, [tokenData, produtos])
