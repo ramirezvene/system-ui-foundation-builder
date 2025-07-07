@@ -8,7 +8,9 @@ import {
   Eye,
   BarChart,
   FileText,
-  ShoppingCart
+  ShoppingCart,
+  MapPin,
+  Package
 } from "lucide-react"
 
 import {
@@ -58,6 +60,14 @@ const menuItems = [
       {
         title: "Token Loja",
         url: "/configuracao-token-loja",
+      },
+      {
+        title: "Token Estado",
+        url: "/token-estado",
+      },
+      {
+        title: "Desconto Produto",
+        url: "/desconto-produto",
       },
     ],
   },
