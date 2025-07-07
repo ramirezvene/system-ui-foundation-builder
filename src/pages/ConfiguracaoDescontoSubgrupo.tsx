@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -18,12 +17,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Edit } from "lucide-react"
+import { Edit, Download, Upload } from "lucide-react"
 import { FilterCombobox } from "@/components/FilterCombobox"
 import { DateRangePickerComponent } from "@/components/DateRangePickerComponent"
 import { DateRange } from "react-day-picker"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
+import { useToast } from "@/hooks/use-toast"
 
 type SubgrupoMargem = Tables<"subgrupo_margem">
 
@@ -46,6 +46,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
     dataInicio: "",
     dataFim: ""
   })
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchSubgrupoMargem()
@@ -68,8 +69,8 @@ export default function ConfiguracaoDescontoSubgrupo() {
       const transformedData: DescontoSubgrupo[] = (data || []).map(item => ({
         ...item,
         condicao: "OK",
-        dataInicio: "01/01/2025",
-        dataFim: "01/01/2030"
+        dataInicio: item.data_inicio || "01/01/2025",
+        dataFim: item.data_fim || "01/01/2030"
       }))
       
       setDescontos(transformedData)
@@ -135,7 +136,9 @@ export default function ConfiguracaoDescontoSubgrupo() {
       const { error } = await supabase
         .from("subgrupo_margem")
         .update({
-          margem: parseFloat(editForm.margem)
+          margem: parseFloat(editForm.margem),
+          data_inicio: editForm.dataInicio.split("/").reverse().join("-"),
+          data_fim: editForm.dataFim.split("/").reverse().join("-")
         })
         .eq("cod_subgrupo", editingItem.cod_subgrupo)
 
@@ -144,16 +147,24 @@ export default function ConfiguracaoDescontoSubgrupo() {
       // Atualizar dados locais
       const updatedDescontos = descontos.map(item => 
         item.cod_subgrupo === editingItem.cod_subgrupo 
-          ? { ...item, margem: parseFloat(editForm.margem) }
+          ? { ...item, margem: parseFloat(editForm.margem), dataInicio: editForm.dataInicio, dataFim: editForm.dataFim }
           : item
       )
       setDescontos(updatedDescontos)
       setIsDialogOpen(false)
       setEditingItem(null)
       
-      console.log("Desconto atualizado com sucesso!")
+      toast({
+        title: "Sucesso",
+        description: "Desconto atualizado com sucesso"
+      })
     } catch (error) {
       console.error("Erro ao salvar:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar desconto",
+        variant: "destructive"
+      })
     }
   }
 
@@ -177,93 +188,125 @@ export default function ConfiguracaoDescontoSubgrupo() {
     applyFilters()
   }
 
+  const handleExportCSV = () => {
+    const csvContent = [
+      ["ID", "Descrição", "Condição", "Montante", "Data Início", "Data Final"],
+      ...filteredDescontos.map(item => [
+        item.cod_subgrupo,
+        item.nome_subgrupo,
+        item.condicao,
+        `${item.margem.toFixed(2)}%`,
+        item.dataInicio,
+        item.dataFim
+      ])
+    ].map(row => row.join(",")).join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", "subgrupos.csv")
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">
-        Configuração Desconto Subgrupo
-      </h1>
+    <div className="bg-card rounded-lg border p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Configuração Desconto Subgrupo</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar CSV
+          </Button>
+          <Button variant="outline" size="sm">
+            <Upload className="w-4 h-4 mr-2" />
+            Importar CSV
+          </Button>
+        </div>
+      </div>
       
-      <div className="bg-card rounded-lg border p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <FilterCombobox
-            selectedFilter={selectedFilter}
-            onSelectFilter={setSelectedFilter}
-          />
-          
-          {selectedFilter === "data_inicio" || selectedFilter === "data_fim" ? (
-            <div className="md:col-span-2">
-              <DateRangePickerComponent
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-                placeholder="Selecione o período"
-              />
-            </div>
-          ) : (
-            <Input
-              placeholder="Filtro"
-              value={filtro}
-              onChange={(e) => setFiltro(e.target.value)}
-              className="md:col-span-2"
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <FilterCombobox
+          selectedFilter={selectedFilter}
+          onSelectFilter={setSelectedFilter}
+        />
+        
+        {selectedFilter === "data_inicio" || selectedFilter === "data_fim" ? (
+          <div className="md:col-span-2">
+            <DateRangePickerComponent
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              placeholder="Selecione o período"
             />
-          )}
-          
-          <div className="flex gap-2">
-            <Button onClick={handleFiltrar} className="bg-primary hover:bg-primary/90 flex-1">
-              FILTRAR
-            </Button>
-            <Button variant="outline" onClick={handleLimpar} className="flex-1">
-              LIMPAR
-            </Button>
           </div>
+        ) : (
+          <Input
+            placeholder="Filtro"
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            className="md:col-span-2"
+          />
+        )}
+        
+        <div className="flex gap-2">
+          <Button onClick={handleFiltrar} className="bg-primary hover:bg-primary/90 flex-1">
+            FILTRAR
+          </Button>
+          <Button variant="outline" onClick={handleLimpar} className="flex-1">
+            LIMPAR
+          </Button>
         </div>
+      </div>
 
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead>ID</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Cond</TableHead>
-                <TableHead>Montante</TableHead>
-                <TableHead>Data Início</TableHead>
-                <TableHead>Data Final</TableHead>
-                <TableHead className="text-center">Ações</TableHead>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead>ID</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Cond</TableHead>
+              <TableHead>Montante</TableHead>
+              <TableHead>Data Início</TableHead>
+              <TableHead>Data Final</TableHead>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredDescontos.map((item) => (
+              <TableRow key={item.cod_subgrupo}>
+                <TableCell className="font-medium">{item.cod_subgrupo}</TableCell>
+                <TableCell>{item.nome_subgrupo}</TableCell>
+                <TableCell>{item.condicao}</TableCell>
+                <TableCell>{item.margem.toFixed(2)}%</TableCell>
+                <TableCell>{item.dataInicio}</TableCell>
+                <TableCell>{item.dataFim}</TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDescontos.map((item) => (
-                <TableRow key={item.cod_subgrupo}>
-                  <TableCell className="font-medium">{item.cod_subgrupo}</TableCell>
-                  <TableCell>{item.nome_subgrupo}</TableCell>
-                  <TableCell>{item.condicao}</TableCell>
-                  <TableCell>{item.margem.toFixed(2)}%</TableCell>
-                  <TableCell>{item.dataInicio}</TableCell>
-                  <TableCell>{item.dataFim}</TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(item)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-        <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-          <span>1-{filteredDescontos.length} de {descontos.length}</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
-              &lt;
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              &gt;
-            </Button>
-          </div>
+      <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
+        <span>1-{filteredDescontos.length} de {descontos.length}</span>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled>
+            &lt;
+          </Button>
+          <Button variant="outline" size="sm" disabled>
+            &gt;
+          </Button>
         </div>
       </div>
 

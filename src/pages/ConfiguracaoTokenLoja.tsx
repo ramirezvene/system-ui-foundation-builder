@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Pencil } from "lucide-react"
+import { Pencil, Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
@@ -103,6 +102,31 @@ export default function ConfiguracaoTokenLoja() {
     }
   }
 
+  const handleExportCSV = () => {
+    const csvContent = [
+      ["Código", "Loja", "Estado", "Status Token", "Qtde Token", "Meta Loja", "DRE"],
+      ...filteredLojas.map(loja => [
+        loja.cod_loja,
+        loja.loja,
+        loja.estado,
+        loja.st_token === 1 ? "Ativo" : "Inativo",
+        loja.qtde_token || 0,
+        loja.meta_loja === 1 ? "Regular" : "Irregular",
+        loja.dre_negativo === 1 ? "Regular" : "Irregular"
+      ])
+    ].map(row => row.join(",")).join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", "lojas.csv")
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const getStatusBadge = (status: number | null, activeText: string, inactiveText: string) => {
     return (
       <span className={`px-2 py-1 rounded text-sm ${
@@ -114,147 +138,155 @@ export default function ConfiguracaoTokenLoja() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Configuração Token Loja</h1>
-      
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Controle de Tokens por Loja</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <Input
-              placeholder="Pesquisar por loja, estado ou código..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          Controle de Tokens por Loja
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm">
+              <Upload className="w-4 h-4 mr-2" />
+              Importar CSV
+            </Button>
           </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          <Input
+            placeholder="Pesquisar por loja, estado ou código..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Loja</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Status Token</TableHead>
-                <TableHead>Qtde Token</TableHead>
-                <TableHead>Meta Loja</TableHead>
-                <TableHead>DRE</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLojas.map((loja) => (
-                <TableRow key={loja.cod_loja}>
-                  <TableCell>{loja.cod_loja}</TableCell>
-                  <TableCell>{loja.loja}</TableCell>
-                  <TableCell>{loja.estado}</TableCell>
-                  <TableCell>
-                    {getStatusBadge(loja.st_token, 'Ativo', 'Inativo')}
-                  </TableCell>
-                  <TableCell>{loja.qtde_token || 0}</TableCell>
-                  <TableCell>
-                    {getStatusBadge(loja.meta_loja, 'Regular', 'Irregular')}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(loja.dre_negativo, 'Regular', 'Irregular')}
-                  </TableCell>
-                  <TableCell>
-                    <Dialog open={isDialogOpen && editingLoja?.cod_loja === loja.cod_loja} onOpenChange={setIsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(loja)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Editar Configuração Token</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label>Código da Loja</Label>
-                              <Input value={loja.cod_loja} readOnly className="bg-muted" />
-                            </div>
-                            <div>
-                              <Label>Loja</Label>
-                              <Input value={loja.loja} readOnly className="bg-muted" />
-                            </div>
-                          </div>
-                          
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Código</TableHead>
+              <TableHead>Loja</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Status Token</TableHead>
+              <TableHead>Qtde Token</TableHead>
+              <TableHead>Meta Loja</TableHead>
+              <TableHead>DRE</TableHead>
+              <TableHead>Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredLojas.map((loja) => (
+              <TableRow key={loja.cod_loja}>
+                <TableCell>{loja.cod_loja}</TableCell>
+                <TableCell>{loja.loja}</TableCell>
+                <TableCell>{loja.estado}</TableCell>
+                <TableCell>
+                  {getStatusBadge(loja.st_token, 'Ativo', 'Inativo')}
+                </TableCell>
+                <TableCell>{loja.qtde_token || 0}</TableCell>
+                <TableCell>
+                  {getStatusBadge(loja.meta_loja, 'Regular', 'Irregular')}
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(loja.dre_negativo, 'Regular', 'Irregular')}
+                </TableCell>
+                <TableCell>
+                  <Dialog open={isDialogOpen && editingLoja?.cod_loja === loja.cod_loja} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(loja)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Editar Configuração Token</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <Label>Estado</Label>
-                            <Input value={loja.estado} readOnly className="bg-muted" />
+                            <Label>Código da Loja</Label>
+                            <Input value={loja.cod_loja} readOnly className="bg-muted" />
                           </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label>Status Token</Label>
-                              <select
-                                className="w-full px-3 py-2 border border-input rounded-md"
-                                value={formData.st_token}
-                                onChange={(e) => setFormData({...formData, st_token: parseInt(e.target.value)})}
-                              >
-                                <option value={1}>Ativo</option>
-                                <option value={0}>Inativo</option>
-                              </select>
-                            </div>
-                            <div>
-                              <Label>Quantidade Token</Label>
-                              <Input
-                                type="number"
-                                max="999"
-                                value={formData.qtde_token}
-                                onChange={(e) => setFormData({...formData, qtde_token: parseInt(e.target.value) || 0})}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label>Meta Loja</Label>
-                              <select
-                                className="w-full px-3 py-2 border border-input rounded-md"
-                                value={formData.meta_loja}
-                                onChange={(e) => setFormData({...formData, meta_loja: parseInt(e.target.value)})}
-                              >
-                                <option value={1}>Regular</option>
-                                <option value={0}>Irregular</option>
-                              </select>
-                            </div>
-                            <div>
-                              <Label>DRE</Label>
-                              <select
-                                className="w-full px-3 py-2 border border-input rounded-md"
-                                value={formData.dre_negativo}
-                                onChange={(e) => setFormData({...formData, dre_negativo: parseInt(e.target.value)})}
-                              >
-                                <option value={1}>Regular</option>
-                                <option value={0}>Irregular</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 pt-4">
-                            <Button onClick={handleSave}>Salvar</Button>
-                            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                              Cancelar
-                            </Button>
+                          <div>
+                            <Label>Loja</Label>
+                            <Input value={loja.loja} readOnly className="bg-muted" />
                           </div>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+                        
+                        <div>
+                          <Label>Estado</Label>
+                          <Input value={loja.estado} readOnly className="bg-muted" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Status Token</Label>
+                            <select
+                              className="w-full px-3 py-2 border border-input rounded-md"
+                              value={formData.st_token}
+                              onChange={(e) => setFormData({...formData, st_token: parseInt(e.target.value)})}
+                            >
+                              <option value={1}>Ativo</option>
+                              <option value={0}>Inativo</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label>Quantidade Token</Label>
+                            <Input
+                              type="number"
+                              max="999"
+                              value={formData.qtde_token}
+                              onChange={(e) => setFormData({...formData, qtde_token: parseInt(e.target.value) || 0})}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Meta Loja</Label>
+                            <select
+                              className="w-full px-3 py-2 border border-input rounded-md"
+                              value={formData.meta_loja}
+                              onChange={(e) => setFormData({...formData, meta_loja: parseInt(e.target.value)})}
+                            >
+                              <option value={1}>Regular</option>
+                              <option value={0}>Irregular</option>
+                            </select>
+                          </div>
+                          <div>
+                            <Label>DRE</Label>
+                            <select
+                              className="w-full px-3 py-2 border border-input rounded-md"
+                              value={formData.dre_negativo}
+                              onChange={(e) => setFormData({...formData, dre_negativo: parseInt(e.target.value)})}
+                            >
+                              <option value={1}>Regular</option>
+                              <option value={0}>Irregular</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-4">
+                          <Button onClick={handleSave}>Salvar</Button>
+                          <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }
