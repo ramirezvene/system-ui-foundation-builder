@@ -3,8 +3,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -16,8 +16,9 @@ interface LojaConfig {
   loja: Loja
   status: boolean
   tokenMes: number
-  metaRegular: number
-  dreRegular: number
+  metaLoja: string
+  dreNegativo: string
+  edited: boolean
 }
 
 export default function ConfiguracaoTokenLoja() {
@@ -42,8 +43,9 @@ export default function ConfiguracaoTokenLoja() {
         loja,
         status: loja.st_token === 1,
         tokenMes: loja.qtde_token || 100,
-        metaRegular: loja.meta_loja === 1 ? 8.0 : 0,
-        dreRegular: loja.dre_negativo === 1 ? 12.0 : 0
+        metaLoja: loja.meta_loja === 1 ? "REGULAR" : "IRREGULAR",
+        dreNegativo: loja.dre_negativo === 1 ? "REGULAR" : "IRREGULAR",
+        edited: false
       }))
       
       setLojas(data || [])
@@ -60,7 +62,7 @@ export default function ConfiguracaoTokenLoja() {
 
   const handleConfigChange = (index: number, field: keyof LojaConfig, value: any) => {
     const newConfigs = [...configuracoes]
-    newConfigs[index] = { ...newConfigs[index], [field]: value }
+    newConfigs[index] = { ...newConfigs[index], [field]: value, edited: true }
     setConfiguracoes(newConfigs)
   }
 
@@ -72,12 +74,16 @@ export default function ConfiguracaoTokenLoja() {
         .update({
           st_token: config.status ? 1 : 0,
           qtde_token: config.tokenMes,
-          meta_loja: config.metaRegular > 0 ? 1 : 0,
-          dre_negativo: config.dreRegular > 0 ? 1 : 0
+          meta_loja: config.metaLoja === "REGULAR" ? 1 : 0,
+          dre_negativo: config.dreNegativo === "REGULAR" ? 1 : 0
         })
         .eq("cod_loja", config.loja.cod_loja)
 
       if (error) throw error
+
+      const newConfigs = [...configuracoes]
+      newConfigs[index].edited = false
+      setConfiguracoes(newConfigs)
 
       toast({
         title: "Sucesso",
@@ -95,13 +101,15 @@ export default function ConfiguracaoTokenLoja() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Loja", "Status", "Token/mês", "% Meta Reg.", "DRE Reg. (%)"],
+      ["Código Loja", "Loja", "Estado", "Status", "Token/mês", "Meta Loja", "DRE Negativo"],
       ...configuracoes.map(config => [
+        config.loja.cod_loja,
         config.loja.loja,
+        config.loja.estado,
         config.status ? "Ativo" : "Inativo",
         config.tokenMes,
-        config.metaRegular.toFixed(1),
-        config.dreRegular.toFixed(1)
+        config.metaLoja,
+        config.dreNegativo
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -138,18 +146,22 @@ export default function ConfiguracaoTokenLoja() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
+                <th className="text-left p-2">Código</th>
                 <th className="text-left p-2">Loja</th>
+                <th className="text-left p-2">Estado</th>
                 <th className="text-left p-2">Status</th>
                 <th className="text-left p-2">Token/mês</th>
-                <th className="text-left p-2">% Meta Reg.</th>
-                <th className="text-left p-2">DRE Reg. (%)</th>
+                <th className="text-left p-2">Meta Loja</th>
+                <th className="text-left p-2">DRE Negativo</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
             </thead>
             <tbody>
               {configuracoes.map((config, index) => (
-                <tr key={config.loja.cod_loja} className="border-b">
-                  <td className="p-2 font-medium">{config.loja.loja}</td>
+                <tr key={config.loja.cod_loja} className={`border-b ${config.edited ? 'bg-yellow-50' : ''}`}>
+                  <td className="p-2 font-medium">{config.loja.cod_loja}</td>
+                  <td className="p-2">{config.loja.loja}</td>
+                  <td className="p-2">{config.loja.estado}</td>
                   <td className="p-2">
                     <Switch
                       checked={config.status}
@@ -165,25 +177,39 @@ export default function ConfiguracaoTokenLoja() {
                     />
                   </td>
                   <td className="p-2">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={config.metaRegular}
-                      onChange={(e) => handleConfigChange(index, 'metaRegular', parseFloat(e.target.value) || 0)}
-                      className="w-20"
-                    />
+                    <Select 
+                      value={config.metaLoja} 
+                      onValueChange={(value) => handleConfigChange(index, 'metaLoja', value)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="REGULAR">REGULAR</SelectItem>
+                        <SelectItem value="IRREGULAR">IRREGULAR</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="p-2">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={config.dreRegular}
-                      onChange={(e) => handleConfigChange(index, 'dreRegular', parseFloat(e.target.value) || 0)}
-                      className="w-20"
-                    />
+                    <Select 
+                      value={config.dreNegativo} 
+                      onValueChange={(value) => handleConfigChange(index, 'dreNegativo', value)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="REGULAR">REGULAR</SelectItem>
+                        <SelectItem value="IRREGULAR">IRREGULAR</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="p-2">
-                    <Button size="sm" onClick={() => handleSave(index)}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSave(index)}
+                      disabled={!config.edited}
+                    >
                       Salvar
                     </Button>
                   </td>

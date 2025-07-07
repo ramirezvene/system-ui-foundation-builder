@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -13,9 +12,10 @@ type SubgrupoMargem = Tables<"subgrupo_margem">
 
 interface SubgrupoConfig {
   subgrupo: SubgrupoMargem
-  periodo: string
-  percentualDesconto: number
-  margemTipo: string
+  dataInicio: string
+  dataFim: string
+  margem: number
+  edited: boolean
 }
 
 export default function ConfiguracaoDescontoSubgrupo() {
@@ -38,9 +38,10 @@ export default function ConfiguracaoDescontoSubgrupo() {
       
       const configs = (data || []).map(subgrupo => ({
         subgrupo,
-        periodo: `${subgrupo.data_inicio || '01/07/25'} a ${subgrupo.data_fim || '31/07/25'}`,
-        percentualDesconto: subgrupo.margem,
-        margemTipo: "Margem UF"
+        dataInicio: subgrupo.data_inicio || '2025-01-01',
+        dataFim: subgrupo.data_fim || '2030-01-01',
+        margem: subgrupo.margem,
+        edited: false
       }))
       
       setSubgrupos(data || [])
@@ -57,7 +58,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
 
   const handleConfigChange = (index: number, field: keyof SubgrupoConfig, value: any) => {
     const newConfigs = [...configuracoes]
-    newConfigs[index] = { ...newConfigs[index], [field]: value }
+    newConfigs[index] = { ...newConfigs[index], [field]: value, edited: true }
     setConfiguracoes(newConfigs)
   }
 
@@ -67,11 +68,17 @@ export default function ConfiguracaoDescontoSubgrupo() {
       const { error } = await supabase
         .from("subgrupo_margem")
         .update({
-          margem: config.percentualDesconto
+          margem: config.margem,
+          data_inicio: config.dataInicio,
+          data_fim: config.dataFim
         })
         .eq("cod_subgrupo", config.subgrupo.cod_subgrupo)
 
       if (error) throw error
+
+      const newConfigs = [...configuracoes]
+      newConfigs[index].edited = false
+      setConfiguracoes(newConfigs)
 
       toast({
         title: "Sucesso",
@@ -89,12 +96,13 @@ export default function ConfiguracaoDescontoSubgrupo() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Subgrupo", "Período", "% Desconto", "Margem Tipo"],
+      ["Código Subgrupo", "Nome Subgrupo", "Data Início", "Data Fim", "% Margem"],
       ...configuracoes.map(config => [
+        config.subgrupo.cod_subgrupo,
         config.subgrupo.nome_subgrupo,
-        config.periodo,
-        config.percentualDesconto.toFixed(1),
-        config.margemTipo
+        config.dataInicio,
+        config.dataFim,
+        config.margem.toFixed(2)
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -131,38 +139,50 @@ export default function ConfiguracaoDescontoSubgrupo() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Subgrupo</th>
-                <th className="text-left p-2">Período</th>
-                <th className="text-left p-2">% Desconto</th>
-                <th className="text-left p-2">Margem Tipo</th>
+                <th className="text-left p-2">Código</th>
+                <th className="text-left p-2">Nome Subgrupo</th>
+                <th className="text-left p-2">Data Início</th>
+                <th className="text-left p-2">Data Fim</th>
+                <th className="text-left p-2">% Margem</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
             </thead>
             <tbody>
               {configuracoes.map((config, index) => (
-                <tr key={config.subgrupo.cod_subgrupo} className="border-b">
-                  <td className="p-2 font-medium">{config.subgrupo.nome_subgrupo}</td>
+                <tr key={config.subgrupo.cod_subgrupo} className={`border-b ${config.edited ? 'bg-yellow-50' : ''}`}>
+                  <td className="p-2 font-medium">{config.subgrupo.cod_subgrupo}</td>
+                  <td className="p-2">{config.subgrupo.nome_subgrupo}</td>
                   <td className="p-2">
                     <Input
-                      value={config.periodo}
-                      onChange={(e) => handleConfigChange(index, 'periodo', e.target.value)}
-                      className="w-40"
+                      type="date"
+                      value={config.dataInicio}
+                      onChange={(e) => handleConfigChange(index, 'dataInicio', e.target.value)}
+                      className="w-36"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="date"
+                      value={config.dataFim}
+                      onChange={(e) => handleConfigChange(index, 'dataFim', e.target.value)}
+                      className="w-36"
                     />
                   </td>
                   <td className="p-2">
                     <Input
                       type="number"
-                      step="0.1"
-                      value={config.percentualDesconto}
-                      onChange={(e) => handleConfigChange(index, 'percentualDesconto', parseFloat(e.target.value) || 0)}
-                      className="w-20"
+                      step="0.01"
+                      value={config.margem}
+                      onChange={(e) => handleConfigChange(index, 'margem', parseFloat(e.target.value) || 0)}
+                      className="w-24"
                     />
                   </td>
                   <td className="p-2">
-                    <span className="text-muted-foreground">{config.margemTipo}</span>
-                  </td>
-                  <td className="p-2">
-                    <Button size="sm" onClick={() => handleSave(index)}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSave(index)}
+                      disabled={!config.edited}
+                    >
                       Salvar
                     </Button>
                   </td>
