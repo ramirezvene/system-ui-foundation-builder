@@ -7,8 +7,8 @@ import ConfiguracaoProduto from "@/components/ConfiguracaoProduto"
 
 export default function ConfiguracaoDescontoToken() {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Configuração Desconto Token</h1>
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Configuração de Descontos Automáticos</h1>
       
       <Tabs defaultValue="estado" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
