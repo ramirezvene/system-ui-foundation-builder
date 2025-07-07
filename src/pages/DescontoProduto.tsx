@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, Upload, Plus } from "lucide-react"
+import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
@@ -25,6 +26,15 @@ export default function DescontoProduto() {
   const [estados, setEstados] = useState<Estado[]>([])
   const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newRecord, setNewRecord] = useState({
+    produto: null as Produto | null,
+    tipoAplicacao: "estado" as "estado" | "loja",
+    codigoReferencia: "",
+    margem: 0,
+    dataInicio: new Date().toISOString().split('T')[0],
+    dataFim: "2030-12-31"
+  })
   const { toast } = useToast()
 
   useEffect(() => {
@@ -143,6 +153,69 @@ export default function DescontoProduto() {
     }
   }
 
+  const handleAddNew = async () => {
+    if (!newRecord.produto || !newRecord.codigoReferencia) {
+      toast({
+        title: "Erro",
+        description: "Selecione um produto e uma referência",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("produto_margem")
+        .insert({
+          id_produto: newRecord.produto.id_produto,
+          tipo_aplicacao: newRecord.tipoAplicacao,
+          codigo_referencia: parseInt(newRecord.codigoReferencia),
+          margem: newRecord.margem,
+          data_inicio: newRecord.dataInicio,
+          data_fim: newRecord.dataFim
+        })
+
+      if (error) throw error
+
+      toast({
+        title: "Sucesso",
+        description: "Desconto produto cadastrado com sucesso"
+      })
+
+      setShowAddForm(false)
+      setNewRecord({
+        produto: null,
+        tipoAplicacao: "estado",
+        codigoReferencia: "",
+        margem: 0,
+        dataInicio: new Date().toISOString().split('T')[0],
+        dataFim: "2030-12-31"
+      })
+      fetchData()
+    } catch (error) {
+      console.error("Erro ao cadastrar:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao cadastrar desconto produto",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const getReferenciasOptions = () => {
+    if (newRecord.tipoAplicacao === "estado") {
+      return estados.map(estado => ({
+        value: estado.id.toString(),
+        label: estado.estado
+      }))
+    } else {
+      return lojas.map(loja => ({
+        value: loja.cod_loja.toString(),
+        label: `${loja.cod_loja} - ${loja.loja} - ${loja.estado}`
+      }))
+    }
+  }
+
   const handleExportCSV = () => {
     const csvContent = [
       ["Produto", "Tipo Aplicação", "Referência", "Margem", "Data Início", "Data Fim"],
@@ -174,6 +247,14 @@ export default function DescontoProduto() {
           <CardTitle className="flex justify-between items-center">
             Desconto Produto
             <div className="flex gap-2">
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => setShowAddForm(!showAddForm)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar
+              </Button>
               <Button variant="outline" size="sm" onClick={handleExportCSV}>
                 <Download className="w-4 h-4 mr-2" />
                 Exportar CSV
@@ -186,6 +267,103 @@ export default function DescontoProduto() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {showAddForm && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Adicionar Novo Desconto Produto</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Produto</Label>
+                    <ProdutoCombobox
+                      produtos={produtos}
+                      selectedProduto={newRecord.produto}
+                      onProdutoChange={(produto) => setNewRecord(prev => ({ ...prev, produto }))}
+                      placeholder="Selecionar produto..."
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Tipo Aplicação</Label>
+                    <Select 
+                      value={newRecord.tipoAplicacao} 
+                      onValueChange={(value: "estado" | "loja") => 
+                        setNewRecord(prev => ({ ...prev, tipoAplicacao: value, codigoReferencia: "" }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="estado">Estado</SelectItem>
+                        <SelectItem value="loja">Loja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>{newRecord.tipoAplicacao === "estado" ? "Estado" : "Loja"}</Label>
+                    <Select 
+                      value={newRecord.codigoReferencia} 
+                      onValueChange={(value) => setNewRecord(prev => ({ ...prev, codigoReferencia: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={`Selecionar ${newRecord.tipoAplicacao}...`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getReferenciasOptions().map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <Label>Margem (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={newRecord.margem}
+                      onChange={(e) => setNewRecord(prev => ({ ...prev, margem: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Data Início</Label>
+                    <Input
+                      type="date"
+                      value={newRecord.dataInicio}
+                      onChange={(e) => setNewRecord(prev => ({ ...prev, dataInicio: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Data Fim</Label>
+                    <Input
+                      type="date"
+                      value={newRecord.dataFim}
+                      onChange={(e) => setNewRecord(prev => ({ ...prev, dataFim: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAddNew}>
+                    Salvar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>

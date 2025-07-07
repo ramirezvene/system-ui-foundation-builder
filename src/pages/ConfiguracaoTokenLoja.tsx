@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -73,9 +72,7 @@ export default function ConfiguracaoTokenLoja() {
         .from("cadastro_loja")
         .update({
           st_token: config.status ? 1 : 0,
-          qtde_token: config.tokenMes,
-          meta_loja: config.metaLoja === "REGULAR" ? 1 : 0,
-          dre_negativo: config.dreNegativo === "REGULAR" ? 1 : 0
+          qtde_token: config.tokenMes
         })
         .eq("cod_loja", config.loja.cod_loja)
 
@@ -177,32 +174,14 @@ export default function ConfiguracaoTokenLoja() {
                     />
                   </td>
                   <td className="p-2">
-                    <Select 
-                      value={config.metaLoja} 
-                      onValueChange={(value) => handleConfigChange(index, 'metaLoja', value)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="REGULAR">REGULAR</SelectItem>
-                        <SelectItem value="IRREGULAR">IRREGULAR</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="w-32 px-3 py-2 bg-gray-100 border rounded text-sm text-gray-600">
+                      {config.metaLoja}
+                    </div>
                   </td>
                   <td className="p-2">
-                    <Select 
-                      value={config.dreNegativo} 
-                      onValueChange={(value) => handleConfigChange(index, 'dreNegativo', value)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="REGULAR">REGULAR</SelectItem>
-                        <SelectItem value="IRREGULAR">IRREGULAR</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="w-32 px-3 py-2 bg-gray-100 border rounded text-sm text-gray-600">
+                      {config.dreNegativo}
+                    </div>
                   </td>
                   <td className="p-2">
                     <Button 
