@@ -154,12 +154,14 @@ export default function Vendas() {
       return { error: "Possuí outras Alçadas para realização de Desconto." }
     }
 
-    // 2. Validações do Subgrupo (se aplicável)
+    const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
+    console.log("Desconto percentual calculado:", descontoPercentual)
+
+    // 2. Validações do Subgrupo (se aplicável) - MARGEM ZVDC
     if (selectedProduto.subgrupo_id) {
       const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)
       if (subgrupoMargem) {
-        const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
-        console.log("Validação subgrupo - desconto%:", descontoPercentual, "margem permitida:", subgrupoMargem.margem)
+        console.log("Validação subgrupo - desconto%:", descontoPercentual, "margem ZVDC permitida:", subgrupoMargem.margem)
         if (descontoPercentual > subgrupoMargem.margem) {
           return { 
             error: `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`,
@@ -198,7 +200,7 @@ export default function Vendas() {
       return { error: "Produto possui Bloqueado para solicitar Token." }
     }
 
-    // Verificar margem ZVDC vs UF
+    // Verificar margem UF (produto_margem) - apenas para informação, não para bloqueio
     const produtoMargem = produtoMargens.find(pm => 
       pm.id_produto === selectedProduto.id_produto && 
       pm.tipo_aplicacao === "estado" &&
@@ -206,11 +208,10 @@ export default function Vendas() {
     )
 
     if (produtoMargem) {
-      const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
-      console.log("Validação produto margem - desconto%:", descontoPercentual, "margem ZVDC:", produtoMargem.margem)
+      console.log("Validação produto margem UF - desconto%:", descontoPercentual, "margem UF:", produtoMargem.margem)
       if (descontoPercentual > produtoMargem.margem) {
         return { 
-          error: "Desconto token reprovado, devido a margem ZVDC.",
+          error: "Desconto token reprovado, devido a margem UF.",
           observacao: produtoMargem.observacao || undefined
         }
       }
@@ -237,7 +238,7 @@ export default function Vendas() {
     const precoMinimo = cmgProduto * 1.1
     const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
     
-    // Buscar margem UF
+    // Buscar margem UF (produto_margem)
     const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
     const produtoMargem = produtoMargens.find(pm => 
       pm.id_produto === selectedProduto.id_produto && 
@@ -245,11 +246,13 @@ export default function Vendas() {
       pm.codigo_referencia === estadoInfo?.id
     )
     
-    const margemUF = selectedProduto.subgrupo_id ? 
+    // Margem UF Loja = margem do produto_margem (se existir)
+    const margemUF = produtoMargem ? produtoMargem.margem + "%" : "N/A"
+    
+    // Margem ZVDC = margem do subgrupo
+    const margemZVDC = selectedProduto.subgrupo_id ? 
       (subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)?.margem + "%" || "N/A") : 
       "N/A"
-    
-    const margemZVDC = produtoMargem ? produtoMargem.margem + "%" : "N/A"
 
     return {
       precoMinimo,
