@@ -122,7 +122,6 @@ export default function Vendas() {
     }
 
     // 1. Validações do Produto
-    // Preço Mínimo
     const estado = selectedLoja.estado.toLowerCase()
     let cmgProduto = 0
     let aliq = 0
@@ -130,19 +129,34 @@ export default function Vendas() {
     
     if (estado === 'rs') {
       cmgProduto = selectedProduto.cmg_rs || 0
-      aliq = selectedProduto.aliq_rs || 0
-      piscofins = selectedProduto.piscofins || 0
+      aliq = (selectedProduto.aliq_rs || 0) / 100
+      piscofins = (selectedProduto.piscofins || 0) / 100
     } else if (estado === 'sc') {
       cmgProduto = selectedProduto.cmg_sc || 0
-      aliq = selectedProduto.aliq_sc || 0
-      piscofins = selectedProduto.piscofins || 0
+      aliq = (selectedProduto.aliq_sc || 0) / 100
+      piscofins = (selectedProduto.piscofins || 0) / 100
     } else if (estado === 'pr') {
       cmgProduto = selectedProduto.cmg_pr || 0
-      aliq = selectedProduto.aliq_pr || 0
-      piscofins = selectedProduto.piscofins || 0
+      aliq = (selectedProduto.aliq_pr || 0) / 100
+      piscofins = (selectedProduto.piscofins || 0) / 100
     }
 
-    const precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
+    // Cálculo correto do preço mínimo
+    let precoMinimo = 0
+    if (selectedProduto.subgrupo_id) {
+      const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)
+      if (subgrupoMargem) {
+        const margemSubgrupo = subgrupoMargem.margem / 100
+        const denominador1 = 1 - (aliq + piscofins)
+        const denominador2 = 1 - margemSubgrupo
+        precoMinimo = (cmgProduto / denominador1) / denominador2
+      } else {
+        precoMinimo = cmgProduto * 1.1 // Fallback para margem mínima de 10%
+      }
+    } else {
+      precoMinimo = cmgProduto * 1.1 // Fallback para margem mínima de 10%
+    }
+
     console.log("Validação - precoMinimo:", precoMinimo)
     console.log("Validação - cmgProduto:", cmgProduto)
     
@@ -163,13 +177,8 @@ export default function Vendas() {
       return { error: "Possuí outras Alçadas para realização de Desconto." }
     }
 
-    const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
-    console.log("Desconto percentual calculado:", descontoPercentual)
-
     // Calcular margem UF loja
-    const aliqDecimal = aliq / 100
-    const piscofinsDecimal = piscofins / 100
-    const margemUFLoja = ((novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal))) - cmgProduto) / (novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal)))
+    const margemUFLoja = ((novoPrecoNum * (1 - (aliq + piscofins))) - cmgProduto) / (novoPrecoNum * (1 - (aliq + piscofins)))
     const margemUFLojaPercentual = margemUFLoja * 100
     
     console.log("Margem UF Loja calculada:", margemUFLojaPercentual, "%")
@@ -248,26 +257,39 @@ export default function Vendas() {
     
     if (estado === 'rs') {
       cmgProduto = selectedProduto.cmg_rs || 0
-      aliq = selectedProduto.aliq_rs || 0
-      piscofins = selectedProduto.piscofins || 0
+      aliq = (selectedProduto.aliq_rs || 0) / 100
+      piscofins = (selectedProduto.piscofins || 0) / 100
     } else if (estado === 'sc') {
       cmgProduto = selectedProduto.cmg_sc || 0
-      aliq = selectedProduto.aliq_sc || 0
-      piscofins = selectedProduto.piscofins || 0
+      aliq = (selectedProduto.aliq_sc || 0) / 100
+      piscofins = (selectedProduto.piscofins || 0) / 100
     } else if (estado === 'pr') {
       cmgProduto = selectedProduto.cmg_pr || 0
-      aliq = selectedProduto.aliq_pr || 0
-      piscofins = selectedProduto.piscofins || 0
+      aliq = (selectedProduto.aliq_pr || 0) / 100
+      piscofins = (selectedProduto.piscofins || 0) / 100
     }
 
-    const precoMinimo = cmgProduto * 1.1
+    // Cálculo correto do preço mínimo
+    let precoMinimo = 0
+    if (selectedProduto.subgrupo_id) {
+      const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)
+      if (subgrupoMargem) {
+        const margemSubgrupo = subgrupoMargem.margem / 100
+        const denominador1 = 1 - (aliq + piscofins)
+        const denominador2 = 1 - margemSubgrupo
+        precoMinimo = (cmgProduto / denominador1) / denominador2
+      } else {
+        precoMinimo = cmgProduto * 1.1 // Fallback para margem mínima de 10%
+      }
+    } else {
+      precoMinimo = cmgProduto * 1.1 // Fallback para margem mínima de 10%
+    }
+
     const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
     
     // Calcular margem UF loja
     const novoPrecoNum = parsePrice(novoPreco)
-    const aliqDecimal = aliq / 100
-    const piscofinsDecimal = piscofins / 100
-    const margemUFLoja = ((novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal))) - cmgProduto) / (novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal)))
+    const margemUFLoja = ((novoPrecoNum * (1 - (aliq + piscofins))) - cmgProduto) / (novoPrecoNum * (1 - (aliq + piscofins)))
     const margemUF = `${(margemUFLoja * 100).toFixed(2)}%`
     
     // Margem ZVDC = margem do subgrupo
