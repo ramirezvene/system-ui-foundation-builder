@@ -1,4 +1,3 @@
-
 import { Produto, Loja, ProdutoMargem, SubgrupoMargem, Estado } from "@/types/vendas"
 import { calculateMinPrice, calculateUFMargin } from "./priceCalculations"
 
@@ -118,4 +117,3 @@ export const validateHierarchy = (
   console.log("Validação passou - token aprovado")
   return { error: null }
 }
-

@@ -23,14 +23,14 @@ export const calculateAdditionalInfo = (
   let piscofins = 0
   
   if (estado === 'rs') {
-    aliq = (selectedProduto.aliq_rs || 0) / 100
-    piscofins = (selectedProduto.piscofins || 0) / 100
+    aliq = selectedProduto.aliq_rs || 0  // Removido divisão por 100
+    piscofins = selectedProduto.piscofins || 0  // Removido divisão por 100
   } else if (estado === 'sc') {
-    aliq = (selectedProduto.aliq_sc || 0) / 100
-    piscofins = (selectedProduto.piscofins || 0) / 100
+    aliq = selectedProduto.aliq_sc || 0  // Removido divisão por 100
+    piscofins = selectedProduto.piscofins || 0  // Removido divisão por 100
   } else if (estado === 'pr') {
-    aliq = (selectedProduto.aliq_pr || 0) / 100
-    piscofins = (selectedProduto.piscofins || 0) / 100
+    aliq = selectedProduto.aliq_pr || 0  // Removido divisão por 100
+    piscofins = selectedProduto.piscofins || 0  // Removido divisão por 100
   }
 
   // Usar a função corrigida para calcular o preço mínimo
@@ -56,4 +56,3 @@ export const calculateAdditionalInfo = (
     margemZVDC
   }
 }
-
