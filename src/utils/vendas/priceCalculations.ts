@@ -25,7 +25,7 @@ export const calculateMinPrice = (
     piscofins = (produto.piscofins || 0) / 100
   }
 
-  // Cálculo exato conforme especificado pelo usuário
+  // Cálculo exato conforme especificado: (cmgProduto / denominador1) / denominador2
   let precoMinimo = 0
   if (produto.subgrupo_id) {
     const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === produto.subgrupo_id)
@@ -33,7 +33,18 @@ export const calculateMinPrice = (
       const margemSubgrupo = subgrupoMargem.margem / 100
       const denominador1 = 1 - (aliq + piscofins)
       const denominador2 = 1 - margemSubgrupo
+      
+      console.log("Cálculo Preço Mínimo:")
+      console.log("CMG Produto:", cmgProduto)
+      console.log("ALIQ:", aliq)
+      console.log("PISCOFINS:", piscofins)
+      console.log("Margem Subgrupo:", margemSubgrupo)
+      console.log("Denominador1 (1 - (aliq + piscofins)):", denominador1)
+      console.log("Denominador2 (1 - margemSubgrupo):", denominador2)
+      
       precoMinimo = (cmgProduto / denominador1) / denominador2
+      
+      console.log("Preço Mínimo Calculado:", precoMinimo)
     }
   }
 
