@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -24,8 +23,15 @@ interface SolicitacaoResult {
   precoSolicitado: number
   desconto: number
   tokenDisponivel: number
+  tokenDisponipelAtualizado: number
   retorno: string
   aprovado: boolean
+  precoMinimo: number
+  cmgProduto: number
+  descontoAlcada: string
+  margemUF: string
+  margemZVDC: string
+  observacaoRejeicao?: string
 }
 
 export default function Vendas() {
@@ -101,8 +107,8 @@ export default function Vendas() {
     return parseFloat(cleanPrice) || 0
   }
 
-  const validateHierarchy = (): string | null => {
-    if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
+  const validateHierarchy = (): { error: string | null, observacao?: string } => {
+    if (!selectedProduto || !selectedLoja) return { error: "Selecione uma loja e um produto" }
 
     const novoPrecoNum = parsePrice(novoPreco)
     console.log("Validação - novoPreco string:", novoPreco)
@@ -111,13 +117,12 @@ export default function Vendas() {
     
     if (isNaN(novoPrecoNum) || novoPrecoNum <= 0) {
       console.log("Preço inválido - NaN ou <= 0")
-      return "Preço solicitado inválido"
+      return { error: "Preço solicitado inválido" }
     }
 
     // 1. Validações do Produto
     // Preço Mínimo
     const estado = selectedLoja.estado.toLowerCase()
-    let precoMinimo = 0
     let cmgProduto = 0
     
     if (estado === 'rs') {
@@ -128,25 +133,25 @@ export default function Vendas() {
       cmgProduto = selectedProduto.cmg_pr || 0
     }
 
-    precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
+    const precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
     console.log("Validação - precoMinimo:", precoMinimo)
     console.log("Validação - cmgProduto:", cmgProduto)
     
     if (novoPrecoNum < precoMinimo) {
       console.log("Preço menor que mínimo")
-      return "Desconto reprovado, devido ao preço ser inferior ao Preço Mínimo."
+      return { error: "Desconto reprovado, devido ao preço ser inferior ao Preço Mínimo." }
     }
 
     // % Desconto válido
     if (novoPrecoNum >= precoAtual) {
       console.log("Preço maior ou igual ao regular")
-      return "Desconto é inválido, preço maior que Valor Regular."
+      return { error: "Desconto é inválido, preço maior que Valor Regular." }
     }
 
     // Validar alçada do produto
     if (selectedProduto.alcada !== 0) {
       console.log("Produto possui outras alçadas")
-      return "Possuí outras Alçadas para realização de Desconto."
+      return { error: "Possuí outras Alçadas para realização de Desconto." }
     }
 
     // 2. Validações do Subgrupo (se aplicável)
@@ -156,7 +161,10 @@ export default function Vendas() {
         const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
         console.log("Validação subgrupo - desconto%:", descontoPercentual, "margem permitida:", subgrupoMargem.margem)
         if (descontoPercentual > subgrupoMargem.margem) {
-          return `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`
+          return { 
+            error: `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`,
+            observacao: subgrupoMargem.observacao || undefined
+          }
         }
       }
     }
@@ -164,30 +172,30 @@ export default function Vendas() {
     // 3. Validações da Loja
     if (selectedLoja.meta_loja !== 1) {
       console.log("Meta loja irregular")
-      return "Bloqueado devido a Meta de Desconto estar irregular."
+      return { error: "Bloqueado devido a Meta de Desconto estar irregular." }
     }
 
     if (selectedLoja.dre_negativo !== 1) {
       console.log("DRE irregular")
-      return "Bloqueado devido a DRE estar irregular."
+      return { error: "Bloqueado devido a DRE estar irregular." }
     }
 
     // 4. Validações do Estado
     const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
     if (!estadoInfo || estadoInfo.st_ativo !== 1) {
       console.log("Estado não disponível")
-      return "Estado não disponível para solicitação de token."
+      return { error: "Estado não disponível para solicitação de token." }
     }
 
     // Validações específicas do produto
     if (selectedProduto.st_ruptura !== 0) {
       console.log("Produto com ruptura")
-      return "Produto possui Ruptura de Estoque."
+      return { error: "Produto possui Ruptura de Estoque." }
     }
 
     if (selectedProduto.st_pricing !== 0) {
       console.log("Produto bloqueado para token")
-      return "Produto possui Bloqueado para solicitar Token."
+      return { error: "Produto possui Bloqueado para solicitar Token." }
     }
 
     // Verificar margem ZVDC vs UF
@@ -201,17 +209,66 @@ export default function Vendas() {
       const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
       console.log("Validação produto margem - desconto%:", descontoPercentual, "margem ZVDC:", produtoMargem.margem)
       if (descontoPercentual > produtoMargem.margem) {
-        return "Desconto token reprovado, devido a margem ZVDC."
+        return { 
+          error: "Desconto token reprovado, devido a margem ZVDC.",
+          observacao: produtoMargem.observacao || undefined
+        }
       }
     }
 
     console.log("Validação passou - token aprovado")
-    return null
+    return { error: null }
+  }
+
+  const calculateAdditionalInfo = () => {
+    if (!selectedProduto || !selectedLoja) return null
+
+    const estado = selectedLoja.estado.toLowerCase()
+    let cmgProduto = 0
+    
+    if (estado === 'rs') {
+      cmgProduto = selectedProduto.cmg_rs || 0
+    } else if (estado === 'sc') {
+      cmgProduto = selectedProduto.cmg_sc || 0
+    } else if (estado === 'pr') {
+      cmgProduto = selectedProduto.cmg_pr || 0
+    }
+
+    const precoMinimo = cmgProduto * 1.1
+    const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
+    
+    // Buscar margem UF
+    const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
+    const produtoMargem = produtoMargens.find(pm => 
+      pm.id_produto === selectedProduto.id_produto && 
+      pm.tipo_aplicacao === "estado" &&
+      pm.codigo_referencia === estadoInfo?.id
+    )
+    
+    const margemUF = selectedProduto.subgrupo_id ? 
+      (subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)?.margem + "%" || "N/A") : 
+      "N/A"
+    
+    const margemZVDC = produtoMargem ? produtoMargem.margem + "%" : "N/A"
+
+    return {
+      precoMinimo,
+      cmgProduto,
+      descontoAlcada,
+      margemUF,
+      margemZVDC
+    }
   }
 
   const handleSolicitarToken = async () => {
-    const validationError = validateHierarchy()
+    const validation = validateHierarchy()
     const novoPrecoNum = parsePrice(novoPreco)
+    const additionalInfo = calculateAdditionalInfo()
+    
+    if (!additionalInfo) return
+
+    const tokenAtualDisponivel = selectedLoja?.qtde_token || 0
+    const tokenDisponipelAtualizado = validation.error ? tokenAtualDisponivel : Math.max(0, tokenAtualDisponivel - 1)
     
     const result: SolicitacaoResult = {
       loja: selectedLoja,
@@ -219,17 +276,24 @@ export default function Vendas() {
       precoRegular: precoAtual,
       precoSolicitado: novoPrecoNum,
       desconto: precoAtual > 0 ? ((precoAtual - novoPrecoNum) / precoAtual * 100) : 0,
-      tokenDisponivel: selectedLoja?.qtde_token || 0,
-      retorno: validationError || "Solicitado",
-      aprovado: !validationError
+      tokenDisponivel: tokenAtualDisponivel,
+      tokenDisponipelAtualizado: tokenDisponipelAtualizado,
+      retorno: validation.error || "Solicitado",
+      aprovado: !validation.error,
+      precoMinimo: additionalInfo.precoMinimo,
+      cmgProduto: additionalInfo.cmgProduto,
+      descontoAlcada: additionalInfo.descontoAlcada,
+      margemUF: additionalInfo.margemUF,
+      margemZVDC: additionalInfo.margemZVDC,
+      observacaoRejeicao: validation.observacao
     }
 
     setSolicitacaoResult(result)
 
-    if (validationError) {
+    if (validation.error) {
       toast({
         title: "Validação",
-        description: validationError,
+        description: validation.error,
         variant: "destructive"
       })
       handleLimpar()
@@ -237,6 +301,12 @@ export default function Vendas() {
     }
 
     try {
+      // Atualizar quantidade de token disponível na loja
+      await supabase
+        .from("cadastro_loja")
+        .update({ qtde_token: tokenDisponipelAtualizado })
+        .eq("cod_loja", selectedLoja!.cod_loja)
+
       // Gerar código do token
       const { data: tokenCode, error: tokenError } = await supabase
         .rpc('generate_token_code')
@@ -260,17 +330,6 @@ export default function Vendas() {
       const desconto = ((precoAtual - novoPrecoNum) / precoAtual * 100).toFixed(2)
 
       // Inserir detalhes do token
-      const estado = selectedLoja!.estado.toLowerCase()
-      let cmgProduto = 0
-      
-      if (estado === 'rs') {
-        cmgProduto = selectedProduto!.cmg_rs || 0
-      } else if (estado === 'sc') {
-        cmgProduto = selectedProduto!.cmg_sc || 0
-      } else if (estado === 'pr') {
-        cmgProduto = selectedProduto!.cmg_pr || 0
-      }
-
       const { error: insertDetailError } = await supabase
         .from("token_loja_detalhado")
         .insert({
@@ -280,7 +339,11 @@ export default function Vendas() {
           preco_regul: precoAtual,
           vlr_solic: novoPrecoNum,
           desconto: `${desconto}%`,
-          cmg_produto: cmgProduto
+          cmg_produto: additionalInfo.cmgProduto,
+          preco_min: additionalInfo.precoMinimo,
+          desc_alcada: additionalInfo.descontoAlcada,
+          margem_uf: additionalInfo.margemUF,
+          margem_zvdc: additionalInfo.margemZVDC
         })
 
       if (insertDetailError) throw insertDetailError
@@ -446,18 +509,62 @@ export default function Vendas() {
               </div>
             </div>
 
+            <div className="border-t pt-4">
+              <h4 className="font-semibold mb-3">Informações Adicionais</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label className="font-semibold">Preço Mínimo:</Label>
+                  <p>{formatCurrency(solicitacaoResult.precoMinimo)}</p>
+                </div>
+                
+                <div>
+                  <Label className="font-semibold">CMG Produto:</Label>
+                  <p>{formatCurrency(solicitacaoResult.cmgProduto)}</p>
+                </div>
+                
+                <div>
+                  <Label className="font-semibold">Desconto Alçada:</Label>
+                  <p>{solicitacaoResult.descontoAlcada}</p>
+                </div>
+                
+                <div>
+                  <Label className="font-semibold">Margem UF Loja:</Label>
+                  <p>{solicitacaoResult.margemUF}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <Label className="font-semibold">Margem ZVDC:</Label>
+                  <p>{solicitacaoResult.margemZVDC}</p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label className="font-semibold">Token Loja Disponível Mês:</Label>
+                <Label className="font-semibold">Token Disponível (Atual):</Label>
                 <p>{solicitacaoResult.tokenDisponivel}</p>
               </div>
               
               <div>
-                <Label className="font-semibold">Retorno:</Label>
-                <p className={`font-medium ${solicitacaoResult.aprovado ? 'text-green-600' : 'text-red-600'}`}>
-                  {solicitacaoResult.retorno}
+                <Label className="font-semibold">Token Disponível (Atualizado):</Label>
+                <p className={`font-medium ${solicitacaoResult.aprovado ? 'text-blue-600' : 'text-gray-600'}`}>
+                  {solicitacaoResult.tokenDisponipelAtualizado}
                 </p>
               </div>
+            </div>
+
+            <div>
+              <Label className="font-semibold">Retorno:</Label>
+              <p className={`font-medium ${solicitacaoResult.aprovado ? 'text-green-600' : 'text-red-600'}`}>
+                {solicitacaoResult.retorno}
+              </p>
+              {solicitacaoResult.observacaoRejeicao && (
+                <p className="text-sm text-gray-600 mt-1">
+                  <strong>Observação:</strong> {solicitacaoResult.observacaoRejeicao}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
