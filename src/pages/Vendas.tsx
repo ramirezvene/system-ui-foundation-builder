@@ -247,7 +247,9 @@ export default function Vendas() {
     )
     
     // Margem UF Loja = margem do produto_margem (se existir)
-    const margemUF = produtoMargem ? produtoMargem.margem + "%" : "N/A"
+    //const margemUF = produtoMargem ? produtoMargem.margem + "%" : "N/A"
+    const margemUF = ((novoPreco * (1 - (aliq + piscofins))) - cmg) / (novoPreco * (1 - (aliq + piscofins)))
+      setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
     
     // Margem ZVDC = margem do subgrupo
     const margemZVDC = selectedProduto.subgrupo_id ? 
