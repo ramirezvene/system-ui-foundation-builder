@@ -3,10 +3,12 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Download, Upload } from "lucide-react"
+import { Download, Upload, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 type SubgrupoMargem = Tables<"subgrupo_margem">
 
@@ -15,12 +17,16 @@ interface SubgrupoConfig {
   dataInicio: string
   dataFim: string
   margem: number
+  observacao: string
   edited: boolean
 }
 
 export default function ConfiguracaoDescontoSubgrupo() {
   const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([])
   const [configuracoes, setConfiguracoes] = useState<SubgrupoConfig[]>([])
+  const [observacaoDialogOpen, setObservacaoDialogOpen] = useState(false)
+  const [currentObservacao, setCurrentObservacao] = useState("")
+  const [currentSubgrupoIndex, setCurrentSubgrupoIndex] = useState<number | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -41,6 +47,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         dataInicio: subgrupo.data_inicio || '2025-01-01',
         dataFim: subgrupo.data_fim || '2030-01-01',
         margem: subgrupo.margem,
+        observacao: subgrupo.observacao || '',
         edited: false
       }))
       
@@ -62,6 +69,21 @@ export default function ConfiguracaoDescontoSubgrupo() {
     setConfiguracoes(newConfigs)
   }
 
+  const handleObservacaoOpen = (index: number) => {
+    setCurrentSubgrupoIndex(index)
+    setCurrentObservacao(configuracoes[index].observacao)
+    setObservacaoDialogOpen(true)
+  }
+
+  const handleObservacaoSave = () => {
+    if (currentSubgrupoIndex !== null) {
+      handleConfigChange(currentSubgrupoIndex, 'observacao', currentObservacao)
+    }
+    setObservacaoDialogOpen(false)
+    setCurrentSubgrupoIndex(null)
+    setCurrentObservacao("")
+  }
+
   const handleSave = async (index: number) => {
     const config = configuracoes[index]
     try {
@@ -70,7 +92,8 @@ export default function ConfiguracaoDescontoSubgrupo() {
         .update({
           margem: config.margem,
           data_inicio: config.dataInicio,
-          data_fim: config.dataFim
+          data_fim: config.dataFim,
+          observacao: config.observacao
         })
         .eq("cod_subgrupo", config.subgrupo.cod_subgrupo)
 
@@ -96,13 +119,14 @@ export default function ConfiguracaoDescontoSubgrupo() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Código Subgrupo", "Nome Subgrupo", "Data Início", "Data Fim", "% Margem"],
+      ["Código Subgrupo", "Nome Subgrupo", "Data Início", "Data Fim", "% Margem", "Observação"],
       ...configuracoes.map(config => [
         config.subgrupo.cod_subgrupo,
         config.subgrupo.nome_subgrupo,
         config.dataInicio,
         config.dataFim,
-        config.margem.toFixed(2)
+        config.margem.toFixed(2),
+        config.observacao || ""
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -144,6 +168,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                 <th className="text-left p-2">Data Início</th>
                 <th className="text-left p-2">Data Fim</th>
                 <th className="text-left p-2">% Margem</th>
+                <th className="text-left p-2">Observação</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
             </thead>
@@ -178,6 +203,16 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     />
                   </td>
                   <td className="p-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleObservacaoOpen(index)}
+                      className="w-8 h-8 p-0"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </Button>
+                  </td>
+                  <td className="p-2">
                     <Button 
                       size="sm" 
                       onClick={() => handleSave(index)}
@@ -192,6 +227,34 @@ export default function ConfiguracaoDescontoSubgrupo() {
           </table>
         </div>
       </CardContent>
+
+      <Dialog open={observacaoDialogOpen} onOpenChange={setObservacaoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Observação do Subgrupo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={currentObservacao}
+              onChange={(e) => setCurrentObservacao(e.target.value)}
+              placeholder="Digite a observação específica para este subgrupo..."
+              maxLength={100}
+              rows={4}
+            />
+            <div className="text-sm text-muted-foreground">
+              {currentObservacao.length}/100 caracteres
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setObservacaoDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleObservacaoSave}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

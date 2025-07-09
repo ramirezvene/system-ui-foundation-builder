@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
@@ -11,18 +11,9 @@ import { useToast } from "@/hooks/use-toast"
 
 type Loja = Tables<"cadastro_loja">
 
-interface LojaConfig {
-  loja: Loja
-  status: boolean
-  tokenMes: number
-  metaLoja: string
-  dreNegativo: string
-  edited: boolean
-}
-
 export default function ConfiguracaoTokenLoja() {
   const [lojas, setLojas] = useState<Loja[]>([])
-  const [configuracoes, setConfiguracoes] = useState<LojaConfig[]>([])
+  const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const { toast } = useToast()
 
   useEffect(() => {
@@ -37,18 +28,7 @@ export default function ConfiguracaoTokenLoja() {
         .order("cod_loja")
       
       if (error) throw error
-      
-      const configs = (data || []).map(loja => ({
-        loja,
-        status: loja.st_token === 1,
-        tokenMes: loja.qtde_token || 100,
-        metaLoja: loja.meta_loja === 1 ? "REGULAR" : "IRREGULAR",
-        dreNegativo: loja.dre_negativo === 1 ? "REGULAR" : "IRREGULAR",
-        edited: false
-      }))
-      
       setLojas(data || [])
-      setConfiguracoes(configs)
     } catch (error) {
       console.error("Erro ao buscar lojas:", error)
       toast({
@@ -59,38 +39,44 @@ export default function ConfiguracaoTokenLoja() {
     }
   }
 
-  const handleConfigChange = (index: number, field: keyof LojaConfig, value: any) => {
-    const newConfigs = [...configuracoes]
-    newConfigs[index] = { ...newConfigs[index], [field]: value, edited: true }
-    setConfiguracoes(newConfigs)
+  const handleLojaChange = (codLoja: number, field: keyof Loja, value: any) => {
+    setLojas(prev => prev.map(loja => 
+      loja.cod_loja === codLoja ? { ...loja, [field]: value } : loja
+    ))
+    setEditedRows(prev => new Set(prev).add(codLoja))
   }
 
-  const handleSave = async (index: number) => {
-    const config = configuracoes[index]
+  const handleSave = async (codLoja: number) => {
+    const loja = lojas.find(l => l.cod_loja === codLoja)
+    if (!loja) return
+
     try {
       const { error } = await supabase
         .from("cadastro_loja")
         .update({
-          st_token: config.status ? 1 : 0,
-          qtde_token: config.tokenMes
+          st_token: loja.st_token,
+          qtde_token: loja.qtde_token
+          // Removidos meta_loja e dre_negativo para bloquear edição
         })
-        .eq("cod_loja", config.loja.cod_loja)
+        .eq("cod_loja", codLoja)
 
       if (error) throw error
 
-      const newConfigs = [...configuracoes]
-      newConfigs[index].edited = false
-      setConfiguracoes(newConfigs)
+      setEditedRows(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(codLoja)
+        return newSet
+      })
 
       toast({
         title: "Sucesso",
-        description: "Configuração salva com sucesso"
+        description: "Loja atualizada com sucesso"
       })
     } catch (error) {
       console.error("Erro ao salvar:", error)
       toast({
         title: "Erro",
-        description: "Erro ao salvar configuração",
+        description: "Erro ao salvar loja",
         variant: "destructive"
       })
     }
@@ -98,15 +84,15 @@ export default function ConfiguracaoTokenLoja() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Código Loja", "Loja", "Estado", "Status", "Token/mês", "Meta Loja", "DRE Negativo"],
-      ...configuracoes.map(config => [
-        config.loja.cod_loja,
-        config.loja.loja,
-        config.loja.estado,
-        config.status ? "Ativo" : "Inativo",
-        config.tokenMes,
-        config.metaLoja,
-        config.dreNegativo
+      ["Código", "Loja", "Estado", "Status Token", "Qtde Token", "Meta Loja", "DRE Negativo"],
+      ...lojas.map(loja => [
+        loja.cod_loja,
+        loja.loja,
+        loja.estado,
+        loja.st_token === 1 ? "Ativo" : "Inativo",
+        loja.qtde_token || 0,
+        loja.meta_loja === 1 ? "Regular" : "Irregular",
+        loja.dre_negativo === 1 ? "Regular" : "Irregular"
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -125,7 +111,7 @@ export default function ConfiguracaoTokenLoja() {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
-          Lojas
+          Configuração Token Loja
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
@@ -146,48 +132,61 @@ export default function ConfiguracaoTokenLoja() {
                 <th className="text-left p-2">Código</th>
                 <th className="text-left p-2">Loja</th>
                 <th className="text-left p-2">Estado</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Token/mês</th>
+                <th className="text-left p-2">Status Token</th>
+                <th className="text-left p-2">Qtde Token</th>
                 <th className="text-left p-2">Meta Loja</th>
                 <th className="text-left p-2">DRE Negativo</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {configuracoes.map((config, index) => (
-                <tr key={config.loja.cod_loja} className={`border-b ${config.edited ? 'bg-yellow-50' : ''}`}>
-                  <td className="p-2 font-medium">{config.loja.cod_loja}</td>
-                  <td className="p-2">{config.loja.loja}</td>
-                  <td className="p-2">{config.loja.estado}</td>
+              {lojas.map((loja) => (
+                <tr key={loja.cod_loja} className={`border-b ${editedRows.has(loja.cod_loja) ? 'bg-yellow-50' : ''}`}>
+                  <td className="p-2 font-medium">{loja.cod_loja}</td>
+                  <td className="p-2">{loja.loja}</td>
+                  <td className="p-2">{loja.estado}</td>
                   <td className="p-2">
-                    <Switch
-                      checked={config.status}
-                      onCheckedChange={(checked) => handleConfigChange(index, 'status', checked)}
-                    />
+                    <Select
+                      value={loja.st_token?.toString() || "1"}
+                      onValueChange={(value) => handleLojaChange(loja.cod_loja, 'st_token', parseInt(value))}
+                    >
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Ativo</SelectItem>
+                        <SelectItem value="0">Inativo</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={config.tokenMes}
-                      onChange={(e) => handleConfigChange(index, 'tokenMes', parseInt(e.target.value) || 0)}
+                      min="0"
+                      value={loja.qtde_token || 0}
+                      onChange={(e) => handleLojaChange(loja.cod_loja, 'qtde_token', parseInt(e.target.value) || 0)}
                       className="w-20"
                     />
                   </td>
                   <td className="p-2">
-                    <div className="w-32 px-3 py-2 bg-gray-100 border rounded text-sm text-gray-600">
-                      {config.metaLoja}
-                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      loja.meta_loja === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {loja.meta_loja === 1 ? "Regular" : "Irregular"}
+                    </span>
                   </td>
                   <td className="p-2">
-                    <div className="w-32 px-3 py-2 bg-gray-100 border rounded text-sm text-gray-600">
-                      {config.dreNegativo}
-                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      loja.dre_negativo === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {loja.dre_negativo === 1 ? "Regular" : "Irregular"}
+                    </span>
                   </td>
                   <td className="p-2">
                     <Button 
                       size="sm" 
-                      onClick={() => handleSave(index)}
-                      disabled={!config.edited}
+                      onClick={() => handleSave(loja.cod_loja)}
+                      disabled={!editedRows.has(loja.cod_loja)}
                     >
                       Salvar
                     </Button>

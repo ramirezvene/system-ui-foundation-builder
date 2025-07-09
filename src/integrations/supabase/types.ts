@@ -249,7 +249,9 @@ export type Database = {
           id: number
           id_produto: number
           margem: number
+          observacao: string | null
           tipo_aplicacao: string
+          tipo_margem: string
           updated_at: string
         }
         Insert: {
@@ -260,7 +262,9 @@ export type Database = {
           id?: number
           id_produto: number
           margem: number
+          observacao?: string | null
           tipo_aplicacao: string
+          tipo_margem?: string
           updated_at?: string
         }
         Update: {
@@ -271,7 +275,9 @@ export type Database = {
           id?: number
           id_produto?: number
           margem?: number
+          observacao?: string | null
           tipo_aplicacao?: string
+          tipo_margem?: string
           updated_at?: string
         }
         Relationships: [
@@ -326,6 +332,7 @@ export type Database = {
           data_inicio: string | null
           margem: number
           nome_subgrupo: string
+          observacao: string | null
         }
         Insert: {
           cod_subgrupo: number
@@ -333,6 +340,7 @@ export type Database = {
           data_inicio?: string | null
           margem: number
           nome_subgrupo: string
+          observacao?: string | null
         }
         Update: {
           cod_subgrupo?: number
@@ -340,6 +348,7 @@ export type Database = {
           data_inicio?: string | null
           margem?: number
           nome_subgrupo?: string
+          observacao?: string | null
         }
         Relationships: []
       }

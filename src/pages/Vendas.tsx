@@ -12,20 +12,37 @@ import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 
 type Loja = Tables<"cadastro_loja">
 type Produto = Tables<"cadastro_produto">
+type ProdutoMargem = Tables<"produto_margem">
+type SubgrupoMargem = Tables<"subgrupo_margem">
+type Estado = Tables<"cadastro_estado">
+
+interface SolicitacaoResult {
+  loja: Loja | null
+  produto: Produto | null
+  precoRegular: number
+  precoSolicitado: number
+  desconto: number
+  tokenDisponivel: number
+  retorno: string
+  aprovado: boolean
+}
 
 export default function Vendas() {
   const [lojas, setLojas] = useState<Loja[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [produtoMargens, setProdutoMargens] = useState<ProdutoMargem[]>([])
+  const [subgrupoMargens, setSubgrupoMargens] = useState<SubgrupoMargem[]>([])
+  const [estados, setEstados] = useState<Estado[]>([])
   const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null)
   const [precoAtual, setPrecoAtual] = useState<number>(0)
   const [novoPreco, setNovoPreco] = useState<string>("")
   const [quantidade, setQuantidade] = useState<string>("1")
+  const [solicitacaoResult, setSolicitacaoResult] = useState<SolicitacaoResult | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchLojas()
-    fetchProdutos()
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -45,83 +62,141 @@ export default function Vendas() {
     }
   }, [selectedProduto, selectedLoja])
 
-  const fetchLojas = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from("cadastro_loja")
-        .select("*")
-        .order("loja")
+      const [lojasRes, produtosRes, produtoMargensRes, subgrupoMargensRes, estadosRes] = await Promise.all([
+        supabase.from("cadastro_loja").select("*").order("loja"),
+        supabase.from("cadastro_produto").select("*").order("nome_produto"),
+        supabase.from("produto_margem").select("*"),
+        supabase.from("subgrupo_margem").select("*"),
+        supabase.from("cadastro_estado").select("*")
+      ])
       
-      if (error) throw error
-      setLojas(data || [])
+      if (lojasRes.error) throw lojasRes.error
+      if (produtosRes.error) throw produtosRes.error
+      if (produtoMargensRes.error) throw produtoMargensRes.error
+      if (subgrupoMargensRes.error) throw subgrupoMargensRes.error
+      if (estadosRes.error) throw estadosRes.error
+
+      setLojas(lojasRes.data || [])
+      setProdutos(produtosRes.data || [])
+      setProdutoMargens(produtoMargensRes.data || [])
+      setSubgrupoMargens(subgrupoMargensRes.data || [])
+      setEstados(estadosRes.data || [])
     } catch (error) {
-      console.error("Erro ao buscar lojas:", error)
+      console.error("Erro ao buscar dados:", error)
       toast({
         title: "Erro",
-        description: "Erro ao carregar lojas",
+        description: "Erro ao carregar dados",
         variant: "destructive"
       })
     }
   }
 
-  const fetchProdutos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("cadastro_produto")
-        .select("*")
-        .order("nome_produto")
-      
-      if (error) throw error
-      setProdutos(data || [])
-    } catch (error) {
-      console.error("Erro ao buscar produtos:", error)
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar produtos",
-        variant: "destructive"
-      })
-    }
-  }
-
-  const validateSolicitacao = (): string | null => {
+  const validateHierarchy = (): string | null => {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
+
+    const novoPrecoNum = parseFloat(novoPreco)
+    if (isNaN(novoPrecoNum)) return "Preço solicitado inválido"
+
+    // 1. Validações do Produto
+    // Preço Mínimo
+    const estado = selectedLoja.estado.toLowerCase()
+    let precoMinimo = 0
+    let cmgProduto = 0
+    
+    if (estado === 'rs') {
+      cmgProduto = selectedProduto.cmg_rs || 0
+    } else if (estado === 'sc') {
+      cmgProduto = selectedProduto.cmg_sc || 0
+    } else if (estado === 'pr') {
+      cmgProduto = selectedProduto.cmg_pr || 0
+    }
+
+    precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
+    
+    if (novoPrecoNum < precoMinimo) {
+      return "Desconto reprovado, devido ao preço ser inferior ao Preço Mínimo."
+    }
+
+    // % Desconto válido
+    if (novoPrecoNum >= precoAtual) {
+      return "Desconto é inválido, preço maior que Valor Regular."
+    }
 
     // Validar alçada do produto
     if (selectedProduto.alcada !== 0) {
-      return "O produto não permite solicitar Token."
+      return "Possuí outras Alçadas para realização de Desconto."
     }
 
-    // Validar meta da loja
+    // 2. Validações do Subgrupo (se aplicável)
+    if (selectedProduto.subgrupo_id) {
+      const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)
+      if (subgrupoMargem) {
+        const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
+        if (descontoPercentual > subgrupoMargem.margem) {
+          return `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`
+        }
+      }
+    }
+
+    // 3. Validações da Loja
     if (selectedLoja.meta_loja !== 1) {
       return "Bloqueado devido a Meta de Desconto estar irregular."
     }
 
-    // Validar DRE da loja
     if (selectedLoja.dre_negativo !== 1) {
       return "Bloqueado devido a DRE estar irregular."
     }
 
-    // Validar ruptura do produto
+    // 4. Validações do Estado
+    const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
+    if (!estadoInfo || estadoInfo.st_ativo !== 1) {
+      return "Estado não disponível para solicitação de token."
+    }
+
+    // Validações específicas do produto
     if (selectedProduto.st_ruptura !== 0) {
       return "Produto possui Ruptura de Estoque."
     }
 
-    // Validar pricing do produto
     if (selectedProduto.st_pricing !== 0) {
       return "Produto possui Bloqueado para solicitar Token."
     }
 
-    // Validar se o novo preço é menor que o atual
-    const novoPrecoNum = parseFloat(novoPreco)
-    if (isNaN(novoPrecoNum) || novoPrecoNum >= precoAtual) {
-      return "O novo preço deve ser menor que o preço atual."
+    // Verificar margem ZVDC vs UF
+    const produtoMargem = produtoMargens.find(pm => 
+      pm.id_produto === selectedProduto.id_produto && 
+      pm.tipo_aplicacao === "estado" &&
+      pm.codigo_referencia === estadoInfo?.id
+    )
+
+    if (produtoMargem) {
+      const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
+      if (descontoPercentual > produtoMargem.margem) {
+        return "Desconto token reprovado, devido a margem ZVDC."
+      }
     }
 
     return null
   }
 
   const handleSolicitarToken = async () => {
-    const validationError = validateSolicitacao()
+    const validationError = validateHierarchy()
+    
+    const result: SolicitacaoResult = {
+      loja: selectedLoja,
+      produto: selectedProduto,
+      precoRegular: precoAtual,
+      precoSolicitado: parseFloat(novoPreco) || 0,
+      desconto: precoAtual > 0 ? ((precoAtual - parseFloat(novoPreco || "0")) / precoAtual * 100) : 0,
+      tokenDisponivel: selectedLoja?.qtde_token || 0,
+      retorno: validationError || "Solicitado",
+      aprovado: !validationError
+    }
+
+    setSolicitacaoResult(result)
+
     if (validationError) {
       toast({
         title: "Validação",
@@ -156,6 +231,17 @@ export default function Vendas() {
       const desconto = ((precoAtual - novoPrecoNum) / precoAtual * 100).toFixed(2)
 
       // Inserir detalhes do token
+      const estado = selectedLoja!.estado.toLowerCase()
+      let cmgProduto = 0
+      
+      if (estado === 'rs') {
+        cmgProduto = selectedProduto!.cmg_rs || 0
+      } else if (estado === 'sc') {
+        cmgProduto = selectedProduto!.cmg_sc || 0
+      } else if (estado === 'pr') {
+        cmgProduto = selectedProduto!.cmg_pr || 0
+      }
+
       const { error: insertDetailError } = await supabase
         .from("token_loja_detalhado")
         .insert({
@@ -165,7 +251,7 @@ export default function Vendas() {
           preco_regul: precoAtual,
           vlr_solic: novoPrecoNum,
           desconto: `${desconto}%`,
-          cmg_produto: selectedProduto!.cmg_rs || selectedProduto!.cmg_sc || selectedProduto!.cmg_pr || 0
+          cmg_produto: cmgProduto
         })
 
       if (insertDetailError) throw insertDetailError
@@ -175,12 +261,11 @@ export default function Vendas() {
         description: `Token ${tokenCode} solicitado com sucesso!`
       })
 
-      // Limpar formulário
-      setSelectedLoja(null)
-      setSelectedProduto(null)
-      setNovoPreco("")
-      setQuantidade("1")
-      setPrecoAtual(0)
+      // Atualizar resultado para mostrar o código do token
+      setSolicitacaoResult(prev => prev ? {
+        ...prev,
+        retorno: `Solicitado - Token: ${tokenCode}`
+      } : null)
 
     } catch (error) {
       console.error("Erro ao solicitar token:", error)
@@ -199,8 +284,17 @@ export default function Vendas() {
     }).format(value)
   }
 
+  const handleLimpar = () => {
+    setSelectedLoja(null)
+    setSelectedProduto(null)
+    setNovoPreco("")
+    setQuantidade("1")
+    setPrecoAtual(0)
+    setSolicitacaoResult(null)
+  }
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold text-foreground mb-6">Vendas - Solicitação de Token</h1>
       
       <Card className="w-full max-w-4xl">
@@ -279,21 +373,66 @@ export default function Vendas() {
             <Button onClick={handleSolicitarToken} disabled={!selectedLoja || !selectedProduto || !novoPreco}>
               Solicitar Token
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSelectedLoja(null)
-                setSelectedProduto(null)
-                setNovoPreco("")
-                setQuantidade("1")
-                setPrecoAtual(0)
-              }}
-            >
+            <Button variant="outline" onClick={handleLimpar}>
               Limpar
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {solicitacaoResult && (
+        <Card className="w-full max-w-4xl">
+          <CardHeader>
+            <CardTitle className={`${solicitacaoResult.aprovado ? 'text-green-600' : 'text-red-600'}`}>
+              Resultado da Solicitação
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="font-semibold">Loja:</Label>
+                <p>{solicitacaoResult.loja?.cod_loja} - {solicitacaoResult.loja?.loja} - {solicitacaoResult.loja?.estado}</p>
+              </div>
+              
+              <div>
+                <Label className="font-semibold">Produto:</Label>
+                <p>{solicitacaoResult.produto?.id_produto} - {solicitacaoResult.produto?.nome_produto}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="font-semibold">Preço Regular:</Label>
+                <p>{formatCurrency(solicitacaoResult.precoRegular)}</p>
+              </div>
+              
+              <div>
+                <Label className="font-semibold">Preço Solicitado:</Label>
+                <p>{formatCurrency(solicitacaoResult.precoSolicitado)}</p>
+              </div>
+              
+              <div>
+                <Label className="font-semibold">% Desconto:</Label>
+                <p>{solicitacaoResult.desconto.toFixed(2)}%</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="font-semibold">Token Loja Disponível Mês:</Label>
+                <p>{solicitacaoResult.tokenDisponivel}</p>
+              </div>
+              
+              <div>
+                <Label className="font-semibold">Retorno:</Label>
+                <p className={`font-medium ${solicitacaoResult.aprovado ? 'text-green-600' : 'text-red-600'}`}>
+                  {solicitacaoResult.retorno}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

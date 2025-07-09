@@ -1,14 +1,17 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, Upload, Plus } from "lucide-react"
+import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -27,13 +30,18 @@ export default function DescontoProduto() {
   const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [showAddForm, setShowAddForm] = useState(false)
+  const [observacaoDialogOpen, setObservacaoDialogOpen] = useState(false)
+  const [currentObservacao, setCurrentObservacao] = useState("")
+  const [currentRowId, setCurrentRowId] = useState<number | null>(null)
   const [newRecord, setNewRecord] = useState({
     produto: null as Produto | null,
     tipoAplicacao: "estado" as "estado" | "loja",
     codigoReferencia: "",
+    tipoMargem: "percentual" as "percentual" | "valor",
     margem: 0,
     dataInicio: new Date().toISOString().split('T')[0],
-    dataFim: "2030-12-31"
+    dataFim: "2030-12-31",
+    observacao: ""
   })
   const { toast } = useToast()
 
@@ -116,6 +124,21 @@ export default function DescontoProduto() {
     setEditedRows(prev => new Set(prev).add(id))
   }
 
+  const handleObservacaoOpen = (id: number, currentObs: string) => {
+    setCurrentRowId(id)
+    setCurrentObservacao(currentObs || "")
+    setObservacaoDialogOpen(true)
+  }
+
+  const handleObservacaoSave = () => {
+    if (currentRowId) {
+      handleFieldChange(currentRowId, 'observacao', currentObservacao)
+    }
+    setObservacaoDialogOpen(false)
+    setCurrentRowId(null)
+    setCurrentObservacao("")
+  }
+
   const handleSave = async (id: number) => {
     const item = produtoMargens.find(p => p.id === id)
     if (!item) return
@@ -124,9 +147,11 @@ export default function DescontoProduto() {
       const { error } = await supabase
         .from("produto_margem")
         .update({
+          tipo_margem: item.tipo_margem,
           margem: item.margem,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
+          observacao: item.observacao,
           updated_at: new Date().toISOString()
         })
         .eq("id", id)
@@ -170,9 +195,11 @@ export default function DescontoProduto() {
           id_produto: newRecord.produto.id_produto,
           tipo_aplicacao: newRecord.tipoAplicacao,
           codigo_referencia: parseInt(newRecord.codigoReferencia),
+          tipo_margem: newRecord.tipoMargem,
           margem: newRecord.margem,
           data_inicio: newRecord.dataInicio,
-          data_fim: newRecord.dataFim
+          data_fim: newRecord.dataFim,
+          observacao: newRecord.observacao
         })
 
       if (error) throw error
@@ -187,9 +214,11 @@ export default function DescontoProduto() {
         produto: null,
         tipoAplicacao: "estado",
         codigoReferencia: "",
+        tipoMargem: "percentual",
         margem: 0,
         dataInicio: new Date().toISOString().split('T')[0],
-        dataFim: "2030-12-31"
+        dataFim: "2030-12-31",
+        observacao: ""
       })
       fetchData()
     } catch (error) {
@@ -218,14 +247,17 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Produto", "Tipo Aplicação", "Referência", "Margem", "Data Início", "Data Fim"],
+      ["ID Produto", "Produto", "Tipo Aplicação", "Referência", "Tipo Margem", "Margem", "Data Início", "Data Fim", "Observação"],
       ...produtoMargens.map(item => [
+        item.id_produto,
         item.produto?.nome_produto || "",
         item.tipo_aplicacao,
         item.referencia_nome || "",
+        item.tipo_margem,
         item.margem,
         item.data_inicio,
-        item.data_fim
+        item.data_fim,
+        item.observacao || ""
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -273,7 +305,7 @@ export default function DescontoProduto() {
                 <CardTitle>Adicionar Novo Desconto Produto</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div>
                     <Label>Produto</Label>
                     <ProdutoCombobox
@@ -320,11 +352,29 @@ export default function DescontoProduto() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div>
+                    <Label>Tipo Margem</Label>
+                    <Select 
+                      value={newRecord.tipoMargem} 
+                      onValueChange={(value: "percentual" | "valor") => 
+                        setNewRecord(prev => ({ ...prev, tipoMargem: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentual">Percentual</SelectItem>
+                        <SelectItem value="valor">Valor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-4 gap-4 mt-4">
                   <div>
-                    <Label>Margem (%)</Label>
+                    <Label>Margem {newRecord.tipoMargem === "percentual" ? "(%)" : "(R$)"}</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -350,6 +400,16 @@ export default function DescontoProduto() {
                       onChange={(e) => setNewRecord(prev => ({ ...prev, dataFim: e.target.value }))}
                     />
                   </div>
+
+                  <div>
+                    <Label>Observação</Label>
+                    <Textarea
+                      value={newRecord.observacao}
+                      onChange={(e) => setNewRecord(prev => ({ ...prev, observacao: e.target.value }))}
+                      placeholder="Observação específica (opcional)"
+                      maxLength={100}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 mt-4">
@@ -368,28 +428,46 @@ export default function DescontoProduto() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left p-2">ID</th>
                   <th className="text-left p-2">Produto</th>
                   <th className="text-left p-2">Tipo Aplicação</th>
                   <th className="text-left p-2">Referência</th>
-                  <th className="text-left p-2">Margem (%)</th>
+                  <th className="text-left p-2">Tipo Margem</th>
+                  <th className="text-left p-2">Margem</th>
                   <th className="text-left p-2">Data Início</th>
                   <th className="text-left p-2">Data Fim</th>
+                  <th className="text-left p-2">Observação</th>
                   <th className="text-left p-2">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {produtoMargens.map((item) => (
                   <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
+                    <td className="p-2 font-medium">{item.id_produto}</td>
                     <td className="p-2">{item.produto?.nome_produto}</td>
                     <td className="p-2">{item.tipo_aplicacao}</td>
                     <td className="p-2">{item.referencia_nome}</td>
+                    <td className="p-2">
+                      <Select
+                        value={item.tipo_margem}
+                        onValueChange={(value: "percentual" | "valor") => handleFieldChange(item.id, 'tipo_margem', value)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentual">Percentual</SelectItem>
+                          <SelectItem value="valor">Valor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
                     <td className="p-2">
                       <Input
                         type="number"
                         step="0.01"
                         value={item.margem}
                         onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
-                        className="w-20"
+                        className="w-24"
                       />
                     </td>
                     <td className="p-2">
@@ -409,6 +487,16 @@ export default function DescontoProduto() {
                       />
                     </td>
                     <td className="p-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleObservacaoOpen(item.id, item.observacao || "")}
+                        className="w-8 h-8 p-0"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </Button>
+                    </td>
+                    <td className="p-2">
                       <Button 
                         size="sm" 
                         onClick={() => handleSave(item.id)}
@@ -424,6 +512,34 @@ export default function DescontoProduto() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={observacaoDialogOpen} onOpenChange={setObservacaoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Observação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={currentObservacao}
+              onChange={(e) => setCurrentObservacao(e.target.value)}
+              placeholder="Digite a observação específica para este produto..."
+              maxLength={100}
+              rows={4}
+            />
+            <div className="text-sm text-muted-foreground">
+              {currentObservacao.length}/100 caracteres
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setObservacaoDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleObservacaoSave}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
