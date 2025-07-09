@@ -142,13 +142,11 @@ export default function Vendas() {
       piscofins = selectedProduto.piscofins || 0
     }
 
-    const precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
+    //const precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
     
     const denominador1 = 1 - ((aliq + piscofins))
-    const denominador2 = 1 - margemSubgrupo
+    const denominador2 = 1 - SubgrupoMargem
     const precoMinimo = (cmgProduto / denominador1) / denominador2
-    //setPrecoMinimo(precoMinimo.toFixed(2))
-    
     console.log("Validação - precoMinimo:", precoMinimo)
     console.log("Validação - cmgProduto:", cmgProduto)
     
@@ -266,7 +264,10 @@ export default function Vendas() {
       piscofins = selectedProduto.piscofins || 0
     }
 
-    const precoMinimo = cmgProduto * 1.1
+    //const precoMinimo = cmgProduto * 1.1
+    const denominador1 = 1 - ((aliq + piscofins))
+    const denominador2 = 1 - SubgrupoMargem
+    const precoMinimo = (cmgProduto / denominador1) / denominador2
     const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
     
     // Calcular margem UF loja
