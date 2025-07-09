@@ -96,8 +96,8 @@ export default function Vendas() {
   const validateHierarchy = (): string | null => {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
 
-    //const novoPrecoNum = parseFloat(novoPreco)
-    //if (isNaN(novoPrecoNum)) return "Preço solicitado inválido"
+    const novoPrecoNum = novoPreco
+    if (isNaN(novoPrecoNum)) return "Preço solicitado inválido"
 
     // 1. Validações do Produto
     // Preço Mínimo
