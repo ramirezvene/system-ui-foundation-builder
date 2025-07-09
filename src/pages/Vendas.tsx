@@ -93,11 +93,18 @@ export default function Vendas() {
     }
   }
 
+  const parsePrice = (priceString: string): number => {
+    if (!priceString) return 0
+    // Remove currency symbols and convert comma to dot for decimal
+    const cleanPrice = priceString.replace(/[^\d,]/g, '').replace(',', '.')
+    return parseFloat(cleanPrice) || 0
+  }
+
   const validateHierarchy = (): string | null => {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
 
-    const novoPrecoNum = parseFloat(novoPreco)
-    if (isNaN(novoPrecoNum)) return "Preço solicitado inválido"
+    const novoPrecoNum = parsePrice(novoPreco)
+    if (isNaN(novoPrecoNum) || novoPrecoNum <= 0) return "Preço solicitado inválido"
 
     // 1. Validações do Produto
     // Preço Mínimo
@@ -183,13 +190,14 @@ export default function Vendas() {
 
   const handleSolicitarToken = async () => {
     const validationError = validateHierarchy()
+    const novoPrecoNum = parsePrice(novoPreco)
     
     const result: SolicitacaoResult = {
       loja: selectedLoja,
       produto: selectedProduto,
       precoRegular: precoAtual,
-      precoSolicitado: parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
-      desconto: precoAtual > 0 ? ((precoAtual - parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.'))) / precoAtual * 100) : 0,
+      precoSolicitado: novoPrecoNum,
+      desconto: precoAtual > 0 ? ((precoAtual - novoPrecoNum) / precoAtual * 100) : 0,
       tokenDisponivel: selectedLoja?.qtde_token || 0,
       retorno: validationError || "Solicitado",
       aprovado: !validationError
@@ -228,7 +236,6 @@ export default function Vendas() {
       if (insertTokenError) throw insertTokenError
 
       // Calcular desconto
-      const novoPrecoNum = parseFloat(novoPreco)
       const desconto = ((precoAtual - novoPrecoNum) / precoAtual * 100).toFixed(2)
 
       // Inserir detalhes do token
@@ -362,10 +369,10 @@ export default function Vendas() {
           {novoPreco && precoAtual > 0 && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-700">
-                <strong>Desconto:</strong> {((precoAtual - parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.'))) / precoAtual * 100).toFixed(2)}%
+                <strong>Desconto:</strong> {((precoAtual - parsePrice(novoPreco)) / precoAtual * 100).toFixed(2)}%
               </p>
               <p className="text-sm text-blue-700">
-                <strong>Economia:</strong> {formatCurrency(precoAtual - parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.')))}
+                <strong>Economia:</strong> {formatCurrency(precoAtual - parsePrice(novoPreco))}
               </p>
             </div>
           )}
