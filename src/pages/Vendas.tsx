@@ -36,7 +36,7 @@ export default function Vendas() {
   const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null)
   const [precoAtual, setPrecoAtual] = useState<number>(0)
-  const [novoPreco, setNovoPreco] = useState<string>("")
+  const [novoPreco, setNovoPreco] = useState("")
   const [quantidade, setQuantidade] = useState<string>("1")
   const [solicitacaoResult, setSolicitacaoResult] = useState<SolicitacaoResult | null>(null)
   const { toast } = useToast()
@@ -96,7 +96,7 @@ export default function Vendas() {
   const validateHierarchy = (): string | null => {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
 
-    const novoPrecoNum = parseFloat(novoPreco)
+    const novoPrecoNum = novoPreco
     if (isNaN(novoPrecoNum)) return "Preço solicitado inválido"
 
     // 1. Validações do Produto
