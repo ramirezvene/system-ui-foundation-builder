@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -32,6 +33,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
       
       if (error) throw error
 
+      console.log("Dados carregados:", data)
       setSubgrupos(data || [])
     } catch (error) {
       console.error("Erro ao buscar dados:", error)
@@ -44,6 +46,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
   }
 
   const handleFieldChange = (cod_subgrupo: number, field: keyof SubgrupoMargem, value: any) => {
+    console.log(`Alterando campo ${field} do subgrupo ${cod_subgrupo} para:`, value)
     setSubgrupos(prev => prev.map(item => 
       item.cod_subgrupo === cod_subgrupo ? { ...item, [field]: value } : item
     ))
@@ -53,6 +56,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
   const handleMargemChange = (cod_subgrupo: number, value: string) => {
     // Remove % e converte vírgula para ponto
     const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    console.log(`Alterando margem do subgrupo ${cod_subgrupo} para:`, numericValue)
     handleFieldChange(cod_subgrupo, 'margem', numericValue)
   }
 
@@ -65,6 +69,8 @@ export default function ConfiguracaoDescontoSubgrupo() {
     if (!item) return
 
     try {
+      console.log("Salvando subgrupo:", item)
+      
       const { error } = await supabase
         .from("subgrupo_margem")
         .update({
@@ -72,8 +78,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
           margem: item.margem,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
-          observacao: item.observacao,
-          updated_at: new Date().toISOString()
+          observacao: item.observacao
         })
         .eq("cod_subgrupo", cod_subgrupo)
 
