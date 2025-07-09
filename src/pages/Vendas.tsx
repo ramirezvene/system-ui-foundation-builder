@@ -96,7 +96,7 @@ export default function Vendas() {
   const validateHierarchy = (): string | null => {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
 
-    const novoPrecoNum = novoPreco
+    const novoPrecoNum = parseFloat(novoPreco)
     if (isNaN(novoPrecoNum)) return "Preço solicitado inválido"
 
     // 1. Validações do Produto
