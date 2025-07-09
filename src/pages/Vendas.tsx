@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -124,13 +125,21 @@ export default function Vendas() {
     // Preço Mínimo
     const estado = selectedLoja.estado.toLowerCase()
     let cmgProduto = 0
+    let aliq = 0
+    let piscofins = 0
     
     if (estado === 'rs') {
       cmgProduto = selectedProduto.cmg_rs || 0
+      aliq = selectedProduto.aliq_rs || 0
+      piscofins = selectedProduto.piscofins || 0
     } else if (estado === 'sc') {
       cmgProduto = selectedProduto.cmg_sc || 0
+      aliq = selectedProduto.aliq_sc || 0
+      piscofins = selectedProduto.piscofins || 0
     } else if (estado === 'pr') {
       cmgProduto = selectedProduto.cmg_pr || 0
+      aliq = selectedProduto.aliq_pr || 0
+      piscofins = selectedProduto.piscofins || 0
     }
 
     const precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
@@ -157,12 +166,20 @@ export default function Vendas() {
     const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
     console.log("Desconto percentual calculado:", descontoPercentual)
 
+    // Calcular margem UF loja
+    const aliqDecimal = aliq / 100
+    const piscofinsDecimal = piscofins / 100
+    const margemUFLoja = ((novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal))) - cmgProduto) / (novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal)))
+    const margemUFLojaPercentual = margemUFLoja * 100
+    
+    console.log("Margem UF Loja calculada:", margemUFLojaPercentual, "%")
+
     // 2. Validações do Subgrupo (se aplicável) - MARGEM ZVDC
     if (selectedProduto.subgrupo_id) {
       const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)
       if (subgrupoMargem) {
-        console.log("Validação subgrupo - desconto%:", descontoPercentual, "margem ZVDC permitida:", subgrupoMargem.margem)
-        if (descontoPercentual > subgrupoMargem.margem) {
+        console.log("Validação subgrupo - margem UF Loja%:", margemUFLojaPercentual, "margem ZVDC permitida:", subgrupoMargem.margem)
+        if (margemUFLojaPercentual < subgrupoMargem.margem) {
           return { 
             error: `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`,
             observacao: subgrupoMargem.observacao || undefined
@@ -208,8 +225,8 @@ export default function Vendas() {
     )
 
     if (produtoMargem) {
-      console.log("Validação produto margem UF - desconto%:", descontoPercentual, "margem UF:", produtoMargem.margem)
-      if (descontoPercentual > produtoMargem.margem) {
+      console.log("Validação produto margem UF - margem UF Loja%:", margemUFLojaPercentual, "margem UF:", produtoMargem.margem)
+      if (margemUFLojaPercentual < produtoMargem.margem) {
         return { 
           error: "Desconto token reprovado, devido a margem UF.",
           observacao: produtoMargem.observacao || undefined
@@ -226,30 +243,32 @@ export default function Vendas() {
 
     const estado = selectedLoja.estado.toLowerCase()
     let cmgProduto = 0
+    let aliq = 0
+    let piscofins = 0
     
     if (estado === 'rs') {
       cmgProduto = selectedProduto.cmg_rs || 0
+      aliq = selectedProduto.aliq_rs || 0
+      piscofins = selectedProduto.piscofins || 0
     } else if (estado === 'sc') {
       cmgProduto = selectedProduto.cmg_sc || 0
+      aliq = selectedProduto.aliq_sc || 0
+      piscofins = selectedProduto.piscofins || 0
     } else if (estado === 'pr') {
       cmgProduto = selectedProduto.cmg_pr || 0
+      aliq = selectedProduto.aliq_pr || 0
+      piscofins = selectedProduto.piscofins || 0
     }
 
     const precoMinimo = cmgProduto * 1.1
     const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
     
-    // Buscar margem UF (produto_margem)
-    const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
-    const produtoMargem = produtoMargens.find(pm => 
-      pm.id_produto === selectedProduto.id_produto && 
-      pm.tipo_aplicacao === "estado" &&
-      pm.codigo_referencia === estadoInfo?.id
-    )
-    
-    // Margem UF Loja = margem do produto_margem (se existir)
-    //const margemUF = produtoMargem ? produtoMargem.margem + "%" : "N/A"
-    const margemUF = ((novoPreco * (1 - (aliq + piscofins))) - cmg) / (novoPreco * (1 - (aliq + piscofins)))
-      setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
+    // Calcular margem UF loja
+    const novoPrecoNum = parsePrice(novoPreco)
+    const aliqDecimal = aliq / 100
+    const piscofinsDecimal = piscofins / 100
+    const margemUFLoja = ((novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal))) - cmgProduto) / (novoPrecoNum * (1 - (aliqDecimal + piscofinsDecimal)))
+    const margemUF = `${(margemUFLoja * 100).toFixed(2)}%`
     
     // Margem ZVDC = margem do subgrupo
     const margemZVDC = selectedProduto.subgrupo_id ? 
@@ -497,26 +516,9 @@ export default function Vendas() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className="font-semibold">Preço Regular:</Label>
-                <p>{formatCurrency(solicitacaoResult.precoRegular)}</p>
-              </div>
-              
-              <div>
-                <Label className="font-semibold">Preço Solicitado:</Label>
-                <p>{formatCurrency(solicitacaoResult.precoSolicitado)}</p>
-              </div>
-              
-              <div>
-                <Label className="font-semibold">% Desconto:</Label>
-                <p>{solicitacaoResult.desconto.toFixed(2)}%</p>
-              </div>
-            </div>
-
             <div className="border-t pt-4">
               <h4 className="font-semibold mb-3">Informações Adicionais</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label className="font-semibold">Preço Mínimo:</Label>
                   <p>{formatCurrency(solicitacaoResult.precoMinimo)}</p>
@@ -525,6 +527,18 @@ export default function Vendas() {
                 <div>
                   <Label className="font-semibold">CMG Produto:</Label>
                   <p>{formatCurrency(solicitacaoResult.cmgProduto)}</p>
+                </div>
+                
+                <div>
+                  <Label className="font-semibold">Preço Regular:</Label>
+                  <p>{formatCurrency(solicitacaoResult.precoRegular)}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                <div>
+                  <Label className="font-semibold">% Desconto:</Label>
+                  <p>{solicitacaoResult.desconto.toFixed(2)}%</p>
                 </div>
                 
                 <div>
@@ -538,7 +552,7 @@ export default function Vendas() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-4">
                 <div>
                   <Label className="font-semibold">Margem ZVDC:</Label>
                   <p>{solicitacaoResult.margemZVDC}</p>
