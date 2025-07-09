@@ -1,17 +1,17 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
-import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
+import { CurrencyInput } from "@/components/CurrencyInput"
+import { PercentageInput } from "@/components/PercentageInput"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -23,24 +23,33 @@ interface ProdutoMargemExtended extends ProdutoMargem {
   referencia_nome?: string
 }
 
+interface NovoRegistro {
+  id_produto: number
+  tipo_aplicacao: string
+  codigo_referencia: number
+  margem: number
+  tipo_margem: string
+  data_inicio: string
+  data_fim: string
+  observacao: string
+}
+
 export default function DescontoProduto() {
   const [produtoMargens, setProdutoMargens] = useState<ProdutoMargemExtended[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [estados, setEstados] = useState<Estado[]>([])
   const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [observacaoDialogOpen, setObservacaoDialogOpen] = useState(false)
-  const [currentObservacao, setCurrentObservacao] = useState("")
-  const [currentRowId, setCurrentRowId] = useState<number | null>(null)
-  const [newRecord, setNewRecord] = useState({
-    produto: null as Produto | null,
-    tipoAplicacao: "estado" as "estado" | "loja",
-    codigoReferencia: "",
-    tipoMargem: "percentual" as "percentual" | "valor",
+  const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
+  const [showNovoRegistro, setShowNovoRegistro] = useState(false)
+  const [novoRegistro, setNovoRegistro] = useState<NovoRegistro>({
+    id_produto: 0,
+    tipo_aplicacao: "estado",
+    codigo_referencia: 0,
     margem: 0,
-    dataInicio: new Date().toISOString().split('T')[0],
-    dataFim: "2030-12-31",
+    tipo_margem: "percentual",
+    data_inicio: new Date().toISOString().split('T')[0],
+    data_fim: "2030-12-31",
     observacao: ""
   })
   const { toast } = useToast()
@@ -124,19 +133,51 @@ export default function DescontoProduto() {
     setEditedRows(prev => new Set(prev).add(id))
   }
 
-  const handleObservacaoOpen = (id: number, currentObs: string) => {
-    setCurrentRowId(id)
-    setCurrentObservacao(currentObs || "")
-    setObservacaoDialogOpen(true)
+  const handleMargemChange = (id: number, value: string, tipoMargem: string) => {
+    let numericValue = 0
+    
+    if (tipoMargem === "percentual") {
+      // Remove % e converte vírgula para ponto
+      numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    } else {
+      // Remove R$ e converte vírgula para ponto
+      numericValue = parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0
+    }
+    
+    handleFieldChange(id, 'margem', numericValue)
   }
 
-  const handleObservacaoSave = () => {
-    if (currentRowId) {
-      handleFieldChange(currentRowId, 'observacao', currentObservacao)
+  const handleTipoMargemChange = (id: number, tipoMargem: string) => {
+    handleFieldChange(id, 'tipo_margem', tipoMargem)
+    // Limpar o valor da margem quando o tipo mudar
+    handleFieldChange(id, 'margem', 0)
+  }
+
+  const formatMargemForDisplay = (margem: number, tipoMargem: string) => {
+    if (tipoMargem === "percentual") {
+      return margem.toFixed(2).replace('.', ',') + '%'
+    } else {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(margem)
     }
-    setObservacaoDialogOpen(false)
-    setCurrentRowId(null)
-    setCurrentObservacao("")
+  }
+
+  const handleNovoRegistroMargemChange = (value: string) => {
+    let numericValue = 0
+    
+    if (novoRegistro.tipo_margem === "percentual") {
+      numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    } else {
+      numericValue = parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0
+    }
+    
+    setNovoRegistro(prev => ({ ...prev, margem: numericValue }))
+  }
+
+  const handleNovoRegistroTipoMargemChange = (tipoMargem: string) => {
+    setNovoRegistro(prev => ({ ...prev, tipo_margem: tipoMargem, margem: 0 }))
   }
 
   const handleSave = async (id: number) => {
@@ -178,11 +219,11 @@ export default function DescontoProduto() {
     }
   }
 
-  const handleAddNew = async () => {
-    if (!newRecord.produto || !newRecord.codigoReferencia) {
+  const handleAdicionarRegistro = async () => {
+    if (!novoRegistro.id_produto || !novoRegistro.codigo_referencia) {
       toast({
         title: "Erro",
-        description: "Selecione um produto e uma referência",
+        description: "Produto e referência são obrigatórios",
         variant: "destructive"
       })
       return
@@ -191,56 +232,60 @@ export default function DescontoProduto() {
     try {
       const { error } = await supabase
         .from("produto_margem")
-        .insert({
-          id_produto: newRecord.produto.id_produto,
-          tipo_aplicacao: newRecord.tipoAplicacao,
-          codigo_referencia: parseInt(newRecord.codigoReferencia),
-          tipo_margem: newRecord.tipoMargem,
-          margem: newRecord.margem,
-          data_inicio: newRecord.dataInicio,
-          data_fim: newRecord.dataFim,
-          observacao: newRecord.observacao
-        })
+        .insert(novoRegistro)
 
       if (error) throw error
 
       toast({
         title: "Sucesso",
-        description: "Desconto produto cadastrado com sucesso"
+        description: "Registro adicionado com sucesso"
       })
 
-      setShowAddForm(false)
-      setNewRecord({
-        produto: null,
-        tipoAplicacao: "estado",
-        codigoReferencia: "",
-        tipoMargem: "percentual",
+      setShowNovoRegistro(false)
+      setNovoRegistro({
+        id_produto: 0,
+        tipo_aplicacao: "estado",
+        codigo_referencia: 0,
         margem: 0,
-        dataInicio: new Date().toISOString().split('T')[0],
-        dataFim: "2030-12-31",
+        tipo_margem: "percentual",
+        data_inicio: new Date().toISOString().split('T')[0],
+        data_fim: "2030-12-31",
         observacao: ""
       })
+      
       fetchData()
     } catch (error) {
-      console.error("Erro ao cadastrar:", error)
+      console.error("Erro ao adicionar registro:", error)
       toast({
         title: "Erro",
-        description: "Erro ao cadastrar desconto produto",
+        description: "Erro ao adicionar registro",
         variant: "destructive"
       })
     }
   }
 
-  const getReferenciasOptions = () => {
-    if (newRecord.tipoAplicacao === "estado") {
+  const toggleObservacaoDialog = (id: number) => {
+    setObservacaoDialogs(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return newSet
+    })
+  }
+
+  const getReferenciasDisponiveis = () => {
+    if (novoRegistro.tipo_aplicacao === "estado") {
       return estados.map(estado => ({
-        value: estado.id.toString(),
-        label: estado.estado
+        id: estado.id,
+        nome: estado.estado
       }))
     } else {
       return lojas.map(loja => ({
-        value: loja.cod_loja.toString(),
-        label: `${loja.cod_loja} - ${loja.loja} - ${loja.estado}`
+        id: loja.cod_loja,
+        nome: `${loja.cod_loja} - ${loja.loja} - ${loja.estado}`
       }))
     }
   }
@@ -273,95 +318,199 @@ export default function DescontoProduto() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            Desconto Produto
-            <div className="flex gap-2">
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={() => setShowAddForm(!showAddForm)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportCSV}>
-                <Download className="w-4 h-4 mr-2" />
-                Exportar CSV
-              </Button>
-              <Button variant="outline" size="sm">
-                <Upload className="w-4 h-4 mr-2" />
-                Importar CSV
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {showAddForm && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Adicionar Novo Desconto Produto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <Label>Produto</Label>
-                    <ProdutoCombobox
-                      produtos={produtos}
-                      selectedProduto={newRecord.produto}
-                      onProdutoChange={(produto) => setNewRecord(prev => ({ ...prev, produto }))}
-                      placeholder="Selecionar produto..."
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          Desconto Produto
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar CSV
+            </Button>
+            <Button variant="outline" size="sm">
+              <Upload className="w-4 h-4 mr-2" />
+              Importar CSV
+            </Button>
+            <Button size="sm" onClick={() => setShowNovoRegistro(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {showNovoRegistro && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Novo Registro</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Produto</Label>
+                  <Select 
+                    value={novoRegistro.id_produto?.toString() || ""} 
+                    onValueChange={(value) => setNovoRegistro(prev => ({ ...prev, id_produto: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um produto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {produtos.map((produto) => (
+                        <SelectItem key={produto.id_produto} value={produto.id_produto.toString()}>
+                          {produto.id_produto} - {produto.nome_produto}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Tipo Aplicação</Label>
+                  <Select 
+                    value={novoRegistro.tipo_aplicacao} 
+                    onValueChange={(value) => setNovoRegistro(prev => ({ ...prev, tipo_aplicacao: value, codigo_referencia: 0 }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="estado">Estado</SelectItem>
+                      <SelectItem value="loja">Loja</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Referência</Label>
+                  <Select 
+                    value={novoRegistro.codigo_referencia?.toString() || ""} 
+                    onValueChange={(value) => setNovoRegistro(prev => ({ ...prev, codigo_referencia: parseInt(value) }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma referência" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getReferenciasDisponiveis().map((ref) => (
+                        <SelectItem key={ref.id} value={ref.id.toString()}>
+                          {ref.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label>Tipo Margem</Label>
+                  <Select 
+                    value={novoRegistro.tipo_margem} 
+                    onValueChange={handleNovoRegistroTipoMargemChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentual">Percentual</SelectItem>
+                      <SelectItem value="valor">Valor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Margem</Label>
+                  {novoRegistro.tipo_margem === "percentual" ? (
+                    <PercentageInput
+                      value={formatMargemForDisplay(novoRegistro.margem, novoRegistro.tipo_margem)}
+                      onChange={handleNovoRegistroMargemChange}
+                      className="w-full"
                     />
-                  </div>
-                  
-                  <div>
-                    <Label>Tipo Aplicação</Label>
-                    <Select 
-                      value={newRecord.tipoAplicacao} 
-                      onValueChange={(value: "estado" | "loja") => 
-                        setNewRecord(prev => ({ ...prev, tipoAplicacao: value, codigoReferencia: "" }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="estado">Estado</SelectItem>
-                        <SelectItem value="loja">Loja</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  ) : (
+                    <CurrencyInput
+                      value={formatMargemForDisplay(novoRegistro.margem, novoRegistro.tipo_margem)}
+                      onChange={handleNovoRegistroMargemChange}
+                      className="w-full"
+                    />
+                  )}
+                </div>
 
-                  <div>
-                    <Label>{newRecord.tipoAplicacao === "estado" ? "Estado" : "Loja"}</Label>
-                    <Select 
-                      value={newRecord.codigoReferencia} 
-                      onValueChange={(value) => setNewRecord(prev => ({ ...prev, codigoReferencia: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={`Selecionar ${newRecord.tipoAplicacao}...`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getReferenciasOptions().map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label>Data Início</Label>
+                  <Input
+                    type="date"
+                    value={novoRegistro.data_inicio}
+                    onChange={(e) => setNovoRegistro(prev => ({ ...prev, data_inicio: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
 
-                  <div>
-                    <Label>Tipo Margem</Label>
+                <div>
+                  <Label>Data Fim</Label>
+                  <Input
+                    type="date"
+                    value={novoRegistro.data_fim}
+                    onChange={(e) => setNovoRegistro(prev => ({ ...prev, data_fim: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Observação (máximo 100 caracteres)</Label>
+                <Textarea
+                  value={novoRegistro.observacao}
+                  onChange={(e) => setNovoRegistro(prev => ({ ...prev, observacao: e.target.value }))}
+                  maxLength={100}
+                  placeholder="Digite uma observação específica..."
+                  className="min-h-20"
+                />
+                <div className="text-sm text-gray-500 mt-1">
+                  {novoRegistro.observacao.length}/100 caracteres
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleAdicionarRegistro}>
+                  Salvar
+                </Button>
+                <Button variant="outline" onClick={() => setShowNovoRegistro(false)}>
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-3">ID</th>
+                <th className="text-left p-3">Produto</th>
+                <th className="text-left p-3">Tipo Aplicação</th>
+                <th className="text-left p-3">Referência</th>
+                <th className="text-left p-3">Tipo Margem</th>
+                <th className="text-left p-3">Margem</th>
+                <th className="text-left p-3 w-36">Data Início</th>
+                <th className="text-left p-3 w-36">Data Fim</th>
+                <th className="text-left p-3">Observação</th>
+                <th className="text-left p-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {produtoMargens.map((item) => (
+                <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
+                  <td className="p-3">{item.id_produto}</td>
+                  <td className="p-3">{item.produto?.nome_produto}</td>
+                  <td className="p-3">{item.tipo_aplicacao}</td>
+                  <td className="p-3">{item.referencia_nome}</td>
+                  <td className="p-3">
                     <Select 
-                      value={newRecord.tipoMargem} 
-                      onValueChange={(value: "percentual" | "valor") => 
-                        setNewRecord(prev => ({ ...prev, tipoMargem: value }))
-                      }
+                      value={item.tipo_margem} 
+                      onValueChange={(value) => handleTipoMargemChange(item.id, value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-28">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -369,177 +518,80 @@ export default function DescontoProduto() {
                         <SelectItem value="valor">Valor</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-4 mt-4">
-                  <div>
-                    <Label>Margem {newRecord.tipoMargem === "percentual" ? "(%)" : "(R$)"}</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={newRecord.margem}
-                      onChange={(e) => setNewRecord(prev => ({ ...prev, margem: parseFloat(e.target.value) || 0 }))}
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Data Início</Label>
-                    <Input
-                      type="date"
-                      value={newRecord.dataInicio}
-                      onChange={(e) => setNewRecord(prev => ({ ...prev, dataInicio: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Data Fim</Label>
-                    <Input
-                      type="date"
-                      value={newRecord.dataFim}
-                      onChange={(e) => setNewRecord(prev => ({ ...prev, dataFim: e.target.value }))}
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Observação</Label>
-                    <Textarea
-                      value={newRecord.observacao}
-                      onChange={(e) => setNewRecord(prev => ({ ...prev, observacao: e.target.value }))}
-                      placeholder="Observação específica (opcional)"
-                      maxLength={100}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setShowAddForm(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleAddNew}>
-                    Salvar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">ID</th>
-                  <th className="text-left p-2">Produto</th>
-                  <th className="text-left p-2">Tipo Aplicação</th>
-                  <th className="text-left p-2">Referência</th>
-                  <th className="text-left p-2">Tipo Margem</th>
-                  <th className="text-left p-2">Margem</th>
-                  <th className="text-left p-2">Data Início</th>
-                  <th className="text-left p-2">Data Fim</th>
-                  <th className="text-left p-2">Observação</th>
-                  <th className="text-left p-2">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {produtoMargens.map((item) => (
-                  <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
-                    <td className="p-2 font-medium">{item.id_produto}</td>
-                    <td className="p-2">{item.produto?.nome_produto}</td>
-                    <td className="p-2">{item.tipo_aplicacao}</td>
-                    <td className="p-2">{item.referencia_nome}</td>
-                    <td className="p-2">
-                      <Select
-                        value={item.tipo_margem}
-                        onValueChange={(value: "percentual" | "valor") => handleFieldChange(item.id, 'tipo_margem', value)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="percentual">Percentual</SelectItem>
-                          <SelectItem value="valor">Valor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="p-2">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.margem}
-                        onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
+                  </td>
+                  <td className="p-3">
+                    {item.tipo_margem === "percentual" ? (
+                      <PercentageInput
+                        value={formatMargemForDisplay(item.margem, item.tipo_margem)}
+                        onChange={(value) => handleMargemChange(item.id, value, item.tipo_margem)}
                         className="w-24"
                       />
-                    </td>
-                    <td className="p-2">
-                      <Input
-                        type="date"
-                        value={item.data_inicio}
-                        onChange={(e) => handleFieldChange(item.id, 'data_inicio', e.target.value)}
+                    ) : (
+                      <CurrencyInput
+                        value={formatMargemForDisplay(item.margem, item.tipo_margem)}
+                        onChange={(value) => handleMargemChange(item.id, value, item.tipo_margem)}
                         className="w-32"
                       />
-                    </td>
-                    <td className="p-2">
-                      <Input
-                        type="date"
-                        value={item.data_fim}
-                        onChange={(e) => handleFieldChange(item.id, 'data_fim', e.target.value)}
-                        className="w-32"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleObservacaoOpen(item.id, item.observacao || "")}
-                        className="w-8 h-8 p-0"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                      </Button>
-                    </td>
-                    <td className="p-2">
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleSave(item.id)}
-                        disabled={!editedRows.has(item.id)}
-                      >
-                        Salvar
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Dialog open={observacaoDialogOpen} onOpenChange={setObservacaoDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Observação</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              value={currentObservacao}
-              onChange={(e) => setCurrentObservacao(e.target.value)}
-              placeholder="Digite a observação específica para este produto..."
-              maxLength={100}
-              rows={4}
-            />
-            <div className="text-sm text-muted-foreground">
-              {currentObservacao.length}/100 caracteres
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setObservacaoDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleObservacaoSave}>
-                Salvar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <Input
+                      type="date"
+                      value={item.data_inicio}
+                      onChange={(e) => handleFieldChange(item.id, 'data_inicio', e.target.value)}
+                      className="w-full"
+                    />
+                  </td>
+                  <td className="p-3">
+                    <Input
+                      type="date"
+                      value={item.data_fim}
+                      onChange={(e) => handleFieldChange(item.id, 'data_fim', e.target.value)}
+                      className="w-full"
+                    />
+                  </td>
+                  <td className="p-3">
+                    <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <MessageSquare className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Observação - {item.produto?.nome_produto}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <Label>Observação (máximo 100 caracteres)</Label>
+                          <Textarea
+                            value={item.observacao || ''}
+                            onChange={(e) => handleFieldChange(item.id, 'observacao', e.target.value)}
+                            maxLength={100}
+                            placeholder="Digite uma observação específica..."
+                            className="min-h-20"
+                          />
+                          <div className="text-sm text-gray-500">
+                            {(item.observacao || '').length}/100 caracteres
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </td>
+                  <td className="p-3">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSave(item.id)}
+                      disabled={!editedRows.has(item.id)}
+                    >
+                      Salvar
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

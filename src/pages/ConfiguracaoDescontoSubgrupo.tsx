@@ -1,39 +1,29 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Download, Upload, MessageSquare } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { PercentageInput } from "@/components/PercentageInput"
 
 type SubgrupoMargem = Tables<"subgrupo_margem">
 
-interface SubgrupoConfig {
-  subgrupo: SubgrupoMargem
-  dataInicio: string
-  dataFim: string
-  margem: number
-  observacao: string
-  edited: boolean
-}
-
 export default function ConfiguracaoDescontoSubgrupo() {
   const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([])
-  const [configuracoes, setConfiguracoes] = useState<SubgrupoConfig[]>([])
-  const [observacaoDialogOpen, setObservacaoDialogOpen] = useState(false)
-  const [currentObservacao, setCurrentObservacao] = useState("")
-  const [currentSubgrupoIndex, setCurrentSubgrupoIndex] = useState<number | null>(null)
+  const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
+  const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchSubgrupos()
+    fetchData()
   }, [])
 
-  const fetchSubgrupos = async () => {
+  const fetchData = async () => {
     try {
       const { data, error } = await supabase
         .from("subgrupo_margem")
@@ -41,77 +31,69 @@ export default function ConfiguracaoDescontoSubgrupo() {
         .order("cod_subgrupo")
       
       if (error) throw error
-      
-      const configs = (data || []).map(subgrupo => ({
-        subgrupo,
-        dataInicio: subgrupo.data_inicio || '2025-01-01',
-        dataFim: subgrupo.data_fim || '2030-01-01',
-        margem: subgrupo.margem,
-        observacao: subgrupo.observacao || '',
-        edited: false
-      }))
-      
+
       setSubgrupos(data || [])
-      setConfiguracoes(configs)
     } catch (error) {
-      console.error("Erro ao buscar subgrupos:", error)
+      console.error("Erro ao buscar dados:", error)
       toast({
         title: "Erro",
-        description: "Erro ao carregar subgrupos",
+        description: "Erro ao carregar dados",
         variant: "destructive"
       })
     }
   }
 
-  const handleConfigChange = (index: number, field: keyof SubgrupoConfig, value: any) => {
-    const newConfigs = [...configuracoes]
-    newConfigs[index] = { ...newConfigs[index], [field]: value, edited: true }
-    setConfiguracoes(newConfigs)
+  const handleFieldChange = (cod_subgrupo: number, field: keyof SubgrupoMargem, value: any) => {
+    setSubgrupos(prev => prev.map(item => 
+      item.cod_subgrupo === cod_subgrupo ? { ...item, [field]: value } : item
+    ))
+    setEditedRows(prev => new Set(prev).add(cod_subgrupo))
   }
 
-  const handleObservacaoOpen = (index: number) => {
-    setCurrentSubgrupoIndex(index)
-    setCurrentObservacao(configuracoes[index].observacao)
-    setObservacaoDialogOpen(true)
+  const handleMargemChange = (cod_subgrupo: number, value: string) => {
+    // Remove % e converte vírgula para ponto
+    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    handleFieldChange(cod_subgrupo, 'margem', numericValue)
   }
 
-  const handleObservacaoSave = () => {
-    if (currentSubgrupoIndex !== null) {
-      handleConfigChange(currentSubgrupoIndex, 'observacao', currentObservacao)
-    }
-    setObservacaoDialogOpen(false)
-    setCurrentSubgrupoIndex(null)
-    setCurrentObservacao("")
+  const formatMargemForDisplay = (margem: number) => {
+    return margem.toFixed(2).replace('.', ',') + '%'
   }
 
-  const handleSave = async (index: number) => {
-    const config = configuracoes[index]
+  const handleSave = async (cod_subgrupo: number) => {
+    const item = subgrupos.find(s => s.cod_subgrupo === cod_subgrupo)
+    if (!item) return
+
     try {
       const { error } = await supabase
         .from("subgrupo_margem")
         .update({
-          margem: config.margem,
-          data_inicio: config.dataInicio,
-          data_fim: config.dataFim,
-          observacao: config.observacao
+          nome_subgrupo: item.nome_subgrupo,
+          margem: item.margem,
+          data_inicio: item.data_inicio,
+          data_fim: item.data_fim,
+          observacao: item.observacao,
+          updated_at: new Date().toISOString()
         })
-        .eq("cod_subgrupo", config.subgrupo.cod_subgrupo)
+        .eq("cod_subgrupo", cod_subgrupo)
 
       if (error) throw error
 
-      const newConfigs = [...configuracoes]
-      newConfigs[index].edited = false
-      setConfiguracoes(newConfigs)
+      setEditedRows(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(cod_subgrupo)
+        return newSet
+      })
 
       toast({
         title: "Sucesso",
-        description: "Configuração salva com sucesso"
+        description: "Registro salvo com sucesso"
       })
     } catch (error) {
       console.error("Erro ao salvar:", error)
       toast({
         title: "Erro",
-        description: "Erro ao salvar configuração",
+        description: "Erro ao salvar registro",
         variant: "destructive"
       })
     }
@@ -119,14 +101,14 @@ export default function ConfiguracaoDescontoSubgrupo() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Código Subgrupo", "Nome Subgrupo", "Data Início", "Data Fim", "% Margem", "Observação"],
-      ...configuracoes.map(config => [
-        config.subgrupo.cod_subgrupo,
-        config.subgrupo.nome_subgrupo,
-        config.dataInicio,
-        config.dataFim,
-        config.margem.toFixed(2),
-        config.observacao || ""
+      ["Código Subgrupo", "Nome Subgrupo", "Margem", "Data Início", "Data Fim", "Observação"],
+      ...subgrupos.map(item => [
+        item.cod_subgrupo,
+        item.nome_subgrupo,
+        item.margem,
+        item.data_inicio,
+        item.data_fim,
+        item.observacao
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -134,18 +116,62 @@ export default function ConfiguracaoDescontoSubgrupo() {
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
-    link.setAttribute("download", "subgrupos.csv")
+    link.setAttribute("download", "desconto_subgrupos.csv")
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
+  const handleAdd = async () => {
+    const newCodSubgrupo = Math.max(...subgrupos.map(s => s.cod_subgrupo), 0) + 1
+
+    try {
+      const { error } = await supabase
+        .from("subgrupo_margem")
+        .insert({
+          cod_subgrupo: newCodSubgrupo,
+          nome_subgrupo: "Novo Subgrupo",
+          margem: 0,
+          data_inicio: new Date().toISOString().split('T')[0],
+          data_fim: "2030-12-31",
+          observacao: ""
+        })
+
+      if (error) throw error
+
+      fetchData()
+      toast({
+        title: "Sucesso",
+        description: "Subgrupo adicionado com sucesso"
+      })
+    } catch (error) {
+      console.error("Erro ao adicionar subgrupo:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar subgrupo",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const toggleObservacaoDialog = (cod_subgrupo: number) => {
+    setObservacaoDialogs(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(cod_subgrupo)) {
+        newSet.delete(cod_subgrupo)
+      } else {
+        newSet.add(cod_subgrupo)
+      }
+      return newSet
+    })
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
-          Subgrupos
+          Configuração Desconto Subgrupo
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
@@ -155,6 +181,10 @@ export default function ConfiguracaoDescontoSubgrupo() {
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
+            <Button size="sm" onClick={handleAdd}>
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
           </div>
         </CardTitle>
       </CardHeader>
@@ -163,60 +193,81 @@ export default function ConfiguracaoDescontoSubgrupo() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">Código</th>
+                <th className="text-left p-2">Código Subgrupo</th>
                 <th className="text-left p-2">Nome Subgrupo</th>
-                <th className="text-left p-2">Data Início</th>
-                <th className="text-left p-2">Data Fim</th>
                 <th className="text-left p-2">% Margem</th>
+                <th className="text-left p-2 w-32">Data Início</th>
+                <th className="text-left p-2 w-32">Data Fim</th>
                 <th className="text-left p-2">Observação</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {configuracoes.map((config, index) => (
-                <tr key={config.subgrupo.cod_subgrupo} className={`border-b ${config.edited ? 'bg-yellow-50' : ''}`}>
-                  <td className="p-2 font-medium">{config.subgrupo.cod_subgrupo}</td>
-                  <td className="p-2">{config.subgrupo.nome_subgrupo}</td>
+              {subgrupos.map((item) => (
+                <tr key={item.cod_subgrupo} className={`border-b ${editedRows.has(item.cod_subgrupo) ? 'bg-yellow-50' : ''}`}>
+                  <td className="p-2">{item.cod_subgrupo}</td>
                   <td className="p-2">
                     <Input
-                      type="date"
-                      value={config.dataInicio}
-                      onChange={(e) => handleConfigChange(index, 'dataInicio', e.target.value)}
-                      className="w-36"
+                      value={item.nome_subgrupo}
+                      onChange={(e) => handleFieldChange(item.cod_subgrupo, 'nome_subgrupo', e.target.value)}
+                      className="w-full"
                     />
                   </td>
                   <td className="p-2">
-                    <Input
-                      type="date"
-                      value={config.dataFim}
-                      onChange={(e) => handleConfigChange(index, 'dataFim', e.target.value)}
-                      className="w-36"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={config.margem}
-                      onChange={(e) => handleConfigChange(index, 'margem', parseFloat(e.target.value) || 0)}
+                    <PercentageInput
+                      value={formatMargemForDisplay(item.margem)}
+                      onChange={(value) => handleMargemChange(item.cod_subgrupo, value)}
                       className="w-24"
                     />
                   </td>
                   <td className="p-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleObservacaoOpen(index)}
-                      className="w-8 h-8 p-0"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
+                    <Input
+                      type="date"
+                      value={item.data_inicio || ''}
+                      onChange={(e) => handleFieldChange(item.cod_subgrupo, 'data_inicio', e.target.value)}
+                      className="w-full"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="date"
+                      value={item.data_fim || ''}
+                      onChange={(e) => handleFieldChange(item.cod_subgrupo, 'data_fim', e.target.value)}
+                      className="w-full"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Dialog open={observacaoDialogs.has(item.cod_subgrupo)} onOpenChange={() => toggleObservacaoDialog(item.cod_subgrupo)}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <MessageSquare className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Observação - {item.nome_subgrupo}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <Label>Observação (máximo 100 caracteres)</Label>
+                          <Textarea
+                            value={item.observacao || ''}
+                            onChange={(e) => handleFieldChange(item.cod_subgrupo, 'observacao', e.target.value)}
+                            maxLength={100}
+                            placeholder="Digite uma observação específica..."
+                            className="min-h-20"
+                          />
+                          <div className="text-sm text-gray-500">
+                            {(item.observacao || '').length}/100 caracteres
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </td>
                   <td className="p-2">
                     <Button 
                       size="sm" 
-                      onClick={() => handleSave(index)}
-                      disabled={!config.edited}
+                      onClick={() => handleSave(item.cod_subgrupo)}
+                      disabled={!editedRows.has(item.cod_subgrupo)}
                     >
                       Salvar
                     </Button>
@@ -227,34 +278,6 @@ export default function ConfiguracaoDescontoSubgrupo() {
           </table>
         </div>
       </CardContent>
-
-      <Dialog open={observacaoDialogOpen} onOpenChange={setObservacaoDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Observação do Subgrupo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Textarea
-              value={currentObservacao}
-              onChange={(e) => setCurrentObservacao(e.target.value)}
-              placeholder="Digite a observação específica para este subgrupo..."
-              maxLength={100}
-              rows={4}
-            />
-            <div className="text-sm text-muted-foreground">
-              {currentObservacao.length}/100 caracteres
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setObservacaoDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleObservacaoSave}>
-                Salvar
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Card>
   )
 }

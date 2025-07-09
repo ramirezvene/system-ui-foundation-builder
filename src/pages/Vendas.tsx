@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +8,7 @@ import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
 import { LojaCombobox } from "@/components/LojaCombobox"
 import { ProdutoCombobox } from "@/components/ProdutoCombobox"
+import { CurrencyInput } from "@/components/CurrencyInput"
 
 type Loja = Tables<"cadastro_loja">
 type Produto = Tables<"cadastro_produto">
@@ -188,8 +188,8 @@ export default function Vendas() {
       loja: selectedLoja,
       produto: selectedProduto,
       precoRegular: precoAtual,
-      precoSolicitado: parseFloat(novoPreco) || 0,
-      desconto: precoAtual > 0 ? ((precoAtual - parseFloat(novoPreco || "0")) / precoAtual * 100) : 0,
+      precoSolicitado: parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.')) || 0,
+      desconto: precoAtual > 0 ? ((precoAtual - parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.'))) / precoAtual * 100) : 0,
       tokenDisponivel: selectedLoja?.qtde_token || 0,
       retorno: validationError || "Solicitado",
       aprovado: !validationError
@@ -203,6 +203,7 @@ export default function Vendas() {
         description: validationError,
         variant: "destructive"
       })
+      handleLimpar()
       return
     }
 
@@ -267,6 +268,8 @@ export default function Vendas() {
         retorno: `Solicitado - Token: ${tokenCode}`
       } : null)
 
+      handleLimpar()
+
     } catch (error) {
       console.error("Erro ao solicitar token:", error)
       toast({
@@ -274,6 +277,7 @@ export default function Vendas() {
         description: "Erro ao solicitar token",
         variant: "destructive"
       })
+      handleLimpar()
     }
   }
 
@@ -290,7 +294,6 @@ export default function Vendas() {
     setNovoPreco("")
     setQuantidade("1")
     setPrecoAtual(0)
-    setSolicitacaoResult(null)
   }
 
   return (
@@ -337,12 +340,10 @@ export default function Vendas() {
               
               <div>
                 <Label>Novo Preço Solicitado</Label>
-                <Input
-                  type="number"
-                  step="0.01"
+                <CurrencyInput
                   value={novoPreco}
-                  onChange={(e) => setNovoPreco(e.target.value)}
-                  placeholder="0.00"
+                  onChange={setNovoPreco}
+                  placeholder="R$ 0,00"
                 />
               </div>
               
@@ -361,10 +362,10 @@ export default function Vendas() {
           {novoPreco && precoAtual > 0 && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-700">
-                <strong>Desconto:</strong> {((precoAtual - parseFloat(novoPreco || "0")) / precoAtual * 100).toFixed(2)}%
+                <strong>Desconto:</strong> {((precoAtual - parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.'))) / precoAtual * 100).toFixed(2)}%
               </p>
               <p className="text-sm text-blue-700">
-                <strong>Economia:</strong> {formatCurrency(precoAtual - parseFloat(novoPreco || "0"))}
+                <strong>Economia:</strong> {formatCurrency(precoAtual - parseFloat(novoPreco.replace(/[^\d,]/g, '').replace(',', '.')))}
               </p>
             </div>
           )}
