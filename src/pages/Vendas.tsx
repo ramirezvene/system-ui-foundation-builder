@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -104,7 +105,14 @@ export default function Vendas() {
     if (!selectedProduto || !selectedLoja) return "Selecione uma loja e um produto"
 
     const novoPrecoNum = parsePrice(novoPreco)
-    if (isNaN(novoPrecoNum) || novoPrecoNum <= 0) return "Preço solicitado inválido"
+    console.log("Validação - novoPreco string:", novoPreco)
+    console.log("Validação - novoPrecoNum parsed:", novoPrecoNum)
+    console.log("Validação - precoAtual:", precoAtual)
+    
+    if (isNaN(novoPrecoNum) || novoPrecoNum <= 0) {
+      console.log("Preço inválido - NaN ou <= 0")
+      return "Preço solicitado inválido"
+    }
 
     // 1. Validações do Produto
     // Preço Mínimo
@@ -121,18 +129,23 @@ export default function Vendas() {
     }
 
     precoMinimo = cmgProduto * 1.1 // Assumindo margem mínima de 10%
+    console.log("Validação - precoMinimo:", precoMinimo)
+    console.log("Validação - cmgProduto:", cmgProduto)
     
     if (novoPrecoNum < precoMinimo) {
+      console.log("Preço menor que mínimo")
       return "Desconto reprovado, devido ao preço ser inferior ao Preço Mínimo."
     }
 
     // % Desconto válido
     if (novoPrecoNum >= precoAtual) {
+      console.log("Preço maior ou igual ao regular")
       return "Desconto é inválido, preço maior que Valor Regular."
     }
 
     // Validar alçada do produto
     if (selectedProduto.alcada !== 0) {
+      console.log("Produto possui outras alçadas")
       return "Possuí outras Alçadas para realização de Desconto."
     }
 
@@ -141,6 +154,7 @@ export default function Vendas() {
       const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)
       if (subgrupoMargem) {
         const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
+        console.log("Validação subgrupo - desconto%:", descontoPercentual, "margem permitida:", subgrupoMargem.margem)
         if (descontoPercentual > subgrupoMargem.margem) {
           return `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`
         }
@@ -149,25 +163,30 @@ export default function Vendas() {
 
     // 3. Validações da Loja
     if (selectedLoja.meta_loja !== 1) {
+      console.log("Meta loja irregular")
       return "Bloqueado devido a Meta de Desconto estar irregular."
     }
 
     if (selectedLoja.dre_negativo !== 1) {
+      console.log("DRE irregular")
       return "Bloqueado devido a DRE estar irregular."
     }
 
     // 4. Validações do Estado
     const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
     if (!estadoInfo || estadoInfo.st_ativo !== 1) {
+      console.log("Estado não disponível")
       return "Estado não disponível para solicitação de token."
     }
 
     // Validações específicas do produto
     if (selectedProduto.st_ruptura !== 0) {
+      console.log("Produto com ruptura")
       return "Produto possui Ruptura de Estoque."
     }
 
     if (selectedProduto.st_pricing !== 0) {
+      console.log("Produto bloqueado para token")
       return "Produto possui Bloqueado para solicitar Token."
     }
 
@@ -180,11 +199,13 @@ export default function Vendas() {
 
     if (produtoMargem) {
       const descontoPercentual = ((precoAtual - novoPrecoNum) / precoAtual) * 100
+      console.log("Validação produto margem - desconto%:", descontoPercentual, "margem ZVDC:", produtoMargem.margem)
       if (descontoPercentual > produtoMargem.margem) {
         return "Desconto token reprovado, devido a margem ZVDC."
       }
     }
 
+    console.log("Validação passou - token aprovado")
     return null
   }
 
