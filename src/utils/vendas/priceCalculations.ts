@@ -34,12 +34,7 @@ export const calculateMinPrice = (
       const denominador1 = 1 - (aliq + piscofins)
       const denominador2 = 1 - margemSubgrupo
       precoMinimo = (cmgProduto / denominador1) / denominador2
-    } else {
-      precoMinimo = cmgProduto * 1.1 // Fallback para margem mínima de 10%
     }
-  } else {
-    precoMinimo = cmgProduto * 1.1 // Fallback para margem mínima de 10%
-  }
 
   return precoMinimo
 }
