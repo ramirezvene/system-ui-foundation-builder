@@ -25,7 +25,7 @@ export const calculateMinPrice = (
     piscofins = (produto.piscofins || 0) / 100
   }
 
-  // Cálculo correto do preço mínimo
+  // Cálculo exato conforme especificado pelo usuário
   let precoMinimo = 0
   if (produto.subgrupo_id) {
     const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === produto.subgrupo_id)
