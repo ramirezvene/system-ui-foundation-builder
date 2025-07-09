@@ -35,6 +35,7 @@ export const calculateMinPrice = (
       const denominador2 = 1 - margemSubgrupo
       precoMinimo = (cmgProduto / denominador1) / denominador2
     }
+  }
 
   return precoMinimo
 }
@@ -80,4 +81,3 @@ export const getCMGForState = (produto: Produto, loja: Loja): number => {
   
   return 0
 }
-
