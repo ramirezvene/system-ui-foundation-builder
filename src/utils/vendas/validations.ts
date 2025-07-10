@@ -87,11 +87,23 @@ export const validateHierarchy = (
   )
 
   if (produtoMargem) {
-    console.log("Validação produto margem UF - margem UF Loja%:", margemUFLojaPercentual, "margem UF:", produtoMargem.margem)
-    if (margemUFLojaPercentual < produtoMargem.margem) {
-      return { 
-        error: produtoMargem.observacao || "Desconto token reprovado, devido a margem UF.",
-        observacao: produtoMargem.observacao || undefined
+    console.log("Validação produto margem - margem UF Loja%:", margemUFLojaPercentual, "margem UF:", produtoMargem.margem)
+    
+    // Validação ZVDC: valor solicitado não pode ser menor que margem ZVDC
+    if (produtoMargem.tipo_margem === "percentual") {
+      if (margemUFLojaPercentual < produtoMargem.margem) {
+        return { 
+          error: produtoMargem.observacao || "Desconto token reprovado, devido a margem UF.",
+          observacao: produtoMargem.observacao || undefined
+        }
+      }
+    } else {
+      // Se for valor fixo, comparar diretamente com o valor solicitado
+      if (novoPreco < produtoMargem.margem) {
+        return {
+          error: produtoMargem.observacao || `Valor solicitado (R$ ${novoPreco.toFixed(2)}) é menor que a margem ZVDC (R$ ${produtoMargem.margem.toFixed(2)}).`,
+          observacao: produtoMargem.observacao || undefined
+        }
       }
     }
   } else {
@@ -105,6 +117,8 @@ export const validateHierarchy = (
       
       if (subgrupoMargem) {
         console.log("Validação subgrupo - margem UF Loja%:", margemUFLojaPercentual, "margem ZVDC permitida:", subgrupoMargem.margem)
+        
+        // Validação ZVDC: valor solicitado não pode ser menor que margem ZVDC (sempre percentual para subgrupo)
         if (margemUFLojaPercentual < subgrupoMargem.margem) {
           return { 
             error: subgrupoMargem.observacao || `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`,

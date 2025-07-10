@@ -13,16 +13,16 @@ export const calculateMinPrice = (
   
   if (estado === 'rs') {
     cmgProduto = produto.cmg_rs || 0
-    aliq = produto.aliq_rs || 0 // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = produto.aliq_rs || 0
+    piscofins = produto.piscofins || 0
   } else if (estado === 'sc') {
     cmgProduto = produto.cmg_sc || 0
-    aliq = produto.aliq_sc || 0 // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = produto.aliq_sc || 0
+    piscofins = produto.piscofins || 0
   } else if (estado === 'pr') {
     cmgProduto = produto.cmg_pr || 0
-    aliq = produto.aliq_pr || 0  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = produto.aliq_pr || 0
+    piscofins = produto.piscofins || 0
   }
 
   // Cálculo exato conforme especificado: (cmgProduto / denominador1) / denominador2
@@ -30,7 +30,7 @@ export const calculateMinPrice = (
   if (produto.subgrupo_id) {
     const subgrupoMargem = subgrupoMargens.find(s => s.cod_subgrupo === produto.subgrupo_id)
     if (subgrupoMargem) {
-      const margemSubgrupo = subgrupoMargem.margem / 100  // Esta divisão mantida porque margem está em %
+      const margemSubgrupo = subgrupoMargem.margem / 100
       const denominador1 = 1 - ((aliq / 100) + (piscofins / 100))
       const denominador2 = 1 - margemSubgrupo
       
@@ -63,16 +63,16 @@ export const calculateUFMargin = (
   
   if (estado === 'rs') {
     cmgProduto = produto.cmg_rs || 0
-    aliq = produto.aliq_rs || 0 // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = produto.aliq_rs || 0
+    piscofins = produto.piscofins || 0
   } else if (estado === 'sc') {
     cmgProduto = produto.cmg_sc || 0
-    aliq = produto.aliq_sc || 0 // Removido divisão por 100
-    piscofins = produto.piscofins || 0 // Removido divisão por 100
+    aliq = produto.aliq_sc || 0
+    piscofins = produto.piscofins || 0
   } else if (estado === 'pr') {
     cmgProduto = produto.cmg_pr || 0
-    aliq = produto.aliq_pr || 0 // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = produto.aliq_pr || 0
+    piscofins = produto.piscofins || 0
   }
 
   const margemUFLoja = ((novoPreco * (1 - ((aliq / 100) + (piscofins / 100)))) - cmgProduto) / (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))))
