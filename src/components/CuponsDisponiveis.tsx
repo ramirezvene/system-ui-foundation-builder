@@ -1,138 +1,110 @@
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/integrations/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { supabase } from "@/integrations/supabase/client"
 
-interface CupomDisponivel {
-  cod_loja: number
+interface CupomData {
   loja: string
-  cupons_aprovados: number
-  cupons_reprovados: number
-  tokens_disponiveis: number
-  cupons_restantes: number
+  cod_loja: number
+  tokens_aprovados: number
+  tokens_pendentes: number
+  tokens_reprovados: number
+  valor_total: number
 }
 
-type SortKey = keyof CupomDisponivel
-type SortDirection = 'asc' | 'desc'
+interface CuponsDisponiveisProps {
+  selectedMonth: number
+  selectedYear: number
+}
 
-export default function CuponsDisponiveis() {
-  const [cuponsData, setCuponsData] = useState<CupomDisponivel[]>([])
+export default function CuponsDisponiveis({ selectedMonth, selectedYear }: CuponsDisponiveisProps) {
+  const [cupons, setCupons] = useState<CupomData[]>([])
   const [loading, setLoading] = useState(true)
-  const [sortKey, setSortKey] = useState<SortKey>('cod_loja')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   useEffect(() => {
-    fetchCuponsDisponiveis()
-  }, [])
+    fetchCuponsData()
+  }, [selectedMonth, selectedYear])
 
-  const fetchCuponsDisponiveis = async () => {
+  const fetchCuponsData = async () => {
     try {
       setLoading(true)
-      
-      // Buscar dados das lojas
-      const { data: lojas, error: errorLojas } = await supabase
-        .from("cadastro_loja")
-        .select("cod_loja, loja, qtde_token")
+      const startDate = new Date(selectedYear, selectedMonth - 1, 1)
+      const endDate = new Date(selectedYear, selectedMonth, 0)
 
-      if (errorLojas) throw errorLojas
-
-      // Buscar todos os cupons por loja
-      const { data: cupons, error: errorCupons } = await supabase
+      const { data: tokens, error } = await supabase
         .from("token_loja")
-        .select("cod_loja, st_aprovado")
+        .select(`
+          cod_loja,
+          st_aprovado,
+          data_criacao,
+          cadastro_loja(loja),
+          token_loja_detalhado(vlr_solic, qtde_solic)
+        `)
+        .gte("data_criacao", startDate.toISOString())
+        .lte("data_criacao", endDate.toISOString())
 
-      if (errorCupons) throw errorCupons
+      if (error) throw error
 
-      // Processar dados
-      const cuponsDisponiveis: CupomDisponivel[] = lojas?.map(loja => {
-        const cuponsLoja = cupons?.filter(cupom => cupom.cod_loja === loja.cod_loja) || []
+      // Processar dados por loja
+      const lojaStats: { [key: number]: CupomData } = {}
+
+      tokens?.forEach(token => {
+        const lojaInfo = token.cadastro_loja as any
         
-        const cuponsAprovados = cuponsLoja.filter(cupom => cupom.st_aprovado === 1).length
-        const cuponsReprovados = cuponsLoja.filter(cupom => cupom.st_aprovado === 0).length
-
-        const tokensDisponiveis = loja.qtde_token || 0
-        const cuponsRestantes = Math.max(0, tokensDisponiveis - cuponsAprovados)
-
-        return {
-          cod_loja: loja.cod_loja,
-          loja: loja.loja,
-          cupons_aprovados: cuponsAprovados,
-          cupons_reprovados: cuponsReprovados,
-          tokens_disponiveis: tokensDisponiveis,
-          cupons_restantes: cuponsRestantes
+        if (!lojaStats[token.cod_loja]) {
+          lojaStats[token.cod_loja] = {
+            cod_loja: token.cod_loja,
+            loja: lojaInfo?.loja || `Loja ${token.cod_loja}`,
+            tokens_aprovados: 0,
+            tokens_pendentes: 0,
+            tokens_reprovados: 0,
+            valor_total: 0
+          }
         }
-      }) || []
 
-      setCuponsData(cuponsDisponiveis)
+        // Contar tokens por status
+        if (token.st_aprovado === 1) {
+          lojaStats[token.cod_loja].tokens_aprovados++
+        } else if (token.st_aprovado === 0) {
+          lojaStats[token.cod_loja].tokens_reprovados++
+        } else {
+          lojaStats[token.cod_loja].tokens_pendentes++
+        }
+
+        // Calcular valor total
+        const detalhes = token.token_loja_detalhado as any[]
+        detalhes?.forEach(detalhe => {
+          const valor = (detalhe.vlr_solic || 0) * (detalhe.qtde_solic || 1)
+          lojaStats[token.cod_loja].valor_total += valor
+        })
+      })
+
+      // Converter para array e ordenar por valor total
+      const cuponsArray = Object.values(lojaStats)
+        .sort((a, b) => b.valor_total - a.valor_total)
+
+      setCupons(cuponsArray)
     } catch (error) {
-      console.error("Erro ao buscar cupons disponíveis:", error)
+      console.error("Erro ao buscar dados dos cupons:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDirection('asc')
-    }
-  }
-
-  const sortedData = [...cuponsData].sort((a, b) => {
-    const aValue = a[sortKey]
-    const bValue = b[sortKey]
-    
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      const comparison = aValue.localeCompare(bValue)
-      return sortDirection === 'asc' ? comparison : -comparison
-    }
-    
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-    }
-    
-    return 0
-  })
-
-  const getStatusColor = (cuponsRestantes: number) => {
-    if (cuponsRestantes === 0) return "text-red-600 font-semibold"
-    if (cuponsRestantes <= 5) return "text-orange-600 font-semibold"
-    return "text-green-600"
-  }
-
-  const SortableHeader = ({ sortKey: key, children }: { sortKey: SortKey, children: React.ReactNode }) => (
-    <TableHead 
-      className="cursor-pointer hover:bg-gray-50 select-none"
-      onClick={() => handleSort(key)}
-    >
-      <div className="flex items-center justify-between">
-        {children}
-        <div className="flex flex-col ml-1">
-          <ChevronUp 
-            className={`h-3 w-3 ${sortKey === key && sortDirection === 'asc' ? 'text-blue-600' : 'text-gray-400'}`} 
-          />
-          <ChevronDown 
-            className={`h-3 w-3 -mt-1 ${sortKey === key && sortDirection === 'desc' ? 'text-blue-600' : 'text-gray-400'}`} 
-          />
-        </div>
-      </div>
-    </TableHead>
-  )
+  const months = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ]
 
   if (loading) {
     return (
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Cupons Disponíveis por Loja</CardTitle>
+          <CardTitle>Resumo por Loja - {months[selectedMonth - 1]} {selectedYear}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-center items-center h-32">
-            <div className="text-muted-foreground">Carregando...</div>
-          </div>
+          <div className="text-center py-4">Carregando...</div>
         </CardContent>
       </Card>
     )
@@ -141,48 +113,45 @@ export default function CuponsDisponiveis() {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Cupons Disponíveis por Loja</CardTitle>
+        <CardTitle>Resumo por Loja - {months[selectedMonth - 1]} {selectedYear}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="max-h-96 overflow-y-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableHeader sortKey="cod_loja">Código</SortableHeader>
-                <SortableHeader sortKey="loja">Loja</SortableHeader>
-                <SortableHeader sortKey="cupons_aprovados">
-                  <div className="text-center">Cupons Aprovados</div>
-                </SortableHeader>
-                <SortableHeader sortKey="cupons_reprovados">
-                  <div className="text-center">Cupons Reprovados</div>
-                </SortableHeader>
-                <SortableHeader sortKey="tokens_disponiveis">
-                  <div className="text-center">Tokens Disponíveis</div>
-                </SortableHeader>
-                <SortableHeader sortKey="cupons_restantes">
-                  <div className="text-center">Cupons Restantes</div>
-                </SortableHeader>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedData.map((item) => (
-                <TableRow key={item.cod_loja}>
-                  <TableCell className="font-medium">{item.cod_loja}</TableCell>
-                  <TableCell>{item.loja}</TableCell>
-                  <TableCell className="text-center">{item.cupons_aprovados}</TableCell>
-                  <TableCell className="text-center">{item.cupons_reprovados}</TableCell>
-                  <TableCell className="text-center">{item.tokens_disponiveis}</TableCell>
-                  <TableCell className={`text-center ${getStatusColor(item.cupons_restantes)}`}>
-                    {item.cupons_restantes}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {cupons.map((cupom) => (
+            <Card key={cupom.cod_loja} className="border-l-4 border-l-primary">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-lg">{cupom.loja}</h3>
+                    <p className="text-sm text-muted-foreground">Código: {cupom.cod_loja}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-primary">
+                      R$ {cupom.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Valor Total</p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Aprovados: {cupom.tokens_aprovados}
+                  </Badge>
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    Pendentes: {cupom.tokens_pendentes}
+                  </Badge>
+                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                    Reprovados: {cupom.tokens_reprovados}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-        {cuponsData.length === 0 && (
-          <div className="text-center text-muted-foreground py-4">
-            Nenhum dado encontrado
+        
+        {cupons.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum dado encontrado para o período selecionado.
           </div>
         )}
       </CardContent>

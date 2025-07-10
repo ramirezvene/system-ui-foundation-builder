@@ -3,7 +3,6 @@ import { useState, useEffect } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { supabase } from "@/integrations/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ChartData {
   periodo: string
@@ -12,10 +11,13 @@ interface ChartData {
   reprovado: number
 }
 
-export default function TokenChart() {
+interface TokenChartProps {
+  selectedMonth: number
+  selectedYear: number
+}
+
+export default function TokenChart({ selectedMonth, selectedYear }: TokenChartProps) {
   const [data, setData] = useState<ChartData[]>([])
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
-  const [selectedYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
     fetchChartData()
@@ -98,21 +100,6 @@ export default function TokenChart() {
     }
   }
 
-  const months = [
-    { value: 1, label: "Janeiro" },
-    { value: 2, label: "Fevereiro" },
-    { value: 3, label: "Março" },
-    { value: 4, label: "Abril" },
-    { value: 5, label: "Maio" },
-    { value: 6, label: "Junho" },
-    { value: 7, label: "Julho" },
-    { value: 8, label: "Agosto" },
-    { value: 9, label: "Setembro" },
-    { value: 10, label: "Outubro" },
-    { value: 11, label: "Novembro" },
-    { value: 12, label: "Dezembro" }
-  ]
-
   // Tooltip customizado para melhor visualização
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -130,24 +117,17 @@ export default function TokenChart() {
     return null
   }
 
+  const months = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ]
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Relatório de Tokens por Período</CardTitle>
-          <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map((month) => (
-                <SelectItem key={month.value} value={month.value.toString()}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CardTitle className="text-lg">
+          Tokens por Período - {months[selectedMonth - 1]} {selectedYear}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={250}>
