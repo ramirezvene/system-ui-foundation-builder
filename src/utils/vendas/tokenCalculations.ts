@@ -69,10 +69,11 @@ export const calculateAdditionalInfo = (
     }
   }
   
-  // 2. Se não encontrou produto_margem, verificar subgrupo_margem
+  // 2. Se não encontrou produto_margem, verificar subgrupo_margem por UF
   if (margemZVDC === "N/A" && selectedProduto.subgrupo_id) {
     const subgrupoMargem = subgrupoMargens.find(s => 
       s.cod_subgrupo === selectedProduto.subgrupo_id &&
+      s.uf === selectedLoja.estado.toUpperCase() &&
       (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
       (!s.data_fim || new Date(s.data_fim) >= dataAtual)
     )

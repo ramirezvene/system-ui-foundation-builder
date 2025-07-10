@@ -42,7 +42,7 @@ export function useVendasData() {
         supabase.from("cadastro_loja").select("*").order("loja"),
         supabase.from("cadastro_produto").select("*").order("nome_produto"),
         supabase.from("produto_margem").select("*"),
-        supabase.from("subgrupo_margem").select("*"),
+        supabase.from("subgrupo_margem").select("*").order("cod_subgrupo, uf"),
         supabase.from("cadastro_estado").select("*")
       ])
       
@@ -80,4 +80,3 @@ export function useVendasData() {
     precoAtual
   }
 }
-

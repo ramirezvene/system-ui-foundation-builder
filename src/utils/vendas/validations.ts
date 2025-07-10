@@ -87,24 +87,37 @@ export const validateHierarchy = (
   )
 
   if (produtoMargem) {
-    console.log("Validação produto margem UF - margem UF Loja%:", margemUFLojaPercentual, "margem UF:", produtoMargem.margem)
-    if (margemUFLojaPercentual < produtoMargem.margem) {
-      return { 
-        error: produtoMargem.observacao || "Desconto token reprovado, devido a margem UF.",
-        observacao: produtoMargem.observacao || undefined
+    console.log("Validação produto margem - tipo:", produtoMargem.tipo_margem, "margem:", produtoMargem.margem)
+    
+    if (produtoMargem.tipo_margem === "percentual") {
+      // Para percentual, comparar com margem UF loja
+      if (margemUFLojaPercentual < produtoMargem.margem) {
+        return { 
+          error: produtoMargem.observacao || "Desconto token reprovado, devido a margem UF.",
+          observacao: produtoMargem.observacao || undefined
+        }
+      }
+    } else {
+      // Para valor absoluto, comparar diretamente o valor solicitado
+      if (novoPreco < produtoMargem.margem) {
+        return { 
+          error: produtoMargem.observacao || `Valor solicitado não pode ser menor que a margem ZVDC (R$ ${produtoMargem.margem.toFixed(2)}).`,
+          observacao: produtoMargem.observacao || undefined
+        }
       }
     }
   } else {
-    // 2. Se não tem produto_margem, verificar subgrupo_margem
+    // 2. Se não tem produto_margem, verificar subgrupo_margem por UF
     if (selectedProduto.subgrupo_id) {
       const subgrupoMargem = subgrupoMargens.find(s => 
         s.cod_subgrupo === selectedProduto.subgrupo_id &&
+        s.uf === selectedLoja.estado.toUpperCase() &&
         (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
         (!s.data_fim || new Date(s.data_fim) >= dataAtual)
       )
       
       if (subgrupoMargem) {
-        console.log("Validação subgrupo - margem UF Loja%:", margemUFLojaPercentual, "margem ZVDC permitida:", subgrupoMargem.margem)
+        console.log("Validação subgrupo - margem UF Loja%:", margemUFLojaPercentual, "margem ZVDC permitida:", subgrupoMargem.margem, "UF:", subgrupoMargem.uf)
         if (margemUFLojaPercentual < subgrupoMargem.margem) {
           return { 
             error: subgrupoMargem.observacao || `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`,
