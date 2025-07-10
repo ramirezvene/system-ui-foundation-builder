@@ -23,5 +23,8 @@ export interface SolicitacaoResult {
   descontoAlcada: string
   margemUF: string
   margemZVDC: string
+  aliqUF: number
+  piscofinsUF: number
+  ruptura: number
   observacaoRejeicao?: string
 }

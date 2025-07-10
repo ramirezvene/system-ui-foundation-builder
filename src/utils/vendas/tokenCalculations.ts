@@ -8,6 +8,9 @@ export interface AdditionalInfo {
   descontoAlcada: string
   margemUF: string
   margemZVDC: string
+  aliqUF: number
+  piscofinsUF: number
+  ruptura: number
 }
 
 export const calculateAdditionalInfo = (
@@ -23,27 +26,24 @@ export const calculateAdditionalInfo = (
   let piscofins = 0
   
   if (estado === 'rs') {
-    aliq = selectedProduto.aliq_rs || 0  // Removido divisão por 100
-    piscofins = selectedProduto.piscofins || 0  // Removido divisão por 100
+    aliq = selectedProduto.aliq_rs || 0
+    piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'sc') {
-    aliq = selectedProduto.aliq_sc || 0  // Removido divisão por 100
-    piscofins = selectedProduto.piscofins || 0  // Removido divisão por 100
+    aliq = selectedProduto.aliq_sc || 0
+    piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'pr') {
-    aliq = selectedProduto.aliq_pr || 0  // Removido divisão por 100
-    piscofins = selectedProduto.piscofins || 0  // Removido divisão por 100
+    aliq = selectedProduto.aliq_pr || 0
+    piscofins = selectedProduto.piscofins || 0
   }
 
-  // Usar a função corrigida para calcular o preço mínimo
   const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
   const cmgProduto = getCMGForState(selectedProduto, selectedLoja)
 
   const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
   
-  // Calcular margem UF loja
   const margemUFLoja = ((novoPreco * (1 - (aliq + piscofins))) - cmgProduto) / (novoPreco * (1 - (aliq + piscofins)))
   const margemUF = `${(margemUFLoja * 100).toFixed(2)}%`
   
-  // Margem ZVDC = margem do subgrupo
   const margemZVDC = selectedProduto.subgrupo_id ? 
     (subgrupoMargens.find(s => s.cod_subgrupo === selectedProduto.subgrupo_id)?.margem + "%" || "N/A") : 
     "N/A"
@@ -53,6 +53,9 @@ export const calculateAdditionalInfo = (
     cmgProduto,
     descontoAlcada,
     margemUF,
-    margemZVDC
+    margemZVDC,
+    aliqUF: aliq,
+    piscofinsUF: piscofins,
+    ruptura: selectedProduto.st_ruptura || 0
   }
 }

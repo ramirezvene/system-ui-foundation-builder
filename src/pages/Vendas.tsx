@@ -81,6 +81,9 @@ export default function Vendas() {
       descontoAlcada: additionalInfo.descontoAlcada,
       margemUF: additionalInfo.margemUF,
       margemZVDC: additionalInfo.margemZVDC,
+      aliqUF: additionalInfo.aliqUF,
+      piscofinsUF: additionalInfo.piscofinsUF,
+      ruptura: additionalInfo.ruptura,
       observacaoRejeicao: validation.observacao
     }
 
@@ -149,7 +152,6 @@ export default function Vendas() {
         description: `Token ${tokenCode} solicitado com sucesso!`
       })
 
-      // Atualizar resultado para mostrar o código do token
       setSolicitacaoResult(prev => prev ? {
         ...prev,
         retorno: `Solicitado - Token: ${tokenCode}`
