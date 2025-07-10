@@ -146,7 +146,7 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
             <Legend />
             <Bar dataKey="total" fill="#044565" name="Total" />
             <Bar dataKey="aprovado" fill="#14c400" name="Aprovados" />
-            <Bar dataKey="reprovado" fill="#ffc658" name="Reprovados" />
+            <Bar dataKey="reprovado" fill="#fc2a0a" name="Reprovados" />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
