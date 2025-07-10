@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,10 +11,15 @@ import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
+import { validateHierarchy } from "@/utils/vendas/validations"
+import { calculateAdditionalInfo } from "@/utils/vendas/tokenCalculations"
+import { calculateMinPrice, getCMGForState } from "@/utils/vendas/priceCalculations"
 
 type Loja = Tables<"cadastro_loja">
 type Produto = Tables<"cadastro_produto">
 type SubgrupoMargem = Tables<"subgrupo_margem">
+type ProdutoMargem = Tables<"produto_margem">
+type Estado = Tables<"cadastro_estado">
 
 interface TokenData {
   id: number
@@ -34,20 +40,22 @@ export default function Emulador() {
   
   const [lojas, setLojas] = useState<Loja[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [produtoMargens, setProdutoMargens] = useState<ProdutoMargem[]>([])
+  const [subgrupoMargens, setSubgrupoMargens] = useState<SubgrupoMargem[]>([])
+  const [estados, setEstados] = useState<Estado[]>([])
   const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null)
   const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
-  const [subgrupoMargem, setSubgrupoMargem] = useState<SubgrupoMargem | null>(null)
   const [valorSolicitado, setValorSolicitado] = useState("")
   const [quantidade, setQuantidade] = useState("1")
-  const [margemZVDC, setMargemZVDC] = useState("")
   const [tokensNoMes, setTokensNoMes] = useState(0)
   
-  // Campos calculados
+  // Campos calculados usando as novas funções
   const [precoMinimo, setPrecoMinimo] = useState("")
   const [cmgProduto, setCmgProduto] = useState("")
   const [precoRegular, setPrecoRegular] = useState("")
   const [descontoAlcada, setDescontoAlcada] = useState("")
   const [margemUFLoja, setMargemUFLoja] = useState("")
+  const [margemZVDC, setMargemZVDC] = useState("")
   const [percentualDesconto, setPercentualDesconto] = useState("")
   const [observacao, setObservacao] = useState("")
   const [situacao, setSituacao] = useState("")
@@ -55,6 +63,9 @@ export default function Emulador() {
   useEffect(() => {
     fetchLojas()
     fetchProdutos()
+    fetchProdutoMargens()
+    fetchSubgrupoMargens()
+    fetchEstados()
   }, [])
 
   // Pré-preencher os dados se vier da tela de validação
@@ -76,11 +87,8 @@ export default function Emulador() {
 
   useEffect(() => {
     if (tokenData && produtos.length > 0) {
-      // O campo produto em token_loja_detalhado tem formato "id_produto - nome_produto"
-      // Vamos extrair o ID do produto para fazer a busca correta
       const produtoInfo = tokenData.produto
       if (produtoInfo) {
-        // Tentar extrair o ID do formato "123 - Nome do Produto"
         const idMatch = produtoInfo.match(/^(\d+)\s*-/)
         if (idMatch) {
           const produtoId = parseInt(idMatch[1])
@@ -89,7 +97,6 @@ export default function Emulador() {
             setProdutoSelecionado(produto)
           }
         } else {
-          // Fallback: buscar pelo nome completo se não conseguir extrair o ID
           const produto = produtos.find(p => produtoInfo.includes(p.nome_produto))
           if (produto) {
             setProdutoSelecionado(produto)
@@ -100,20 +107,8 @@ export default function Emulador() {
   }, [tokenData, produtos])
 
   useEffect(() => {
-    if (produtoSelecionado) {
-      fetchSubgrupoMargem(produtoSelecionado.subgrupo_id)
-    }
-  }, [produtoSelecionado])
-
-  useEffect(() => {
-    if (subgrupoMargem) {
-      setMargemZVDC(`${subgrupoMargem.margem.toFixed(2)}%`)
-    }
-  }, [subgrupoMargem])
-
-  useEffect(() => {
     calculateFields()
-  }, [lojaSelecionada, produtoSelecionado, subgrupoMargem, valorSolicitado])
+  }, [lojaSelecionada, produtoSelecionado, subgrupoMargens, produtoMargens, estados, valorSolicitado])
 
   useEffect(() => {
     if (lojaSelecionada) {
@@ -149,20 +144,42 @@ export default function Emulador() {
     }
   }
 
-  const fetchSubgrupoMargem = async (subgrupoId: number | null) => {
-    if (!subgrupoId) return
-    
+  const fetchProdutoMargens = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("produto_margem")
+        .select("*")
+      
+      if (error) throw error
+      setProdutoMargens(data || [])
+    } catch (error) {
+      console.error("Erro ao buscar produto margens:", error)
+    }
+  }
+
+  const fetchSubgrupoMargens = async () => {
     try {
       const { data, error } = await supabase
         .from("subgrupo_margem")
         .select("*")
-        .eq("cod_subgrupo", subgrupoId)
-        .single()
       
       if (error) throw error
-      setSubgrupoMargem(data)
+      setSubgrupoMargens(data || [])
     } catch (error) {
-      console.error("Erro ao buscar subgrupo margem:", error)
+      console.error("Erro ao buscar subgrupo margens:", error)
+    }
+  }
+
+  const fetchEstados = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("cadastro_estado")
+        .select("*")
+      
+      if (error) throw error
+      setEstados(data || [])
+    } catch (error) {
+      console.error("Erro ao buscar estados:", error)
     }
   }
 
@@ -188,78 +205,87 @@ export default function Emulador() {
     }
   }
 
+  const getPrecoAtual = (): number => {
+    if (!lojaSelecionada || !produtoSelecionado) return 0
+    
+    const estado = lojaSelecionada.estado.toLowerCase()
+    if (estado === 'rs') {
+      return produtoSelecionado.pmc_rs || 0
+    } else if (estado === 'sc') {
+      return produtoSelecionado.pmc_sc || 0
+    } else if (estado === 'pr') {
+      return produtoSelecionado.pmc_pr || 0
+    }
+    return 0
+  }
+
   const calculateFields = () => {
-    if (!lojaSelecionada || !produtoSelecionado || !subgrupoMargem) {
+    if (!lojaSelecionada || !produtoSelecionado) {
       resetCalculatedFields()
       return
     }
 
-    const estado = lojaSelecionada.estado.toLowerCase()
-    let aliq = 0
-    let cmg = 0
-    let pmc = 0
+    const precoAtual = getPrecoAtual()
+    setPrecoRegular(precoAtual.toFixed(2))
 
-    // Definir valores baseados no estado da loja
-    switch (estado) {
-      case 'rs':
-        aliq = produtoSelecionado.aliq_rs || 0
-        cmg = produtoSelecionado.cmg_rs || 0
-        pmc = produtoSelecionado.pmc_rs || 0
-        break
-      case 'sc':
-        aliq = produtoSelecionado.aliq_sc || 0
-        cmg = produtoSelecionado.cmg_sc || 0
-        pmc = produtoSelecionado.pmc_sc || 0
-        break
-      case 'pr':
-        aliq = produtoSelecionado.aliq_pr || 0
-        cmg = produtoSelecionado.cmg_pr || 0
-        pmc = produtoSelecionado.pmc_pr || 0
-        break
-    }
-
-    const piscofins = produtoSelecionado.piscofins || 0
-    const margemSubgrupo = subgrupoMargem.margem / 100 // Converter para decimal
-
-    // Calcular Preço Mínimo com a fórmula corrigida
-    // (cmg / (1 - (aliq + piscofins))) / (1 - margem_subgrupo)
-    const denominador1 = 1 - ((aliq + piscofins))
-    const denominador2 = 1 - margemSubgrupo
-    const precoMin = (cmg / denominador1) / denominador2
+    // Calcular Preço Mínimo usando a função das validações
+    const precoMin = calculateMinPrice(produtoSelecionado, lojaSelecionada, subgrupoMargens)
     setPrecoMinimo(precoMin.toFixed(2))
 
     // CMG Produto
+    const cmg = getCMGForState(produtoSelecionado, lojaSelecionada)
     setCmgProduto(cmg.toFixed(2))
 
-    // Preço Regular
-    setPrecoRegular(pmc.toFixed(2))
-
     // Desconto Alçada
-    setDescontoAlcada(produtoSelecionado.alcada === 1 ? "SIM" : "NÃO")
+    setDescontoAlcada(produtoSelecionado.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA")
 
-    // Verificar status da loja para observação
-    if (lojaSelecionada.st_token === 0) {
-      setObservacao("Loja bloqueada para geração de Token.")
-    } else {
-      setObservacao(produtoSelecionado.observacao || "")
-    }
-
-    // Calcular campos se valor solicitado estiver preenchido
+    // Calcular informações adicionais usando tokenCalculations
     if (valorSolicitado) {
       const valorSolic = parseMoneyValue(valorSolicitado)
-      const margemUF = ((valorSolic * (1 - (aliq + piscofins))) - cmg) / (valorSolic * (1 - (aliq + piscofins)))
-      setMargemUFLoja(`${(margemUF * 100).toFixed(2)}%`)
+      const estadoInfo = estados.find(e => e.estado === lojaSelecionada.estado)
+      const additionalInfo = calculateAdditionalInfo(
+        produtoSelecionado,
+        lojaSelecionada,
+        valorSolic,
+        subgrupoMargens,
+        produtoMargens,
+        estadoInfo?.id
+      )
+
+      if (additionalInfo) {
+        setMargemUFLoja(additionalInfo.margemUF)
+        setMargemZVDC(additionalInfo.margemZVDC)
+      }
 
       // % Desconto = ((preço regular - valor solicitado) / preço regular) * 100
-      const desconto = ((pmc - valorSolic) / pmc) * 100
+      const desconto = ((precoAtual - valorSolic) / precoAtual) * 100
       setPercentualDesconto(`${desconto.toFixed(2)}%`)
 
-      // Situação
-      setSituacao(valorSolic >= precoMin ? "Aprovado" : "Reprovado")
+      // Validar usando as funções de validação
+      const validation = validateHierarchy(
+        produtoSelecionado,
+        lojaSelecionada,
+        valorSolic,
+        precoAtual,
+        produtoMargens,
+        subgrupoMargens,
+        estados
+      )
+
+      setSituacao(validation.error ? "Reprovado" : "Aprovado")
+      setObservacao(validation.error || validation.observacao || "")
     } else {
       setMargemUFLoja("")
+      setMargemZVDC("")
       setPercentualDesconto("")
       setSituacao("")
+      
+      // Verificar status da loja para observação
+      if (lojaSelecionada.st_token === 0) {
+        setObservacao("Loja bloqueada para geração de Token.")
+      } else {
+        setObservacao(produtoSelecionado.observacao || "")
+      }
     }
   }
 
@@ -274,10 +300,10 @@ export default function Emulador() {
     setPrecoRegular("")
     setDescontoAlcada("")
     setMargemUFLoja("")
+    setMargemZVDC("")
     setPercentualDesconto("")
     setObservacao("")
     setSituacao("")
-    setMargemZVDC("")
   }
 
   const canApprove = () => {
@@ -454,7 +480,6 @@ export default function Emulador() {
   const handleReset = () => {
     setLojaSelecionada(null)
     setProdutoSelecionado(null)
-    setSubgrupoMargem(null)
     setValorSolicitado("")
     setQuantidade("1")
     setTokensNoMes(0)
