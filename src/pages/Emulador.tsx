@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,10 +13,10 @@ import { useToast } from "@/hooks/use-toast"
 import { validateHierarchy } from "@/utils/vendas/validations"
 import { calculateAdditionalInfo } from "@/utils/vendas/tokenCalculations"
 import { calculateMinPrice, getCMGForState } from "@/utils/vendas/priceCalculations"
+import { SubgrupoMargem } from "@/types/vendas"
 
 type Loja = Tables<"cadastro_loja">
 type Produto = Tables<"cadastro_produto">
-type SubgrupoMargem = Tables<"subgrupo_margem">
 type ProdutoMargem = Tables<"produto_margem">
 type Estado = Tables<"cadastro_estado">
 
@@ -161,7 +160,7 @@ export default function Emulador() {
     try {
       const { data, error } = await supabase
         .from("subgrupo_margem")
-        .select("*")
+        .select("cod_subgrupo, nome_subgrupo, margem, data_inicio, data_fim, observacao, uf")
       
       if (error) throw error
       setSubgrupoMargens(data || [])

@@ -29,7 +29,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
     try {
       const { data, error } = await supabase
         .from("subgrupo_margem")
-        .select("*")
+        .select("cod_subgrupo, nome_subgrupo, margem, data_inicio, data_fim, observacao, uf")
         .order("cod_subgrupo, uf")
       
       if (error) throw error
