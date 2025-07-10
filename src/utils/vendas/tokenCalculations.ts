@@ -30,10 +30,10 @@ export const calculateAdditionalInfo = (
     piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'sc') {
     aliq = (selectedProduto.aliq_sc || 0) / 100
-    piscofins = (selectedProduto.piscofins || 0) / 100
+    piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'pr') {
-    aliq = (selectedProduto.aliq_pr || 0) / 100
-    piscofins = (selectedProduto.piscofins || 0) / 100
+    aliq = selectedProduto.aliq_pr || 0
+    piscofins = selectedProduto.piscofins || 0
   }
 
   const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
