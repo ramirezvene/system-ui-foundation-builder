@@ -5,7 +5,6 @@ import TokenStatusChart from "@/components/TokenStatusChart"
 import CuponsDisponiveis from "@/components/CuponsDisponiveis"
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Relatorios() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
@@ -63,7 +62,6 @@ export default function Relatorios() {
       </div>
       
       <div className="grid gap-6">
-        {/* Primeira linha com 3 gráficos */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <TokenChart 
@@ -85,7 +83,6 @@ export default function Relatorios() {
           </div>
         </div>
         
-        {/* Segunda linha com cupons disponíveis */}
         <div className="grid grid-cols-1">
           <CuponsDisponiveis 
             selectedMonth={selectedMonth} 

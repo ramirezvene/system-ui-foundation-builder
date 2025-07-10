@@ -71,7 +71,6 @@ export default function SolicitacaoTokens() {
   }
 
   const handleValidarToken = (token: TokenWithLoja) => {
-    // Passar os dados do token como state para a tela de aprovação
     navigate("/aprovacao-token", { 
       state: { 
         tokenData: {

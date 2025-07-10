@@ -29,7 +29,6 @@ export default function TopLojasChart({ selectedMonth, selectedYear }: TopLojasC
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
       
-      // Buscar tokens e detalhes
       const { data: tokens, error } = await supabase
         .from("token_loja")
         .select(`
@@ -44,7 +43,6 @@ export default function TopLojasChart({ selectedMonth, selectedYear }: TopLojasC
 
       if (error) throw error
 
-      // Processar dados por loja
       const lojaStats: { [key: string]: { aprovados: number, reprovados: number, valorAprovado: number, valorReprovado: number } } = {}
       
       tokens?.forEach(token => {
@@ -55,7 +53,6 @@ export default function TopLojasChart({ selectedMonth, selectedYear }: TopLojasC
           lojaStats[lojaName] = { aprovados: 0, reprovados: 0, valorAprovado: 0, valorReprovado: 0 }
         }
         
-        // Calcular valor do token
         const detalhes = token.token_loja_detalhado as any[]
         let valorToken = 0
         detalhes?.forEach(detalhe => {
@@ -71,7 +68,6 @@ export default function TopLojasChart({ selectedMonth, selectedYear }: TopLojasC
         }
       })
 
-      // Converter para array e pegar top 3 por total de solicitações
       const sortedLojas = Object.entries(lojaStats)
         .map(([loja, stats]) => ({
           loja,

@@ -29,7 +29,6 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
       
-      // Buscar tokens com status e detalhes
       const { data: tokens, error } = await supabase
         .from("token_loja")
         .select(`
@@ -41,12 +40,8 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
 
       if (error) throw error
 
-      let aprovados = 0
-      let reprovados = 0
-      let pendentes = 0
-      let valorAprovado = 0
-      let valorReprovado = 0
-      let valorPendente = 0
+      let aprovados = 0, reprovados = 0, pendentes = 0
+      let valorAprovado = 0, valorReprovado = 0, valorPendente = 0
 
       tokens?.forEach(token => {
         const detalhes = token.token_loja_detalhado as any[]

@@ -25,4 +25,3 @@ export interface SolicitacaoResult {
   margemZVDC: string
   observacaoRejeicao?: string
 }
-

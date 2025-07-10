@@ -28,7 +28,6 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
       
-      // Buscar tokens usando data_criacao para o total
       const { data: tokensTotal, error: errorTotal } = await supabase
         .from("token_loja")
         .select("data_criacao")
@@ -37,7 +36,6 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
 
       if (errorTotal) throw errorTotal
 
-      // Buscar tokens aprovados/reprovados usando data_validacao
       const { data: tokensValidados, error: errorValidados } = await supabase
         .from("token_loja")
         .select("data_validacao, st_aprovado")
@@ -48,23 +46,19 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
 
       if (errorValidados) throw errorValidados
 
-      // Criar períodos de 10 em 10 dias
       const periodos: { [key: string]: { total: number, aprovado: number, reprovado: number } } = {}
       const lastDay = endDate.getDate()
       
-      // Definir períodos: 1-10, 11-20, 21+ (até o final do mês)
       const periodosLabels = [
         { label: "01-10", start: 1, end: 10 },
         { label: "11-20", start: 11, end: 20 },
         { label: `21-${lastDay}`, start: 21, end: lastDay }
       ]
 
-      // Inicializar períodos
       periodosLabels.forEach(periodo => {
         periodos[periodo.label] = { total: 0, aprovado: 0, reprovado: 0 }
       })
 
-      // Contar tokens totais por período usando data_criacao
       tokensTotal?.forEach(token => {
         const day = new Date(token.data_criacao!).getDate()
         const periodo = periodosLabels.find(p => day >= p.start && day <= p.end)
@@ -73,7 +67,6 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
         }
       })
 
-      // Contar tokens aprovados/reprovados por período usando data_validacao
       tokensValidados?.forEach(token => {
         const day = new Date(token.data_validacao!).getDate()
         const periodo = periodosLabels.find(p => day >= p.start && day <= p.end)
@@ -86,7 +79,6 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
         }
       })
 
-      // Converter para array para o gráfico
       const chartData: ChartData[] = periodosLabels.map(periodo => ({
         periodo: periodo.label,
         total: periodos[periodo.label].total,
@@ -100,7 +92,6 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
     }
   }
 
-  // Tooltip customizado para melhor visualização
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
