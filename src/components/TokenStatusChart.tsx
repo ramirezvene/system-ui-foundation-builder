@@ -161,7 +161,7 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
               cy="50%"
               labelLine={false}
               label={CustomLabel}
-              outerRadius={80}
+              outerRadius={20}
               fill="#8884d8"
               dataKey="value"
             >
