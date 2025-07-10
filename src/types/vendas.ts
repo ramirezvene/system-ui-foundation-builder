@@ -4,18 +4,8 @@ import { Tables } from "@/integrations/supabase/types"
 export type Loja = Tables<"cadastro_loja">
 export type Produto = Tables<"cadastro_produto">
 export type ProdutoMargem = Tables<"produto_margem">
+export type SubgrupoMargem = Tables<"subgrupo_margem">
 export type Estado = Tables<"cadastro_estado">
-
-// Tipo customizado para SubgrupoMargem incluindo o campo uf
-export interface SubgrupoMargem {
-  cod_subgrupo: number
-  nome_subgrupo: string
-  margem: number
-  data_inicio: string | null
-  data_fim: string | null
-  observacao: string | null
-  uf: string
-}
 
 export interface SolicitacaoResult {
   loja: Loja | null
