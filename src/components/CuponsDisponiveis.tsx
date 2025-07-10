@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from "@/integrations/supabase/client"
 import { LojaCombobox } from "./LojaCombobox"
 import { Tables } from "@/integrations/supabase/types"
@@ -30,6 +31,10 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
   const [loading, setLoading] = useState(true)
   const [lojas, setLojas] = useState<Loja[]>([])
   const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
+  const [cidades, setCidades] = useState<string[]>([])
+  const [microregioes, setMicroregioes] = useState<string[]>([])
+  const [selectedCidade, setSelectedCidade] = useState<string>("")
+  const [selectedMicroregiao, setSelectedMicroregiao] = useState<string>("")
 
   useEffect(() => {
     fetchLojas()
@@ -37,7 +42,7 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
 
   useEffect(() => {
     fetchCuponsData()
-  }, [selectedMonth, selectedYear, selectedLoja])
+  }, [selectedMonth, selectedYear, selectedLoja, selectedCidade, selectedMicroregiao])
 
   const fetchLojas = async () => {
     try {
@@ -48,6 +53,13 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
 
       if (error) throw error
       setLojas(data || [])
+      
+      // Extrair cidades e microrregiões únicas
+      const cidadesUnicas = [...new Set(data?.map(loja => loja.cidade_nome).filter(Boolean))] as string[]
+      const microrregioesUnicas = [...new Set(data?.map(loja => loja.microregiao_nome).filter(Boolean))] as string[]
+      
+      setCidades(cidadesUnicas.sort())
+      setMicroregioes(microrregioesUnicas.sort())
     } catch (error) {
       console.error("Erro ao buscar lojas:", error)
     }
@@ -65,7 +77,7 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
           cod_loja,
           st_aprovado,
           data_criacao,
-          cadastro_loja(loja),
+          cadastro_loja(loja, cidade_nome, microregiao_nome),
           token_loja_detalhado(vlr_solic, qtde_solic)
         `)
         .gte("data_criacao", startDate.toISOString())
@@ -79,10 +91,25 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
 
       if (error) throw error
 
+      // Filtrar tokens baseado nos filtros de cidade e microrregião
+      const tokensFiltrados = tokens?.filter(token => {
+        const lojaInfo = token.cadastro_loja as any
+        
+        if (selectedCidade && lojaInfo?.cidade_nome !== selectedCidade) {
+          return false
+        }
+        
+        if (selectedMicroregiao && lojaInfo?.microregiao_nome !== selectedMicroregiao) {
+          return false
+        }
+        
+        return true
+      })
+
       // Processar dados por loja
       const lojaStats: { [key: number]: CupomData } = {}
 
-      tokens?.forEach(token => {
+      tokensFiltrados?.forEach(token => {
         const lojaInfo = token.cadastro_loja as any
         
         if (!lojaStats[token.cod_loja]) {
@@ -133,6 +160,12 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
     }
   }
 
+  const clearFilters = () => {
+    setSelectedLoja(null)
+    setSelectedCidade("")
+    setSelectedMicroregiao("")
+  }
+
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -155,13 +188,55 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Resumo por Loja - {months[selectedMonth - 1]} {selectedYear}</CardTitle>
-        <div className="mt-4">
-          <LojaCombobox
-            lojas={lojas}
-            selectedLoja={selectedLoja}
-            onLojaChange={setSelectedLoja}
-            placeholder="Buscar por loja (opcional)"
-          />
+        <div className="space-y-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <LojaCombobox
+                lojas={lojas}
+                selectedLoja={selectedLoja}
+                onLojaChange={setSelectedLoja}
+                placeholder="Buscar por loja (opcional)"
+              />
+            </div>
+            <div>
+              <Select value={selectedCidade} onValueChange={setSelectedCidade}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por cidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cidades.map((cidade) => (
+                    <SelectItem key={cidade} value={cidade}>
+                      {cidade}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select value={selectedMicroregiao} onValueChange={setSelectedMicroregiao}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filtrar por microrregião" />
+                </SelectTrigger>
+                <SelectContent>
+                  {microregioes.map((microregiao) => (
+                    <SelectItem key={microregiao} value={microregiao}>
+                      {microregiao}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {(selectedLoja || selectedCidade || selectedMicroregiao) && (
+            <div className="flex justify-end">
+              <button
+                onClick={clearFilters}
+                className="text-sm text-muted-foreground hover:text-foreground underline"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>

@@ -76,29 +76,35 @@ export type Database = {
       }
       cadastro_loja: {
         Row: {
+          cidade_nome: string | null
           cod_loja: number
           dre_negativo: number | null
           estado: string
           loja: string
           meta_loja: number | null
+          microregiao_nome: string | null
           qtde_token: number | null
           st_token: number | null
         }
         Insert: {
+          cidade_nome?: string | null
           cod_loja: number
           dre_negativo?: number | null
           estado: string
           loja: string
           meta_loja?: number | null
+          microregiao_nome?: string | null
           qtde_token?: number | null
           st_token?: number | null
         }
         Update: {
+          cidade_nome?: string | null
           cod_loja?: number
           dre_negativo?: number | null
           estado?: string
           loja?: string
           meta_loja?: number | null
+          microregiao_nome?: string | null
           qtde_token?: number | null
           st_token?: number | null
         }
