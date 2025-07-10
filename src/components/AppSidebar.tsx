@@ -10,7 +10,8 @@ import {
   FileText,
   ShoppingCart,
   MapPin,
-  Package
+  Package,
+  Home
 } from "lucide-react"
 
 import {
@@ -34,6 +35,11 @@ import {
 } from "@/components/ui/collapsible"
 
 const menuItems = [
+  {
+    title: "Início",
+    url: "/",
+    icon: Home,
+  },
   {
     title: "Vendas",
     url: "/vendas",

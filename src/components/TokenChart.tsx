@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ChartData {
-  day: string
+  periodo: string
   total: number
   aprovado: number
   reprovado: number
@@ -46,42 +46,51 @@ export default function TokenChart() {
 
       if (errorValidados) throw errorValidados
 
-      // Processar dados por dia
-      const dailyData: { [key: string]: { total: number, aprovado: number, reprovado: number } } = {}
+      // Criar períodos de 10 em 10 dias
+      const periodos: { [key: string]: { total: number, aprovado: number, reprovado: number } } = {}
+      const lastDay = endDate.getDate()
       
-      // Inicializar todos os dias do mês (01 até último dia)
-      for (let day = 1; day <= endDate.getDate(); day++) {
-        const dayKey = day.toString().padStart(2, '0')
-        dailyData[dayKey] = { total: 0, aprovado: 0, reprovado: 0 }
-      }
+      // Definir períodos: 1-10, 11-20, 21+ (até o final do mês)
+      const periodosLabels = [
+        { label: "01-10", start: 1, end: 10 },
+        { label: "11-20", start: 11, end: 20 },
+        { label: `21-${lastDay}`, start: 21, end: lastDay }
+      ]
 
-      // Contar tokens totais por dia usando data_criacao
-      tokensTotal?.forEach(token => {
-        const day = new Date(token.data_criacao!).getDate().toString().padStart(2, '0')
-        dailyData[day].total++
+      // Inicializar períodos
+      periodosLabels.forEach(periodo => {
+        periodos[periodo.label] = { total: 0, aprovado: 0, reprovado: 0 }
       })
 
-      // Contar tokens aprovados/reprovados por dia usando data_validacao
-      tokensValidados?.forEach(token => {
-        const day = new Date(token.data_validacao!).getDate().toString().padStart(2, '0')
-        if (token.st_aprovado === 1) {
-          dailyData[day].aprovado++
-        } else if (token.st_aprovado === 0) {
-          dailyData[day].reprovado++
+      // Contar tokens totais por período usando data_criacao
+      tokensTotal?.forEach(token => {
+        const day = new Date(token.data_criacao!).getDate()
+        const periodo = periodosLabels.find(p => day >= p.start && day <= p.end)
+        if (periodo) {
+          periodos[periodo.label].total++
         }
       })
 
-      // Converter para array ordenado do dia 01 até o último dia
-      const chartData: ChartData[] = []
-      for (let day = 1; day <= endDate.getDate(); day++) {
-        const dayKey = day.toString().padStart(2, '0')
-        chartData.push({
-          day: dayKey,
-          total: dailyData[dayKey].total,
-          aprovado: dailyData[dayKey].aprovado,
-          reprovado: dailyData[dayKey].reprovado
-        })
-      }
+      // Contar tokens aprovados/reprovados por período usando data_validacao
+      tokensValidados?.forEach(token => {
+        const day = new Date(token.data_validacao!).getDate()
+        const periodo = periodosLabels.find(p => day >= p.start && day <= p.end)
+        if (periodo) {
+          if (token.st_aprovado === 1) {
+            periodos[periodo.label].aprovado++
+          } else if (token.st_aprovado === 0) {
+            periodos[periodo.label].reprovado++
+          }
+        }
+      })
+
+      // Converter para array para o gráfico
+      const chartData: ChartData[] = periodosLabels.map(periodo => ({
+        periodo: periodo.label,
+        total: periodos[periodo.label].total,
+        aprovado: periodos[periodo.label].aprovado,
+        reprovado: periodos[periodo.label].reprovado
+      }))
 
       setData(chartData)
     } catch (error) {
@@ -109,7 +118,7 @@ export default function TokenChart() {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
-          <p className="font-medium">{`Dia ${label}`}</p>
+          <p className="font-medium">{`Período ${label}`}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
               {`${entry.name}: ${entry.value}`}
@@ -125,7 +134,7 @@ export default function TokenChart() {
     <Card className="w-full">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Relatório de Tokens</CardTitle>
+          <CardTitle>Relatório de Tokens por Período</CardTitle>
           <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -141,12 +150,12 @@ export default function TokenChart() {
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={250}>
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
-              dataKey="day" 
-              label={{ value: 'Dia', position: 'insideBottom', offset: -5 }}
+              dataKey="periodo" 
+              label={{ value: 'Período', position: 'insideBottom', offset: -5 }}
               tick={{ fontSize: 12 }}
             />
             <YAxis 
