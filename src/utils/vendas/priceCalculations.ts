@@ -13,7 +13,7 @@ export const calculateMinPrice = (
   
   if (estado === 'rs') {
     cmgProduto = produto.cmg_rs || 0
-    aliq = produto.aliq_rs || 0  // Removido divisão por 100
+    aliq = (produto.aliq_rs || 0) / 100  // Removido divisão por 100
     piscofins = produto.piscofins || 0  // Removido divisão por 100
   } else if (estado === 'sc') {
     cmgProduto = produto.cmg_sc || 0
@@ -42,7 +42,7 @@ export const calculateMinPrice = (
       console.log("Denominador1 (1 - (aliq + piscofins)):", denominador1)
       console.log("Denominador2 (1 - margemSubgrupo):", denominador2)
       
-      precoMinimo = ((cmgProduto / denominador1) / denominador2) / 100
+      precoMinimo = (cmgProduto / denominador1) / denominador2
       
       console.log("Preço Mínimo Calculado:", precoMinimo)
     }
