@@ -145,7 +145,7 @@ export default function TokenChart({ selectedMonth, selectedYear }: TokenChartPr
             <Tooltip content={<CustomTooltip />} />
             <Legend />
             <Bar dataKey="total" fill="#044565" name="Total" />
-            <Bar dataKey="aprovado" fill="#82ca9d" name="Aprovados" />
+            <Bar dataKey="aprovado" fill="#14c400" name="Aprovados" />
             <Bar dataKey="reprovado" fill="#ffc658" name="Reprovados" />
           </BarChart>
         </ResponsiveContainer>
