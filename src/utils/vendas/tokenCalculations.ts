@@ -26,8 +26,8 @@ export const calculateAdditionalInfo = (
   let piscofins = 0
   
   if (estado === 'rs') {
-    aliq = (selectedProduto.aliq_rs || 0) / 100
-    piscofins = (selectedProduto.piscofins || 0) / 100
+    aliq = selectedProduto.aliq_rs || 0
+    piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'sc') {
     aliq = (selectedProduto.aliq_sc || 0) / 100
     piscofins = (selectedProduto.piscofins || 0) / 100
@@ -41,7 +41,7 @@ export const calculateAdditionalInfo = (
 
   const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
   
-  const margemUFLoja = ((novoPreco * (1 - (aliq + piscofins))) - cmgProduto) / (novoPreco * (1 - (aliq + piscofins)))
+  const margemUFLoja = ((novoPreco * (1 - ((aliq / 100) + (piscofins / 100))) - cmgProduto) / (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))))
   const margemUF = `${(margemUFLoja * 100).toFixed(2)}%`
   
   const margemZVDC = selectedProduto.subgrupo_id ? 
