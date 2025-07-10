@@ -77,13 +77,13 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
           name: 'Aprovados',
           value: aprovados,
           valorTotal: valorAprovado,
-          color: '#00C49F'
+          color: '#14c400'
         },
         {
           name: 'Reprovados',
           value: reprovados,
           valorTotal: valorReprovado,
-          color: '#FF8042'
+          color: '#fc2a0a'
         }
       ]
 
