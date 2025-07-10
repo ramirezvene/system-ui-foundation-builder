@@ -14,7 +14,7 @@ export const calculateMinPrice = (
   if (estado === 'rs') {
     cmgProduto = produto.cmg_rs || 0
     aliq = (produto.aliq_rs || 0) / 100  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   } else if (estado === 'sc') {
     cmgProduto = produto.cmg_sc || 0
     aliq = produto.aliq_sc || 0  // Removido divisão por 100
