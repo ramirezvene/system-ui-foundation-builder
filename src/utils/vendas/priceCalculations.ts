@@ -42,7 +42,7 @@ export const calculateMinPrice = (
       console.log("Denominador1 (1 - (aliq + piscofins)):", denominador1)
       console.log("Denominador2 (1 - margemSubgrupo):", denominador2)
       
-      precoMinimo = (cmgProduto / denominador1) / denominador2
+      precoMinimo = ((cmgProduto / denominador1) / denominador2) / 100
       
       console.log("Preço Mínimo Calculado:", precoMinimo)
     }
