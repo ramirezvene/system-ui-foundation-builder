@@ -3,6 +3,10 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/integrations/supabase/client"
+import { LojaCombobox } from "./LojaCombobox"
+import { Tables } from "@/integrations/supabase/types"
+
+type Loja = Tables<"cadastro_loja">
 
 interface CupomData {
   loja: string
@@ -11,6 +15,8 @@ interface CupomData {
   tokens_pendentes: number
   tokens_reprovados: number
   valor_total: number
+  valor_aprovado: number
+  valor_reprovado: number
 }
 
 interface CuponsDisponiveisProps {
@@ -21,10 +27,30 @@ interface CuponsDisponiveisProps {
 export default function CuponsDisponiveis({ selectedMonth, selectedYear }: CuponsDisponiveisProps) {
   const [cupons, setCupons] = useState<CupomData[]>([])
   const [loading, setLoading] = useState(true)
+  const [lojas, setLojas] = useState<Loja[]>([])
+  const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
+
+  useEffect(() => {
+    fetchLojas()
+  }, [])
 
   useEffect(() => {
     fetchCuponsData()
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, selectedLoja])
+
+  const fetchLojas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("cadastro_loja")
+        .select("*")
+        .order("loja")
+
+      if (error) throw error
+      setLojas(data || [])
+    } catch (error) {
+      console.error("Erro ao buscar lojas:", error)
+    }
+  }
 
   const fetchCuponsData = async () => {
     try {
@@ -32,7 +58,7 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
 
-      const { data: tokens, error } = await supabase
+      let query = supabase
         .from("token_loja")
         .select(`
           cod_loja,
@@ -43,6 +69,12 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
         `)
         .gte("data_criacao", startDate.toISOString())
         .lte("data_criacao", endDate.toISOString())
+
+      if (selectedLoja) {
+        query = query.eq("cod_loja", selectedLoja.cod_loja)
+      }
+
+      const { data: tokens, error } = await query
 
       if (error) throw error
 
@@ -59,25 +91,31 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
             tokens_aprovados: 0,
             tokens_pendentes: 0,
             tokens_reprovados: 0,
-            valor_total: 0
+            valor_total: 0,
+            valor_aprovado: 0,
+            valor_reprovado: 0
           }
         }
+
+        // Calcular valor do token
+        const detalhes = token.token_loja_detalhado as any[]
+        let valorToken = 0
+        detalhes?.forEach(detalhe => {
+          valorToken += (detalhe.vlr_solic || 0) * (detalhe.qtde_solic || 1)
+        })
+
+        lojaStats[token.cod_loja].valor_total += valorToken
 
         // Contar tokens por status
         if (token.st_aprovado === 1) {
           lojaStats[token.cod_loja].tokens_aprovados++
+          lojaStats[token.cod_loja].valor_aprovado += valorToken
         } else if (token.st_aprovado === 0) {
           lojaStats[token.cod_loja].tokens_reprovados++
+          lojaStats[token.cod_loja].valor_reprovado += valorToken
         } else {
           lojaStats[token.cod_loja].tokens_pendentes++
         }
-
-        // Calcular valor total
-        const detalhes = token.token_loja_detalhado as any[]
-        detalhes?.forEach(detalhe => {
-          const valor = (detalhe.vlr_solic || 0) * (detalhe.qtde_solic || 1)
-          lojaStats[token.cod_loja].valor_total += valor
-        })
       })
 
       // Converter para array e ordenar por valor total
@@ -114,6 +152,14 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Resumo por Loja - {months[selectedMonth - 1]} {selectedYear}</CardTitle>
+        <div className="mt-4">
+          <LojaCombobox
+            lojas={lojas}
+            selectedLoja={selectedLoja}
+            onLojaChange={setSelectedLoja}
+            placeholder="Buscar por loja (opcional)"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -130,6 +176,17 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
                       R$ {cupom.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </p>
                     <p className="text-xs text-muted-foreground">Valor Total</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 mb-3">
+                  <div className="text-sm">
+                    <span className="text-green-600 font-medium">Aprovados: </span>
+                    R$ {cupom.valor_aprovado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-red-600 font-medium">Reprovados: </span>
+                    R$ {cupom.valor_reprovado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                 </div>
                 

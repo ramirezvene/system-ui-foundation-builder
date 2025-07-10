@@ -36,9 +36,8 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
           st_aprovado,
           token_loja_detalhado(vlr_solic, qtde_solic)
         `)
-        .gte("data_validacao", startDate.toISOString())
-        .lte("data_validacao", endDate.toISOString())
-        .not("st_aprovado", "is", null)
+        .gte("data_criacao", startDate.toISOString())
+        .lte("data_criacao", endDate.toISOString())
 
       if (error) throw error
 
@@ -72,27 +71,32 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
       const total = valorAprovado + valorReprovado + valorPendente
       setTotalValue(total)
 
-      const chartData: StatusData[] = [
-        {
+      const chartData: StatusData[] = []
+      
+      if (aprovados > 0) {
+        chartData.push({
           name: 'Aprovados',
           value: aprovados,
           valorTotal: valorAprovado,
-          color: '#14c400'
-        },
-        {
+          color: '#22c55e'
+        })
+      }
+      
+      if (reprovados > 0) {
+        chartData.push({
           name: 'Reprovados',
           value: reprovados,
           valorTotal: valorReprovado,
-          color: '#fc2a0a'
-        }
-      ]
-
+          color: '#ef4444'
+        })
+      }
+      
       if (pendentes > 0) {
         chartData.push({
           name: 'Pendentes',
           value: pendentes,
           valorTotal: valorPendente,
-          color: '#FFBB28'
+          color: '#f59e0b'
         })
       }
 
