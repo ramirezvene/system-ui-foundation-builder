@@ -16,6 +16,7 @@ interface CupomData {
   tokens_reprovados: number
   valor_total: number
   valor_aprovado: number
+  valor_pendente: number
   valor_reprovado: number
 }
 
@@ -93,6 +94,7 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
             tokens_reprovados: 0,
             valor_total: 0,
             valor_aprovado: 0,
+            valor_pendente: 0,
             valor_reprovado: 0
           }
         }
@@ -115,6 +117,7 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
           lojaStats[token.cod_loja].valor_reprovado += valorToken
         } else {
           lojaStats[token.cod_loja].tokens_pendentes++
+          lojaStats[token.cod_loja].valor_pendente += valorToken
         }
       })
 
@@ -164,8 +167,8 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
       <CardContent>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {cupons.map((cupom) => (
-            <Card key={cupom.cod_loja} className="border-l-4 border-l-primary">
-              <CardContent className="p-4">
+            <Card key={cupom.cod_loja} className="border-l-4 border-l-primary h-full">
+              <CardContent className="p-4 flex flex-col h-full">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-semibold text-lg">{cupom.loja}</h3>
@@ -179,10 +182,14 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
                   </div>
                 </div>
                 
-                <div className="space-y-2 mb-3">
+                <div className="space-y-2 mb-3 flex-1">
                   <div className="text-sm">
                     <span className="text-green-600 font-medium">Aprovados: </span>
                     R$ {cupom.valor_aprovado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-slate-600 font-medium">Pendentes: </span>
+                    R$ {cupom.valor_pendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
                   <div className="text-sm">
                     <span className="text-red-600 font-medium">Reprovados: </span>
@@ -190,11 +197,11 @@ export default function CuponsDisponiveis({ selectedMonth, selectedYear }: Cupon
                   </div>
                 </div>
                 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mt-auto">
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     Aprovados: {cupom.tokens_aprovados}
                   </Badge>
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">
                     Pendentes: {cupom.tokens_pendentes}
                   </Badge>
                   <Badge variant="secondary" className="bg-red-100 text-red-800">

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,54 +59,62 @@ export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = 
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <div className="flex gap-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="flex-1 justify-between"
+          >
+            {selectedLoja
+              ? `${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}`
+              : placeholder}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0">
+          <Command>
+            <CommandInput 
+              placeholder="Buscar por código ou nome da loja..."
+              value={inputValue}
+              onValueChange={setInputValue}
+            />
+            <CommandList>
+              <CommandEmpty>Nenhuma loja encontrada.</CommandEmpty>
+              <CommandGroup>
+                {filteredLojas.map((loja) => (
+                  <CommandItem
+                    key={loja.cod_loja}
+                    value={`${loja.cod_loja} - ${loja.loja} - ${loja.estado}`}
+                    onSelect={() => handleSelect(loja)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedLoja?.cod_loja === loja.cod_loja ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {loja.cod_loja} - {loja.loja} - {loja.estado}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      
+      {selectedLoja && (
         <Button
           variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
+          size="icon"
+          onClick={handleClear}
+          className="shrink-0"
         >
-          {selectedLoja
-            ? `${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}`
-            : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <X className="h-4 w-4" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
-        <Command>
-          <CommandInput 
-            placeholder="Buscar por código ou nome da loja..."
-            value={inputValue}
-            onValueChange={setInputValue}
-          />
-          <CommandList>
-            <CommandEmpty>Nenhuma loja encontrada.</CommandEmpty>
-            <CommandGroup>
-              {inputValue && (
-                <CommandItem onSelect={handleClear}>
-                  <span className="text-muted-foreground">Limpar seleção</span>
-                </CommandItem>
-              )}
-              {filteredLojas.map((loja) => (
-                <CommandItem
-                  key={loja.cod_loja}
-                  value={`${loja.cod_loja} - ${loja.loja} - ${loja.estado}`}
-                  onSelect={() => handleSelect(loja)}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedLoja?.cod_loja === loja.cod_loja ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {loja.cod_loja} - {loja.loja} - {loja.estado}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   )
 }

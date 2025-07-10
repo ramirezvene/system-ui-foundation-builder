@@ -82,21 +82,21 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
         })
       }
       
+      if (pendentes > 0) {
+        chartData.push({
+          name: 'Pendentes',
+          value: pendentes,
+          valorTotal: valorPendente,
+          color: '#64748b'
+        })
+      }
+      
       if (reprovados > 0) {
         chartData.push({
           name: 'Reprovados',
           value: reprovados,
           valorTotal: valorReprovado,
           color: '#ef4444'
-        })
-      }
-      
-      if (pendentes > 0) {
-        chartData.push({
-          name: 'Pendentes',
-          value: pendentes,
-          valorTotal: valorPendente,
-          color: '#f59e0b'
         })
       }
 
@@ -145,14 +145,14 @@ export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenS
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full h-full">
       <CardHeader>
         <CardTitle className="text-lg">Status dos Tokens</CardTitle>
         <p className="text-sm text-muted-foreground">
           Valor Total: R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
