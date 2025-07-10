@@ -41,7 +41,7 @@ export const calculateAdditionalInfo = (
 
   const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
   
-  const margemUFLoja = ((novoPreco * (1 - ((aliq / 100) + (piscofins / 100))) - cmgProduto) / (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))))
+  const margemUFLoja = (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))) - cmgProduto) / (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))))
   const margemUF = `${(margemUFLoja * 100).toFixed(2)}%`
   
   const margemZVDC = selectedProduto.subgrupo_id ? 
