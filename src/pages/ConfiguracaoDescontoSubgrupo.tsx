@@ -8,13 +8,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
-import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { PercentageInput } from "@/components/PercentageInput"
-
-type SubgrupoMargem = Tables<"subgrupo_margem">
-type Estado = Tables<"cadastro_estado">
+import { SubgrupoMargem, Estado } from "@/types/vendas"
 
 export default function ConfiguracaoDescontoSubgrupo() {
   const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([])
