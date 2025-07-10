@@ -90,7 +90,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             
             <div>
               <Label className="font-semibold">PIS/COFINS UF:</Label>
-              <p>{(result.piscofinsUF * 100).toFixed(2)}%</p>
+              <p>{((result.piscofinsUF) * 100).toFixed(2)}%</p>
             </div>
           </div>
           
