@@ -17,12 +17,12 @@ export const calculateMinPrice = (
     piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   } else if (estado === 'sc') {
     cmgProduto = produto.cmg_sc || 0
-    aliq = produto.aliq_sc || 0  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = (produto.aliq_sc || 0) / 100  // Removido divisão por 100
+    piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   } else if (estado === 'pr') {
     cmgProduto = produto.cmg_pr || 0
-    aliq = produto.aliq_pr || 0  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = (produto.aliq_pr || 0) / 100  // Removido divisão por 100
+    piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   }
 
   // Cálculo exato conforme especificado: (cmgProduto / denominador1) / denominador2
@@ -63,16 +63,16 @@ export const calculateUFMargin = (
   
   if (estado === 'rs') {
     cmgProduto = produto.cmg_rs || 0
-    aliq = produto.aliq_rs || 0  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = (produto.aliq_rs || 0) / 100  // Removido divisão por 100
+    piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   } else if (estado === 'sc') {
     cmgProduto = produto.cmg_sc || 0
-    aliq = produto.aliq_sc || 0  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = (produto.aliq_sc || 0) / 100  // Removido divisão por 100
+    piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   } else if (estado === 'pr') {
     cmgProduto = produto.cmg_pr || 0
-    aliq = produto.aliq_pr || 0  // Removido divisão por 100
-    piscofins = produto.piscofins || 0  // Removido divisão por 100
+    aliq = (produto.aliq_pr || 0) / 100  // Removido divisão por 100
+    piscofins = (produto.piscofins || 0) / 100  // Removido divisão por 100
   }
 
   const margemUFLoja = ((novoPreco * (1 - (aliq + piscofins))) - cmgProduto) / (novoPreco * (1 - (aliq + piscofins)))
