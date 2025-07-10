@@ -114,7 +114,7 @@ export default function TopLojasChart({ selectedMonth, selectedYear }: TopLojasC
             />
             <YAxis tick={{ fontSize: 12 }} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="solicitacoes" fill="#8884d8" name="Solicitações" />
+            <Bar dataKey="solicitacoes" fill="#044565" name="Solicitações" />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
