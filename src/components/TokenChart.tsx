@@ -3,6 +3,9 @@ import { useState, useEffect } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { supabase } from "@/integrations/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tables } from "@/integrations/supabase/types"
+
+type Loja = Tables<"cadastro_loja">
 
 interface ChartData {
   periodo: string
@@ -14,36 +17,46 @@ interface ChartData {
 interface TokenChartProps {
   selectedMonth: number
   selectedYear: number
+  lojasFiltradas?: Loja[]
 }
 
-export default function TokenChart({ selectedMonth, selectedYear }: TokenChartProps) {
+export default function TokenChart({ selectedMonth, selectedYear, lojasFiltradas }: TokenChartProps) {
   const [data, setData] = useState<ChartData[]>([])
 
   useEffect(() => {
     fetchChartData()
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, lojasFiltradas])
 
   const fetchChartData = async () => {
     try {
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
       
-      const { data: tokensTotal, error: errorTotal } = await supabase
+      // Aplicar filtro de lojas se fornecido
+      let queryTotal = supabase
         .from("token_loja")
-        .select("data_criacao")
+        .select("data_criacao, cod_loja")
         .gte("data_criacao", startDate.toISOString())
         .lte("data_criacao", endDate.toISOString())
 
-      if (errorTotal) throw errorTotal
-
-      const { data: tokensValidados, error: errorValidados } = await supabase
+      let queryValidados = supabase
         .from("token_loja")
-        .select("data_validacao, st_aprovado")
+        .select("data_validacao, st_aprovado, cod_loja")
         .not("st_aprovado", "is", null)
         .not("data_validacao", "is", null)
         .gte("data_validacao", startDate.toISOString())
         .lte("data_validacao", endDate.toISOString())
 
+      if (lojasFiltradas && lojasFiltradas.length > 0) {
+        const codigosLojas = lojasFiltradas.map(loja => loja.cod_loja)
+        queryTotal = queryTotal.in("cod_loja", codigosLojas)
+        queryValidados = queryValidados.in("cod_loja", codigosLojas)
+      }
+
+      const [{ data: tokensTotal, error: errorTotal }, { data: tokensValidados, error: errorValidados }] = 
+        await Promise.all([queryTotal, queryValidados])
+
+      if (errorTotal) throw errorTotal
       if (errorValidados) throw errorValidados
 
       const periodos: { [key: string]: { total: number, aprovado: number, reprovado: number } } = {}

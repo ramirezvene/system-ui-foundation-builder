@@ -53,11 +53,14 @@ export default function Vendas() {
       estados
     )
     
+    const estadoInfo = estados.find(e => e.estado === selectedLoja?.estado)
     const additionalInfo = calculateAdditionalInfo(
       selectedProduto,
       selectedLoja,
       novoPrecoNum,
-      subgrupoMargens
+      subgrupoMargens,
+      produtoMargens,
+      estadoInfo?.id
     )
     
     if (!additionalInfo) return

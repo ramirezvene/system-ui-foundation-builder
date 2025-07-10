@@ -3,6 +3,9 @@ import { useState, useEffect } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { supabase } from "@/integrations/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tables } from "@/integrations/supabase/types"
+
+type Loja = Tables<"cadastro_loja">
 
 interface StatusData {
   name: string
@@ -14,29 +17,38 @@ interface StatusData {
 interface TokenStatusChartProps {
   selectedMonth: number
   selectedYear: number
+  lojasFiltradas?: Loja[]
 }
 
-export default function TokenStatusChart({ selectedMonth, selectedYear }: TokenStatusChartProps) {
+export default function TokenStatusChart({ selectedMonth, selectedYear, lojasFiltradas }: TokenStatusChartProps) {
   const [data, setData] = useState<StatusData[]>([])
   const [totalValue, setTotalValue] = useState(0)
 
   useEffect(() => {
     fetchStatusData()
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, lojasFiltradas])
 
   const fetchStatusData = async () => {
     try {
       const startDate = new Date(selectedYear, selectedMonth - 1, 1)
       const endDate = new Date(selectedYear, selectedMonth, 0)
       
-      const { data: tokens, error } = await supabase
+      let query = supabase
         .from("token_loja")
         .select(`
           st_aprovado,
+          cod_loja,
           token_loja_detalhado(vlr_solic, qtde_solic)
         `)
         .gte("data_criacao", startDate.toISOString())
         .lte("data_criacao", endDate.toISOString())
+
+      if (lojasFiltradas && lojasFiltradas.length > 0) {
+        const codigosLojas = lojasFiltradas.map(loja => loja.cod_loja)
+        query = query.in("cod_loja", codigosLojas)
+      }
+
+      const { data: tokens, error } = await query
 
       if (error) throw error
 
