@@ -17,7 +17,7 @@ export function AppHeader() {
       </div>
       
       <div className="flex items-center gap-4">
-        <span className="text-primary-foreground text-sm">usuario.teste</span>
+        <span className="text-primary-foreground text-sm">ramirez.veneral1</span>
         <div className="w-8 h-8 bg-primary-foreground/20 rounded-full flex items-center justify-center">
           <span className="text-primary-foreground text-xs">?</span>
         </div>
