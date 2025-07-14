@@ -85,12 +85,12 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             
             <div>
               <Label className="font-semibold">Aliq UF:</Label>
-              <p>{((result.aliqUF)).toFixed(2)}%</p>
+              <p>{result.aliqUF.toFixed(2)}%</p>
             </div>
             
             <div>
               <Label className="font-semibold">PIS/COFINS UF:</Label>
-              <p>{((result.piscofinsUF)).toFixed(2)}%</p>
+              <p>{result.piscofinsUF.toFixed(2)}%</p>
             </div>
           </div>
           
@@ -125,7 +125,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             <p className="text-sm text-gray-600 mt-1">
               <strong>Observação:</strong> {result.observacaoRejeicao}
             </p>
-          )}
+            )}
         </div>
       </CardContent>
     </Card>
