@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,23 +29,60 @@ interface LojaComboboxProps {
 
 export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = "Selecione uma loja" }: LojaComboboxProps) {
   const [open, setOpen] = useState(false)
-  const [inputValue, setInputValue] = useState("")
+  const [searchValue, setSearchValue] = useState("")
 
   useEffect(() => {
     if (selectedLoja) {
-      setInputValue(`${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}`)
+      setSearchValue(`${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}`)
     } else {
-      setInputValue("")
+      setSearchValue("")
     }
   }, [selectedLoja])
 
-  const filteredLojas = lojas.filter(loja => {
-    const searchTerm = inputValue.toLowerCase()
-    return (
-      loja.cod_loja.toString().includes(searchTerm) ||
-      loja.loja.toLowerCase().includes(searchTerm)
-    )
-  })
+  const filteredAndSortedLojas = useMemo(() => {
+    if (!searchValue && !open) {
+      return lojas.sort((a, b) => a.cod_loja - b.cod_loja)
+    }
+
+    const searchTerm = open ? searchValue.toLowerCase() : ""
+    
+    if (!searchTerm) {
+      return lojas.sort((a, b) => a.cod_loja - b.cod_loja)
+    }
+
+    const filtered = lojas.filter(loja => {
+      return (
+        loja.cod_loja.toString().includes(searchTerm) ||
+        loja.loja.toLowerCase().includes(searchTerm) ||
+        loja.estado.toLowerCase().includes(searchTerm)
+      )
+    })
+
+    // Ordenar com prioridade para matches que começam com o termo de busca
+    return filtered.sort((a, b) => {
+      const aCodStr = a.cod_loja.toString()
+      const bCodStr = b.cod_loja.toString()
+      const aLojaStr = a.loja.toLowerCase()
+      const bLojaStr = b.loja.toLowerCase()
+
+      // Prioridade 1: Código que começa com o termo de busca
+      const aCodStartsWith = aCodStr.startsWith(searchTerm)
+      const bCodStartsWith = bCodStr.startsWith(searchTerm)
+      
+      if (aCodStartsWith && !bCodStartsWith) return -1
+      if (!aCodStartsWith && bCodStartsWith) return 1
+      
+      // Prioridade 2: Nome da loja que começa com o termo de busca
+      const aLojaStartsWith = aLojaStr.startsWith(searchTerm)
+      const bLojaStartsWith = bLojaStr.startsWith(searchTerm)
+      
+      if (aLojaStartsWith && !bLojaStartsWith) return -1
+      if (!aLojaStartsWith && bLojaStartsWith) return 1
+      
+      // Ordenação final por código crescente
+      return a.cod_loja - b.cod_loja
+    })
+  }, [lojas, searchValue, open])
 
   const handleSelect = (loja: Loja) => {
     onLojaChange(loja)
@@ -54,13 +91,20 @@ export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = 
 
   const handleClear = () => {
     onLojaChange(null)
-    setInputValue("")
+    setSearchValue("")
     setOpen(false)
+  }
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen)
+    if (!newOpen && !selectedLoja) {
+      setSearchValue("")
+    }
   }
 
   return (
     <div className="flex gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
@@ -75,16 +119,16 @@ export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = 
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0">
-          <Command>
+          <Command shouldFilter={false}>
             <CommandInput 
               placeholder="Buscar por código ou nome da loja..."
-              value={inputValue}
-              onValueChange={setInputValue}
+              value={open ? searchValue : ""}
+              onValueChange={setSearchValue}
             />
             <CommandList>
               <CommandEmpty>Nenhuma loja encontrada.</CommandEmpty>
               <CommandGroup>
-                {filteredLojas.map((loja) => (
+                {filteredAndSortedLojas.map((loja) => (
                   <CommandItem
                     key={loja.cod_loja}
                     value={`${loja.cod_loja} - ${loja.loja} - ${loja.estado}`}
