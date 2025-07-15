@@ -85,7 +85,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             
             <div>
               <Label className="font-semibold">Aliq UF:</Label>
-              <p>{(result.aliqUF*100).toFixed(2)}%</p>
+              <p>{(result.aliqUF).toFixed(2)}%</p>
             </div>
             
             <div>
