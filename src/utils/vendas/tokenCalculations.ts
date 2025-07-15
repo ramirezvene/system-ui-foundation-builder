@@ -31,7 +31,7 @@ export const calculateAdditionalInfo = (
     aliq = selectedProduto.aliq_rs || 0
     piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'sc') {
-    aliq = (selectedProduto.aliq_sc || 0) / 100
+    aliq = selectedProduto.aliq_sc || 0
     piscofins = selectedProduto.piscofins || 0
   } else if (estado === 'pr') {
     aliq = selectedProduto.aliq_pr || 0
