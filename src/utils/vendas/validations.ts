@@ -66,7 +66,7 @@ export const validateHierarchy = (
   // Validar alçada do produto
   if (selectedProduto.alcada !== 0) {
     console.log("Produto possui outras alçadas")
-    return { error: "Possuí outras Alçadas para realização de Desconto." }
+    return { error: "Possuí outros Descontos, não permite a solicitação." }
   }
 
   // Calcular margem UF loja
