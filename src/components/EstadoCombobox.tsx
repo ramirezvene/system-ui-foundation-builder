@@ -25,13 +25,15 @@ interface EstadoComboboxProps {
   selectedEstado: Estado | null
   onEstadoChange: (estado: Estado | null) => void
   placeholder?: string
+  disabled?: boolean
 }
 
 export function EstadoCombobox({
   estados,
   selectedEstado,
   onEstadoChange,
-  placeholder = "Selecionar estado..."
+  placeholder = "Selecionar estado...",
+  disabled = false
 }: EstadoComboboxProps) {
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
@@ -53,13 +55,14 @@ export function EstadoCombobox({
   }, [estados, searchValue])
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={disabled ? () => {} : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
+          disabled={disabled}
         >
           {selectedEstado
             ? `${selectedEstado.estado} - ${selectedEstado.nome_estado}`

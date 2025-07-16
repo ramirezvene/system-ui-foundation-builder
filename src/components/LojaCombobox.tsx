@@ -25,9 +25,16 @@ interface LojaComboboxProps {
   selectedLoja: Loja | null
   onLojaChange: (loja: Loja | null) => void
   placeholder?: string
+  disabled?: boolean
 }
 
-export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = "Selecione uma loja" }: LojaComboboxProps) {
+export function LojaCombobox({ 
+  lojas, 
+  selectedLoja, 
+  onLojaChange, 
+  placeholder = "Selecione uma loja",
+  disabled = false
+}: LojaComboboxProps) {
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
 
@@ -96,6 +103,7 @@ export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = 
   }
 
   const handleOpenChange = (newOpen: boolean) => {
+    if (disabled) return
     setOpen(newOpen)
     if (!newOpen && !selectedLoja) {
       setSearchValue("")
@@ -111,6 +119,7 @@ export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = 
             role="combobox"
             aria-expanded={open}
             className="flex-1 justify-between"
+            disabled={disabled}
           >
             {selectedLoja
               ? `${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}`
@@ -149,7 +158,7 @@ export function LojaCombobox({ lojas, selectedLoja, onLojaChange, placeholder = 
         </PopoverContent>
       </Popover>
       
-      {selectedLoja && (
+      {selectedLoja && !disabled && (
         <Button
           variant="outline"
           size="icon"

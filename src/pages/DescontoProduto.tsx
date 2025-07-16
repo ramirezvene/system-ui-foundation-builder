@@ -101,6 +101,22 @@ export default function DescontoProduto() {
     setEditedRows(prev => new Set(prev).add(id))
   }
 
+  const handleTipoReferenciaChange = (id: number, selectedItem: Estado | Loja | null) => {
+    if (!selectedItem) return
+    
+    const item = produtos.find(p => p.id === id)
+    if (!item) return
+
+    let tipoReferenciaValue: string
+    if (item.tipo_aplicacao === 'estado') {
+      tipoReferenciaValue = (selectedItem as Estado).estado
+    } else {
+      tipoReferenciaValue = (selectedItem as Loja).cod_loja.toString()
+    }
+
+    handleFieldChange(id, 'tipo_referencia', tipoReferenciaValue)
+  }
+
   const handleMargemChange = (id: number, value: string) => {
     const item = produtos.find(p => p.id === id)
     if (!item) return
@@ -297,6 +313,20 @@ export default function DescontoProduto() {
     return item.tipo_referencia || ''
   }
 
+  const getSelectedEstado = (item: ProdutoMargemWithProduto) => {
+    if (item.tipo_aplicacao === 'estado') {
+      return estados.find(e => e.estado === item.tipo_referencia) || null
+    }
+    return null
+  }
+
+  const getSelectedLoja = (item: ProdutoMargemWithProduto) => {
+    if (item.tipo_aplicacao === 'loja') {
+      return lojas.find(l => l.cod_loja.toString() === item.tipo_referencia) || null
+    }
+    return null
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -365,13 +395,23 @@ export default function DescontoProduto() {
                     </Select>
                   </td>
                   <td className="p-2">
-                    <Input
-                      value={getTipoReferenciaDisplay(item)}
-                      onChange={(e) => handleFieldChange(item.id, 'tipo_referencia', e.target.value)}
-                      className="w-40"
-                      disabled={!isFieldEditable(item)}
-                      placeholder="Selecionar referência..."
-                    />
+                    {item.tipo_aplicacao === 'estado' ? (
+                      <EstadoCombobox
+                        estados={estados}
+                        selectedEstado={getSelectedEstado(item)}
+                        onEstadoChange={(estado) => handleTipoReferenciaChange(item.id, estado)}
+                        placeholder="Selecionar estado..."
+                        disabled={!isFieldEditable(item)}
+                      />
+                    ) : (
+                      <LojaCombobox
+                        lojas={lojas}
+                        selectedLoja={getSelectedLoja(item)}
+                        onLojaChange={(loja) => handleTipoReferenciaChange(item.id, loja)}
+                        placeholder="Selecionar loja..."
+                        disabled={!isFieldEditable(item)}
+                      />
+                    )}
                   </td>
                   <td className="p-2">
                     <Select
@@ -488,7 +528,6 @@ export default function DescontoProduto() {
                             onChange={(e) => handleFieldChange(item.id, 'observacao', e.target.value)}
                             placeholder="Digite uma observação específica..."
                             className="min-h-20"
-                            disabled={!isFieldEditable(item)}
                           />
                         </div>
                       </DialogContent>
