@@ -1,5 +1,6 @@
 
 
+
 import { Produto, Loja, ProdutoMargem, SubgrupoMargem, Estado } from "@/types/vendas"
 import { calculateMinPrice, calculateUFMargin } from "./priceCalculations"
 
@@ -56,12 +57,13 @@ export const validateHierarchy = (
   console.log("Buscando produto_margem para produto:", selectedProduto.id_produto)
   console.log("Produtos margens disponíveis:", produtoMargens.length)
   
-  // Buscar produto_margem ativo considerando data de vigência
+  // Buscar produto_margem ativo considerando data de vigência e vinculação correta
   const produtoMargem = produtoMargens.find(pm => {
     console.log("Verificando produto_margem:", {
       id: pm.id,
       id_produto: pm.id_produto,
       tipo_aplicacao: pm.tipo_aplicacao,
+      tipo_referencia: pm.tipo_referencia,
       st_ativo: pm.st_ativo,
       data_inicio: pm.data_inicio,
       data_fim: pm.data_fim
@@ -70,15 +72,35 @@ export const validateHierarchy = (
     const dataInicio = new Date(pm.data_inicio)
     const dataFim = new Date(pm.data_fim)
     
+    // Verificar vinculação baseada no tipo_aplicacao
+    let vinculacaoCorreta = false
+    if (pm.tipo_aplicacao === "estado") {
+      // Vincular com cadastro_estado.id usando tipo_referencia
+      vinculacaoCorreta = pm.tipo_referencia === estadoInfo.id.toString()
+      console.log("Vinculação estado:", {
+        tipo_referencia: pm.tipo_referencia,
+        estadoId: estadoInfo.id.toString(),
+        match: vinculacaoCorreta
+      })
+    } else if (pm.tipo_aplicacao === "loja") {
+      // Vincular com cadastro_loja.cod_loja usando tipo_referencia
+      vinculacaoCorreta = pm.tipo_referencia === selectedLoja.cod_loja.toString()
+      console.log("Vinculação loja:", {
+        tipo_referencia: pm.tipo_referencia,
+        lojaId: selectedLoja.cod_loja.toString(),
+        match: vinculacaoCorreta
+      })
+    }
+    
     const isValid = pm.id_produto === selectedProduto.id_produto && 
-                   pm.tipo_aplicacao === "estado" &&
+                   vinculacaoCorreta &&
                    pm.st_ativo === 1 &&
                    dataInicio <= dataAtual &&
                    dataFim >= dataAtual
     
     console.log("Produto válido?", isValid, {
       produtoMatch: pm.id_produto === selectedProduto.id_produto,
-      tipoMatch: pm.tipo_aplicacao === "estado", 
+      vinculacaoCorreta: vinculacaoCorreta,
       ativo: pm.st_ativo === 1,
       dataInicioOk: dataInicio <= dataAtual,
       dataFimOk: dataFim >= dataAtual
