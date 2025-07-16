@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,14 @@ export default function Vendas() {
 
   const handleSolicitarToken = async () => {
     const novoPrecoNum = parsePrice(novoPreco)
+    
+    console.log("=== SOLICITAÇÃO DE TOKEN ===")
+    console.log("Cliente identificado:", clienteIdentificado)
+    console.log("Produto:", selectedProduto?.id_produto, selectedProduto?.nome_produto)
+    console.log("Loja:", selectedLoja?.cod_loja, selectedLoja?.loja)
+    console.log("Preço atual:", precoAtual)
+    console.log("Novo preço:", novoPrecoNum)
+    
     const validation = validateHierarchy(
       selectedProduto,
       selectedLoja,
