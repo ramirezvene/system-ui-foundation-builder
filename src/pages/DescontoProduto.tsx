@@ -127,7 +127,7 @@ export default function DescontoProduto() {
       numericValue = parseFloat(cleanValue) || 0
     } else {
       // Para valores monetários, remove R$, pontos de milhares e converte vírgula para ponto
-      const cleanValue = value.replace('R$', '').replace(/\./g, '').replace(',', '.')
+      const cleanValue = value.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.')
       numericValue = parseFloat(cleanValue) || 0
     }
     
@@ -147,7 +147,7 @@ export default function DescontoProduto() {
       numericValue = parseFloat(cleanValue) || 0
     } else {
       // Para valores monetários, remove R$, pontos de milhares e converte vírgula para ponto
-      const cleanValue = value.replace('R$', '').replace(/\./g, '').replace(',', '.')
+      const cleanValue = value.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.')
       numericValue = parseFloat(cleanValue) || 0
     }
     
@@ -171,11 +171,7 @@ export default function DescontoProduto() {
       return value.toFixed(2).replace('.', ',') + '%'
     } else {
       // Para valores monetários
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2
-      }).format(value)
+      return value.toFixed(2).replace('.', ',')
     }
   }
 
@@ -489,12 +485,13 @@ export default function DescontoProduto() {
                           disabled={!isFieldEditable(item)}
                         />
                       ) : (
-                        <CurrencyInput
+                        <Input
+                          type="text"
                           value={formatValueForDisplay(item.margem, false, 'valor')}
-                          onChange={(value) => handleMargemChange(item.id, value)}
+                          onChange={(e) => handleMargemChange(item.id, e.target.value)}
                           className="w-24"
                           disabled={!isFieldEditable(item)}
-                          placeholder="R$ 0,00"
+                          placeholder="0,00"
                         />
                       )
                     )}
@@ -510,12 +507,13 @@ export default function DescontoProduto() {
                           disabled={!isFieldEditable(item)}
                         />
                       ) : (
-                        <CurrencyInput
+                        <Input
+                          type="text"
                           value={formatValueForDisplay(item.margem_adc, false, 'valor')}
-                          onChange={(value) => handleMargemAdcChange(item.id, value)}
+                          onChange={(e) => handleMargemAdcChange(item.id, e.target.value)}
                           className="w-24"
                           disabled={!isFieldEditable(item)}
-                          placeholder="R$ 0,00"
+                          placeholder="0,00"
                         />
                       )
                     )}

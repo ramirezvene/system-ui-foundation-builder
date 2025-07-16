@@ -1,6 +1,6 @@
 
 import { Input } from "@/components/ui/input"
-import { forwardRef } from "react"
+import { forwardRef, useState, useEffect } from "react"
 
 interface PercentageInputProps {
   value: string
@@ -12,6 +12,16 @@ interface PercentageInputProps {
 
 export const PercentageInput = forwardRef<HTMLInputElement, PercentageInputProps>(
   ({ value, onChange, placeholder = "0,00%", className, disabled }, ref) => {
+    const [internalValue, setInternalValue] = useState("")
+    const [isFocused, setIsFocused] = useState(false)
+
+    useEffect(() => {
+      if (!isFocused) {
+        // Quando não está focado, mostra o valor formatado
+        setInternalValue(value)
+      }
+    }, [value, isFocused])
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       let inputValue = e.target.value
       
@@ -22,7 +32,7 @@ export const PercentageInput = forwardRef<HTMLInputElement, PercentageInputProps
       inputValue = inputValue.replace(/[^\d,\.]/g, '')
       
       // Substitui ponto por vírgula para padronização brasileira
-      inputValue = inputValue.replace('.', ',')
+      inputValue = inputValue.replace(/\./g, ',')
       
       // Garante apenas uma vírgula
       const parts = inputValue.split(',')
@@ -35,18 +45,38 @@ export const PercentageInput = forwardRef<HTMLInputElement, PercentageInputProps
         inputValue = parts[0] + ',' + parts[1].substring(0, 2)
       }
       
-      // Adiciona o símbolo % no final
-      const formattedValue = inputValue ? inputValue + '%' : ''
+      // Atualiza o valor interno durante a digitação
+      setInternalValue(inputValue)
       
+      // Adiciona o símbolo % no final apenas para o callback
+      const formattedValue = inputValue ? inputValue + '%' : ''
       onChange(formattedValue)
+    }
+
+    const handleFocus = () => {
+      setIsFocused(true)
+      // Remove o % para facilitar a edição
+      const cleanValue = value.replace('%', '')
+      setInternalValue(cleanValue)
+    }
+
+    const handleBlur = () => {
+      setIsFocused(false)
+      // Formata o valor final quando perde o foco
+      if (internalValue) {
+        const formattedValue = internalValue + '%'
+        setInternalValue(formattedValue)
+      }
     }
 
     return (
       <Input
         ref={ref}
         type="text"
-        value={value}
+        value={internalValue}
         onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         placeholder={placeholder}
         className={className}
         disabled={disabled}
