@@ -248,7 +248,6 @@ export type Database = {
       }
       produto_margem: {
         Row: {
-          codigo_referencia: number
           created_at: string
           data_fim: string
           data_inicio: string
@@ -264,7 +263,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          codigo_referencia: number
           created_at?: string
           data_fim?: string
           data_inicio?: string
@@ -280,7 +278,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          codigo_referencia?: number
           created_at?: string
           data_fim?: string
           data_inicio?: string

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -98,7 +99,6 @@ export default function DescontoProduto() {
       const { error } = await supabase
         .from("produto_margem")
         .update({
-          codigo_referencia: item.codigo_referencia,
           id_produto: item.id_produto,
           margem: item.margem,
           margem_adc: item.margem_adc,
@@ -136,10 +136,9 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["ID", "Código Referência", "ID Produto", "Nome Produto", "Margem", "Margem Adc", "% Desc", "Tipo Aplicação", "Tipo Margem", "Data Início", "Data Fim", "Ativo", "Observação"],
+      ["ID", "ID Produto", "Nome Produto", "Margem", "Margem Adc", "% Desc", "Tipo Aplicação", "Tipo Margem", "Data Início", "Data Fim", "Ativo", "Observação"],
       ...produtos.map(item => [
         item.id,
-        item.codigo_referencia,
         item.id_produto,
         item.produto?.nome_produto || '',
         item.margem,
@@ -170,7 +169,6 @@ export default function DescontoProduto() {
       const { error } = await supabase
         .from("produto_margem")
         .insert({
-          codigo_referencia: 0,
           id_produto: 0,
           margem: 0,
           margem_adc: 0,
@@ -252,14 +250,12 @@ export default function DescontoProduto() {
             <thead>
               <tr className="border-b">
                 <th className="text-left p-2">ID</th>
-                <th className="text-left p-2">Código Ref</th>
                 <th className="text-left p-2">ID Produto</th>
                 <th className="text-left p-2">Nome Produto</th>
                 <th className="text-left p-2">Margem</th>
                 <th className="text-left p-2">Margem Adc</th>
                 <th className="text-left p-2">% Desc</th>
                 <th className="text-left p-2">Tipo Aplicação</th>
-                <th className="text-left p-2">Tipo Margem</th>
                 <th className="text-left p-2 w-32">Data Início</th>
                 <th className="text-left p-2 w-32">Data Fim</th>
                 <th className="text-left p-2">Ativo</th>
@@ -272,22 +268,7 @@ export default function DescontoProduto() {
                 <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''} ${!isFieldEditable(item) ? 'bg-gray-50' : ''}`}>
                   <td className="p-2">{item.id}</td>
                   <td className="p-2">
-                    <Input
-                      type="number"
-                      value={item.codigo_referencia}
-                      onChange={(e) => handleFieldChange(item.id, 'codigo_referencia', parseInt(e.target.value) || 0)}
-                      className="w-24"
-                      disabled={!isFieldEditable(item)}
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      value={item.id_produto}
-                      onChange={(e) => handleFieldChange(item.id, 'id_produto', parseInt(e.target.value) || 0)}
-                      className="w-24"
-                      disabled={!isFieldEditable(item)}
-                    />
+                    <span className="text-sm">{item.id_produto}</span>
                   </td>
                   <td className="p-2">
                     <span className="text-sm">{item.produto?.nome_produto || 'N/A'}</span>
@@ -350,20 +331,19 @@ export default function DescontoProduto() {
                     )}
                   </td>
                   <td className="p-2">
-                    <Input
+                    <Select
                       value={item.tipo_aplicacao}
-                      onChange={(e) => handleFieldChange(item.id, 'tipo_aplicacao', e.target.value)}
-                      className="w-32"
+                      onValueChange={(value) => handleFieldChange(item.id, 'tipo_aplicacao', value)}
                       disabled={!isFieldEditable(item)}
-                    />
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      value={item.tipo_margem}
-                      onChange={(e) => handleFieldChange(item.id, 'tipo_margem', e.target.value)}
-                      className="w-32"
-                      disabled={!isFieldEditable(item)}
-                    />
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentual">Percentual</SelectItem>
+                        <SelectItem value="valor">Valor</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td className="p-2">
                     <Input
@@ -397,7 +377,7 @@ export default function DescontoProduto() {
                   <td className="p-2">
                     <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" disabled={!isFieldEditable(item)}>
+                        <Button variant="outline" size="sm">
                           <MessageSquare className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
@@ -422,7 +402,7 @@ export default function DescontoProduto() {
                     <Button 
                       size="sm" 
                       onClick={() => handleSave(item.id)}
-                      disabled={!editedRows.has(item.id) || !isFieldEditable(item)}
+                      disabled={!editedRows.has(item.id)}
                     >
                       Salvar
                     </Button>
