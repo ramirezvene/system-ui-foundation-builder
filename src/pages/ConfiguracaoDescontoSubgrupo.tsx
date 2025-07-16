@@ -184,7 +184,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         <CardTitle className="flex justify-between items-center">
           Desconto Subgrupo
           <div className="flex gap-2">
-            <AddSubgrupoMargemDialog onSuccess={fetchData} />
+            <AddSubgrupoMargemDialog onAdd={fetchData} />
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV

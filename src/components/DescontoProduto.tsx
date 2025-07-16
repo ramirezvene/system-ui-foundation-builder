@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Download, Upload, Plus } from "lucide-react"
@@ -15,6 +15,8 @@ import { LojaCombobox } from "./LojaCombobox"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
+type Estado = Tables<"cadastro_estado">
+type Loja = Tables<"cadastro_loja">
 
 interface ProdutoMargemExtended extends ProdutoMargem {
   produto?: Produto
@@ -23,6 +25,8 @@ interface ProdutoMargemExtended extends ProdutoMargem {
 export default function DescontoProduto() {
   const [produtoMargens, setProdutoMargens] = useState<ProdutoMargemExtended[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [estados, setEstados] = useState<Estado[]>([])
+  const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const { toast } = useToast()
 
@@ -48,6 +52,23 @@ export default function DescontoProduto() {
       
       if (produtosError) throw produtosError
 
+      // Buscar estados
+      const { data: estadosData, error: estadosError } = await supabase
+        .from("cadastro_estado")
+        .select("*")
+        .eq("st_ativo", 1)
+        .order("estado")
+      
+      if (estadosError) throw estadosError
+
+      // Buscar lojas
+      const { data: lojasData, error: lojasError } = await supabase
+        .from("cadastro_loja")
+        .select("*")
+        .order("cod_loja")
+      
+      if (lojasError) throw lojasError
+
       // Combinar dados
       const margemExtended = (margemData || []).map(margem => {
         const produto = produtosData?.find(p => p.id_produto === margem.id_produto)
@@ -59,6 +80,8 @@ export default function DescontoProduto() {
 
       setProdutoMargens(margemExtended)
       setProdutos(produtosData || [])
+      setEstados(estadosData || [])
+      setLojas(lojasData || [])
     } catch (error) {
       console.error("Erro ao buscar dados:", error)
       toast({
@@ -76,6 +99,22 @@ export default function DescontoProduto() {
     setEditedRows(prev => new Set(prev).add(id))
   }
 
+  const handleTipoReferenciaChange = (id: number, selectedItem: Estado | Loja | null) => {
+    if (!selectedItem) return
+    
+    const item = produtoMargens.find(p => p.id === id)
+    if (!item) return
+
+    let tipoReferenciaValue: string
+    if (item.tipo_aplicacao === 'estado') {
+      tipoReferenciaValue = (selectedItem as Estado).estado
+    } else {
+      tipoReferenciaValue = (selectedItem as Loja).cod_loja.toString()
+    }
+
+    handleFieldChange(id, 'tipo_referencia', tipoReferenciaValue)
+  }
+
   const handleSave = async (id: number) => {
     const item = produtoMargens.find(p => p.id === id)
     if (!item) return
@@ -85,8 +124,14 @@ export default function DescontoProduto() {
         .from("produto_margem")
         .update({
           margem: item.margem,
+          margem_adc: item.margem_adc,
+          desconto: item.desconto,
+          tipo_aplicacao: item.tipo_aplicacao,
+          tipo_referencia: item.tipo_referencia,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
+          observacao: item.observacao,
+          st_ativo: item.st_ativo,
           updated_at: new Date().toISOString()
         })
         .eq("id", id)
@@ -209,13 +254,27 @@ export default function DescontoProduto() {
     input.click()
   }
 
+  const getSelectedEstado = (item: ProdutoMargemExtended) => {
+    if (item.tipo_aplicacao === 'estado') {
+      return estados.find(e => e.estado === item.tipo_referencia) || null
+    }
+    return null
+  }
+
+  const getSelectedLoja = (item: ProdutoMargemExtended) => {
+    if (item.tipo_aplicacao === 'loja') {
+      return lojas.find(l => l.cod_loja.toString() === item.tipo_referencia) || null
+    }
+    return null
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           Desconto Produto
           <div className="flex gap-2">
-            <AddProdutoMargemDialog onSuccess={fetchData} />
+            <AddProdutoMargemDialog onAdd={fetchData} />
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
@@ -254,49 +313,43 @@ export default function DescontoProduto() {
                 <TableCell>{item.id_produto}</TableCell>
                 <TableCell>{item.produto?.nome_produto}</TableCell>
                 <TableCell>
-                  <Select
+                  <select
                     value={item.tipo_aplicacao}
-                    onValueChange={(value) => handleFieldChange(item.id, 'tipo_aplicacao', value)}
+                    onChange={(e) => handleFieldChange(item.id, 'tipo_aplicacao', e.target.value)}
                     disabled={item.st_ativo === 0}
+                    className="w-24 p-1 border rounded"
                   >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="estado">Estado</SelectItem>
-                      <SelectItem value="loja">Loja</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="estado">Estado</option>
+                    <option value="loja">Loja</option>
+                  </select>
                 </TableCell>
                 <TableCell>
                   {item.tipo_aplicacao === "estado" ? (
                     <EstadoCombobox
-                      value={item.tipo_referencia}
-                      onValueChange={(value) => handleFieldChange(item.id, 'tipo_referencia', value)}
+                      estados={estados}
+                      selectedEstado={getSelectedEstado(item)}
+                      onEstadoChange={(estado) => handleTipoReferenciaChange(item.id, estado)}
                       disabled={item.st_ativo === 0}
                     />
                   ) : (
                     <LojaCombobox
-                      value={item.tipo_referencia}
-                      onValueChange={(value) => handleFieldChange(item.id, 'tipo_referencia', value)}
+                      lojas={lojas}
+                      selectedLoja={getSelectedLoja(item)}
+                      onLojaChange={(loja) => handleTipoReferenciaChange(item.id, loja)}
                       disabled={item.st_ativo === 0}
                     />
                   )}
                 </TableCell>
                 <TableCell>
-                  <Select
+                  <select
                     value={item.tipo_margem}
-                    onValueChange={(value) => handleFieldChange(item.id, 'tipo_margem', value)}
+                    onChange={(e) => handleFieldChange(item.id, 'tipo_margem', e.target.value)}
                     disabled={item.st_ativo === 0}
+                    className="w-24 p-1 border rounded"
                   >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentual">Percentual</SelectItem>
-                      <SelectItem value="valor">Valor</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="percentual">Percentual</option>
+                    <option value="valor">Valor</option>
+                  </select>
                 </TableCell>
                 <TableCell>
                   <Input

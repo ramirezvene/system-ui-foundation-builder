@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -20,13 +19,10 @@ type Estado = Tables<"cadastro_estado">
 type Loja = Tables<"cadastro_loja">
 
 interface AddProdutoMargemDialogProps {
-  produtosCadastro: CadastroProduto[]
-  onAdd: (data: any) => void
-  isOpen: boolean
-  onClose: () => void
+  onAdd: () => void
 }
 
-export function AddProdutoMargemDialog({ produtosCadastro, onAdd, isOpen, onClose }: AddProdutoMargemDialogProps) {
+export function AddProdutoMargemDialog({ onAdd }: AddProdutoMargemDialogProps) {
   const [formData, setFormData] = useState({
     id_produto: 0,
     margem: 0,
@@ -50,6 +46,7 @@ export function AddProdutoMargemDialog({ produtosCadastro, onAdd, isOpen, onClos
   const [margemDisplay, setMargemDisplay] = useState("0,00%")
   const [margemAdcDisplay, setMargemAdcDisplay] = useState("0,00%")
   const [descontoDisplay, setDescontoDisplay] = useState("0,00%")
+  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -130,37 +127,54 @@ export function AddProdutoMargemDialog({ produtosCadastro, onAdd, isOpen, onClos
     setFormData(prev => ({ ...prev, margem: 0, margem_adc: 0, desconto: 0 }))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedProduto) return
 
-    const finalFormData = {
-      ...formData,
-      id_produto: selectedProduto.id_produto
-    }
+    try {
+      const { error } = await supabase
+        .from("produto_margem")
+        .insert({
+          id_produto: selectedProduto.id_produto,
+          margem: formData.margem,
+          margem_adc: formData.margem_adc,
+          desconto: formData.desconto,
+          tipo_aplicacao: formData.tipo_aplicacao,
+          tipo_margem: formData.tipo_margem,
+          tipo_referencia: formData.tipo_referencia,
+          data_inicio: formData.data_inicio,
+          data_fim: formData.data_fim,
+          observacao: formData.observacao,
+          st_ativo: formData.st_ativo
+        })
 
-    onAdd(finalFormData)
-    
-    // Reset form
-    setFormData({
-      id_produto: 0,
-      margem: 0,
-      margem_adc: 0,
-      desconto: 0,
-      tipo_aplicacao: "estado",
-      tipo_margem: "percentual",
-      tipo_referencia: "estado",
-      data_inicio: new Date().toISOString().split('T')[0],
-      data_fim: "2030-12-31",
-      observacao: "",
-      st_ativo: 1
-    })
-    setSelectedProduto(null)
-    setSelectedEstado(null)
-    setSelectedLoja(null)
-    setMargemDisplay("0,00%")
-    setMargemAdcDisplay("0,00%")
-    setDescontoDisplay("0,00%")
-    onClose()
+      if (error) throw error
+
+      onAdd()
+      
+      // Reset form
+      setFormData({
+        id_produto: 0,
+        margem: 0,
+        margem_adc: 0,
+        desconto: 0,
+        tipo_aplicacao: "estado",
+        tipo_margem: "percentual",
+        tipo_referencia: "estado",
+        data_inicio: new Date().toISOString().split('T')[0],
+        data_fim: "2030-12-31",
+        observacao: "",
+        st_ativo: 1
+      })
+      setSelectedProduto(null)
+      setSelectedEstado(null)
+      setSelectedLoja(null)
+      setMargemDisplay("0,00%")
+      setMargemAdcDisplay("0,00%")
+      setDescontoDisplay("0,00%")
+      setIsOpen(false)
+    } catch (error) {
+      console.error("Erro ao adicionar produto:", error)
+    }
   }
 
   const shouldShowField = (field: 'margem' | 'margem_adc' | 'desconto') => {
@@ -173,7 +187,7 @@ export function AddProdutoMargemDialog({ produtosCadastro, onAdd, isOpen, onClos
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={() => setIsOpen(false)}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar Produto Margem</DialogTitle>
@@ -333,7 +347,7 @@ export function AddProdutoMargemDialog({ produtosCadastro, onAdd, isOpen, onClos
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSubmit} disabled={!selectedProduto}>
