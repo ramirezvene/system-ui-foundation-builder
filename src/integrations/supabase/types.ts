@@ -252,10 +252,13 @@ export type Database = {
           created_at: string
           data_fim: string
           data_inicio: string
+          desconto: number | null
           id: number
           id_produto: number
           margem: number
+          margem_adc: number | null
           observacao: string | null
+          st_ativo: number
           tipo_aplicacao: string
           tipo_margem: string
           updated_at: string
@@ -265,10 +268,13 @@ export type Database = {
           created_at?: string
           data_fim?: string
           data_inicio?: string
+          desconto?: number | null
           id?: number
           id_produto: number
           margem: number
+          margem_adc?: number | null
           observacao?: string | null
+          st_ativo?: number
           tipo_aplicacao: string
           tipo_margem?: string
           updated_at?: string
@@ -278,10 +284,13 @@ export type Database = {
           created_at?: string
           data_fim?: string
           data_inicio?: string
+          desconto?: number | null
           id?: number
           id_produto?: number
           margem?: number
+          margem_adc?: number | null
           observacao?: string | null
+          st_ativo?: number
           tipo_aplicacao?: string
           tipo_margem?: string
           updated_at?: string

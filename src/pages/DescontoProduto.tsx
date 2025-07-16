@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -67,8 +68,24 @@ export default function DescontoProduto() {
     handleFieldChange(id, 'margem', numericValue)
   }
 
-  const formatMargemForDisplay = (margem: number) => {
-    return margem.toFixed(2).replace('.', ',') + '%'
+  const handleMargemAdcChange = (id: number, value: string) => {
+    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    console.log(`Alterando margem adc do produto ${id} para:`, numericValue)
+    handleFieldChange(id, 'margem_adc', numericValue)
+  }
+
+  const handleDescontoChange = (id: number, value: string) => {
+    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    console.log(`Alterando desconto do produto ${id} para:`, numericValue)
+    handleFieldChange(id, 'desconto', numericValue)
+  }
+
+  const formatValueForDisplay = (value: number | null, isPercentual: boolean = false) => {
+    if (value === null || value === undefined) return ''
+    if (isPercentual) {
+      return value.toFixed(2).replace('.', ',') + '%'
+    }
+    return value.toFixed(2).replace('.', ',')
   }
 
   const handleSave = async (id: number) => {
@@ -84,11 +101,14 @@ export default function DescontoProduto() {
           codigo_referencia: item.codigo_referencia,
           id_produto: item.id_produto,
           margem: item.margem,
+          margem_adc: item.margem_adc,
+          desconto: item.desconto,
           tipo_aplicacao: item.tipo_aplicacao,
           tipo_margem: item.tipo_margem,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
-          observacao: item.observacao
+          observacao: item.observacao,
+          st_ativo: item.st_ativo
         })
         .eq("id", id)
 
@@ -116,17 +136,20 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["ID", "Código Referência", "ID Produto", "Nome Produto", "Margem", "Tipo Aplicação", "Tipo Margem", "Data Início", "Data Fim", "Observação"],
+      ["ID", "Código Referência", "ID Produto", "Nome Produto", "Margem", "Margem Adc", "% Desc", "Tipo Aplicação", "Tipo Margem", "Data Início", "Data Fim", "Ativo", "Observação"],
       ...produtos.map(item => [
         item.id,
         item.codigo_referencia,
         item.id_produto,
         item.produto?.nome_produto || '',
         item.margem,
+        item.margem_adc || '',
+        item.desconto || '',
         item.tipo_aplicacao,
         item.tipo_margem,
         item.data_inicio,
         item.data_fim,
+        item.st_ativo === 1 ? 'Ativo' : 'Inativo',
         item.observacao
       ])
     ].map(row => row.join(",")).join("\n")
@@ -150,11 +173,14 @@ export default function DescontoProduto() {
           codigo_referencia: 0,
           id_produto: 0,
           margem: 0,
-          tipo_aplicacao: "Desconto",
-          tipo_margem: "Percentual",
+          margem_adc: 0,
+          desconto: 0,
+          tipo_aplicacao: "estado",
+          tipo_margem: "percentual",
           data_inicio: new Date().toISOString().split('T')[0],
           data_fim: "2030-12-31",
-          observacao: ""
+          observacao: "",
+          st_ativo: 1
         })
 
       if (error) throw error
@@ -184,6 +210,19 @@ export default function DescontoProduto() {
       }
       return newSet
     })
+  }
+
+  const isFieldEditable = (item: ProdutoMargemWithProduto) => {
+    return item.st_ativo === 1
+  }
+
+  const shouldShowField = (item: ProdutoMargemWithProduto, field: 'margem' | 'margem_adc' | 'desconto') => {
+    if (item.tipo_margem === 'valor') {
+      return field === 'margem' || field === 'margem_adc'
+    } else if (item.tipo_margem === 'percentual') {
+      return true // mostra todos os campos
+    }
+    return false
   }
 
   return (
@@ -216,18 +255,21 @@ export default function DescontoProduto() {
                 <th className="text-left p-2">Código Ref</th>
                 <th className="text-left p-2">ID Produto</th>
                 <th className="text-left p-2">Nome Produto</th>
-                <th className="text-left p-2">% Margem</th>
+                <th className="text-left p-2">Margem</th>
+                <th className="text-left p-2">Margem Adc</th>
+                <th className="text-left p-2">% Desc</th>
                 <th className="text-left p-2">Tipo Aplicação</th>
                 <th className="text-left p-2">Tipo Margem</th>
                 <th className="text-left p-2 w-32">Data Início</th>
                 <th className="text-left p-2 w-32">Data Fim</th>
+                <th className="text-left p-2">Ativo</th>
                 <th className="text-left p-2">Observação</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
             </thead>
             <tbody>
               {produtos.map((item) => (
-                <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
+                <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''} ${!isFieldEditable(item) ? 'bg-gray-50' : ''}`}>
                   <td className="p-2">{item.id}</td>
                   <td className="p-2">
                     <Input
@@ -235,6 +277,7 @@ export default function DescontoProduto() {
                       value={item.codigo_referencia}
                       onChange={(e) => handleFieldChange(item.id, 'codigo_referencia', parseInt(e.target.value) || 0)}
                       className="w-24"
+                      disabled={!isFieldEditable(item)}
                     />
                   </td>
                   <td className="p-2">
@@ -243,23 +286,75 @@ export default function DescontoProduto() {
                       value={item.id_produto}
                       onChange={(e) => handleFieldChange(item.id, 'id_produto', parseInt(e.target.value) || 0)}
                       className="w-24"
+                      disabled={!isFieldEditable(item)}
                     />
                   </td>
                   <td className="p-2">
                     <span className="text-sm">{item.produto?.nome_produto || 'N/A'}</span>
                   </td>
+                  {/* Margem */}
                   <td className="p-2">
-                    <PercentageInput
-                      value={formatMargemForDisplay(item.margem)}
-                      onChange={(value) => handleMargemChange(item.id, value)}
-                      className="w-24"
-                    />
+                    {shouldShowField(item, 'margem') && (
+                      item.tipo_margem === 'percentual' ? (
+                        <PercentageInput
+                          value={formatValueForDisplay(item.margem, true)}
+                          onChange={(value) => handleMargemChange(item.id, value)}
+                          className="w-24"
+                          disabled={!isFieldEditable(item)}
+                        />
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.margem || ''}
+                          onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
+                          className="w-24"
+                          disabled={!isFieldEditable(item)}
+                          placeholder="Valor mínimo"
+                        />
+                      )
+                    )}
+                  </td>
+                  {/* Margem Adc */}
+                  <td className="p-2">
+                    {shouldShowField(item, 'margem_adc') && (
+                      item.tipo_margem === 'percentual' ? (
+                        <PercentageInput
+                          value={formatValueForDisplay(item.margem_adc, true)}
+                          onChange={(value) => handleMargemAdcChange(item.id, value)}
+                          className="w-24"
+                          disabled={!isFieldEditable(item)}
+                        />
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.margem_adc || ''}
+                          onChange={(e) => handleFieldChange(item.id, 'margem_adc', parseFloat(e.target.value) || 0)}
+                          className="w-24"
+                          disabled={!isFieldEditable(item)}
+                          placeholder="Valor mínimo"
+                        />
+                      )
+                    )}
+                  </td>
+                  {/* % Desc */}
+                  <td className="p-2">
+                    {shouldShowField(item, 'desconto') && item.tipo_margem === 'percentual' && (
+                      <PercentageInput
+                        value={formatValueForDisplay(item.desconto, true)}
+                        onChange={(value) => handleDescontoChange(item.id, value)}
+                        className="w-24"
+                        disabled={!isFieldEditable(item)}
+                      />
+                    )}
                   </td>
                   <td className="p-2">
                     <Input
                       value={item.tipo_aplicacao}
                       onChange={(e) => handleFieldChange(item.id, 'tipo_aplicacao', e.target.value)}
                       className="w-32"
+                      disabled={!isFieldEditable(item)}
                     />
                   </td>
                   <td className="p-2">
@@ -267,6 +362,7 @@ export default function DescontoProduto() {
                       value={item.tipo_margem}
                       onChange={(e) => handleFieldChange(item.id, 'tipo_margem', e.target.value)}
                       className="w-32"
+                      disabled={!isFieldEditable(item)}
                     />
                   </td>
                   <td className="p-2">
@@ -275,6 +371,7 @@ export default function DescontoProduto() {
                       value={item.data_inicio || ''}
                       onChange={(e) => handleFieldChange(item.id, 'data_inicio', e.target.value)}
                       className="w-full"
+                      disabled={!isFieldEditable(item)}
                     />
                   </td>
                   <td className="p-2">
@@ -283,12 +380,24 @@ export default function DescontoProduto() {
                       value={item.data_fim || ''}
                       onChange={(e) => handleFieldChange(item.id, 'data_fim', e.target.value)}
                       className="w-full"
+                      disabled={!isFieldEditable(item)}
                     />
+                  </td>
+                  <td className="p-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={item.st_ativo === 1}
+                        onCheckedChange={(checked) => handleFieldChange(item.id, 'st_ativo', checked ? 1 : 0)}
+                      />
+                      <Label className="text-xs">
+                        {item.st_ativo === 1 ? 'Ativo' : 'Inativo'}
+                      </Label>
+                    </div>
                   </td>
                   <td className="p-2">
                     <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" disabled={!isFieldEditable(item)}>
                           <MessageSquare className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
@@ -303,6 +412,7 @@ export default function DescontoProduto() {
                             onChange={(e) => handleFieldChange(item.id, 'observacao', e.target.value)}
                             placeholder="Digite uma observação específica..."
                             className="min-h-20"
+                            disabled={!isFieldEditable(item)}
                           />
                         </div>
                       </DialogContent>
@@ -312,7 +422,7 @@ export default function DescontoProduto() {
                     <Button 
                       size="sm" 
                       onClick={() => handleSave(item.id)}
-                      disabled={!editedRows.has(item.id)}
+                      disabled={!editedRows.has(item.id) || !isFieldEditable(item)}
                     >
                       Salvar
                     </Button>
