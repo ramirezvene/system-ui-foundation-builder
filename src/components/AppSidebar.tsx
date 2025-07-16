@@ -60,10 +60,10 @@ const menuItems = [
     url: "/configuracao-desconto-token",
     icon: Settings,
     items: [
-      {
-        title: "Estado",
-        url: "/configuracao-desconto-token",
-      },
+      // {
+      //   title: "Estado",
+      //   url: "/configuracao-desconto-token",
+      // }, REMOVER
       {
         title: "Loja",
         url: "/configuracao-token-loja",
@@ -75,7 +75,7 @@ const menuItems = [
       // {
       //   title: "Produto",
       //   url: "/configuracao-desconto-token",
-      // },
+      // }, CUIDADO
       {
         title: "Token Estado",
         url: "/token-estado",
