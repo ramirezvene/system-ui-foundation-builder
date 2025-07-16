@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -45,6 +46,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
     }
   }
 
+  const calculateDesconto = (margem: number, margemAdc: number | null) => {
+    if (!margemAdc) return 0
+    return margem - margemAdc
+  }
+
   const handleFieldChange = (cod_subgrupo: number, field: keyof SubgrupoMargem, value: any) => {
     console.log(`Alterando campo ${field} do subgrupo ${cod_subgrupo} para:`, value)
     setSubgrupos(prev => prev.map(item => 
@@ -58,6 +64,13 @@ export default function ConfiguracaoDescontoSubgrupo() {
     const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
     console.log(`Alterando margem do subgrupo ${cod_subgrupo} para:`, numericValue)
     handleFieldChange(cod_subgrupo, 'margem', numericValue)
+  }
+
+  const handleMargemAdcChange = (cod_subgrupo: number, value: string) => {
+    // Remove % e converte vírgula para ponto
+    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    console.log(`Alterando margem_adc do subgrupo ${cod_subgrupo} para:`, numericValue)
+    handleFieldChange(cod_subgrupo, 'margem_adc', numericValue)
   }
 
   const formatMargemForDisplay = (margem: number) => {
@@ -76,9 +89,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
         .update({
           nome_subgrupo: item.nome_subgrupo,
           margem: item.margem,
+          margem_adc: item.margem_adc,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
-          observacao: item.observacao
+          observacao: item.observacao,
+          st_ativo: item.st_ativo
         })
         .eq("cod_subgrupo", cod_subgrupo)
 
@@ -106,13 +121,16 @@ export default function ConfiguracaoDescontoSubgrupo() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Código Subgrupo", "Nome Subgrupo", "Margem", "Data Início", "Data Fim", "Observação"],
+      ["Código Subgrupo", "Nome Subgrupo", "Margem", "Margem Adc", "Desconto", "Data Início", "Data Fim", "Ativo", "Observação"],
       ...subgrupos.map(item => [
         item.cod_subgrupo,
         item.nome_subgrupo,
         item.margem,
+        item.margem_adc || 0,
+        calculateDesconto(item.margem, item.margem_adc),
         item.data_inicio,
         item.data_fim,
+        item.st_ativo === 1 ? "Ativo" : "Inativo",
         item.observacao
       ])
     ].map(row => row.join(",")).join("\n")
@@ -138,9 +156,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
           cod_subgrupo: newCodSubgrupo,
           nome_subgrupo: "Novo Subgrupo",
           margem: 0,
+          margem_adc: 0,
           data_inicio: new Date().toISOString().split('T')[0],
           data_fim: "2030-12-31",
-          observacao: ""
+          observacao: "",
+          st_ativo: 1
         })
 
       if (error) throw error
@@ -201,8 +221,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
                 <th className="text-left p-2">Código Subgrupo</th>
                 <th className="text-left p-2">Nome Subgrupo</th>
                 <th className="text-left p-2">% Margem</th>
+                <th className="text-left p-2">% Margem Adc</th>
+                <th className="text-left p-2">% Desc</th>
                 <th className="text-left p-2 w-32">Data Início</th>
                 <th className="text-left p-2 w-32">Data Fim</th>
+                <th className="text-left p-2">Ativo</th>
                 <th className="text-left p-2">Observação</th>
                 <th className="text-left p-2">Ações</th>
               </tr>
@@ -226,6 +249,18 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     />
                   </td>
                   <td className="p-2">
+                    <PercentageInput
+                      value={formatMargemForDisplay(item.margem_adc || 0)}
+                      onChange={(value) => handleMargemAdcChange(item.cod_subgrupo, value)}
+                      className="w-24"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <span className="text-sm">
+                      {calculateDesconto(item.margem, item.margem_adc).toFixed(2)}%
+                    </span>
+                  </td>
+                  <td className="p-2">
                     <Input
                       type="date"
                       value={item.data_inicio || ''}
@@ -240,6 +275,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
                       onChange={(e) => handleFieldChange(item.cod_subgrupo, 'data_fim', e.target.value)}
                       className="w-full"
                     />
+                  </td>
+                  <td className="p-2">
+                    <Badge variant={item.st_ativo === 1 ? "default" : "destructive"}>
+                      {item.st_ativo === 1 ? "Ativo" : "Inativo"}
+                    </Badge>
                   </td>
                   <td className="p-2">
                     <Dialog open={observacaoDialogs.has(item.cod_subgrupo)} onOpenChange={() => toggleObservacaoDialog(item.cod_subgrupo)}>
