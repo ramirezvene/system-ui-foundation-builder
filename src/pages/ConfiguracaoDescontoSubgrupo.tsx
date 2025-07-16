@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -46,11 +47,6 @@ export default function ConfiguracaoDescontoSubgrupo() {
     }
   }
 
-  const calculateDesconto = (margem: number, margemAdc: number | null) => {
-    if (!margemAdc) return 0
-    return margem - margemAdc
-  }
-
   const handleFieldChange = (cod_subgrupo: number, field: keyof SubgrupoMargem, value: any) => {
     console.log(`Alterando campo ${field} do subgrupo ${cod_subgrupo} para:`, value)
     setSubgrupos(prev => prev.map(item => 
@@ -73,8 +69,19 @@ export default function ConfiguracaoDescontoSubgrupo() {
     handleFieldChange(cod_subgrupo, 'margem_adc', numericValue)
   }
 
+  const handleAtivoChange = (cod_subgrupo: number, checked: boolean) => {
+    const value = checked ? 1 : 0
+    console.log(`Alterando st_ativo do subgrupo ${cod_subgrupo} para:`, value)
+    handleFieldChange(cod_subgrupo, 'st_ativo', value)
+  }
+
   const formatMargemForDisplay = (margem: number) => {
     return margem.toFixed(2).replace('.', ',') + '%'
+  }
+
+  const formatDescontoForDisplay = (desconto: number | null) => {
+    if (desconto === null) return '0,00%'
+    return desconto.toFixed(2).replace('.', ',') + '%'
   }
 
   const handleSave = async (cod_subgrupo: number) => {
@@ -127,7 +134,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         item.nome_subgrupo,
         item.margem,
         item.margem_adc || 0,
-        calculateDesconto(item.margem, item.margem_adc),
+        item.desconto || 0,
         item.data_inicio,
         item.data_fim,
         item.st_ativo === 1 ? "Ativo" : "Inativo",
@@ -257,7 +264,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                   </td>
                   <td className="p-2">
                     <span className="text-sm">
-                      {calculateDesconto(item.margem, item.margem_adc).toFixed(2)}%
+                      {formatDescontoForDisplay(item.desconto)}
                     </span>
                   </td>
                   <td className="p-2">
@@ -277,9 +284,15 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     />
                   </td>
                   <td className="p-2">
-                    <Badge variant={item.st_ativo === 1 ? "default" : "destructive"}>
-                      {item.st_ativo === 1 ? "Ativo" : "Inativo"}
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={item.st_ativo === 1}
+                        onCheckedChange={(checked) => handleAtivoChange(item.cod_subgrupo, checked)}
+                      />
+                      <span className="text-sm">
+                        {item.st_ativo === 1 ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
                   </td>
                   <td className="p-2">
                     <Dialog open={observacaoDialogs.has(item.cod_subgrupo)} onOpenChange={() => toggleObservacaoDialog(item.cod_subgrupo)}>
