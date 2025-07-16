@@ -14,7 +14,8 @@ export const validateHierarchy = (
   precoAtual: number,
   produtoMargens: ProdutoMargem[],
   subgrupoMargens: SubgrupoMargem[],
-  estados: Estado[]
+  estados: Estado[],
+  clienteIdentificado: boolean = false
 ): ValidationResult => {
   if (!selectedProduto || !selectedLoja) {
     return { error: "Selecione uma loja e um produto" }
@@ -22,132 +23,180 @@ export const validateHierarchy = (
 
   console.log("Validação - novoPreco:", novoPreco)
   console.log("Validação - precoAtual:", precoAtual)
+  console.log("Validação - clienteIdentificado:", clienteIdentificado)
   
   if (isNaN(novoPreco) || novoPreco <= 0) {
     console.log("Preço inválido - NaN ou <= 0")
     return { error: "Preço solicitado inválido" }
   }
 
-  // Validar se a loja possui tokens disponíveis
-  if ((selectedLoja.qtde_token || 0) <= 0) {
-    console.log("Loja sem tokens disponíveis")
-    return { error: "Não possui Token Disponível para a loja." }
-  }
-
-  // Validar se a loja possui status token ativo
-  if (selectedLoja.st_token !== 1) {
-    console.log("Loja com status token inativo")
-    return { error: "Loja com status de token inativo." }
-  }
-
-  // Validar se o Estado está ativo
+  // ETAPA 1: Validar Estado
   const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
   if (!estadoInfo || estadoInfo.st_ativo !== 1) {
-    console.log("Estado não disponível")
-    return { error: "Estado não disponível para solicitação de token." }
+    console.log("Estado sem permissão")
+    return { error: "Estado sem permissão solicitação." }
   }
 
-  // Calcular preço mínimo usando a função corrigida
-  const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
-  
-  console.log("Validação - precoMinimo:", precoMinimo)
-  
-  if (novoPreco < precoMinimo) {
-    console.log("Preço menor que mínimo")
-    return { error: `Desconto reprovado, devido ao preço ser inferior ao Preço Mínimo (R$ ${precoMinimo.toFixed(2)}).` }
+  // ETAPA 2: Validar Loja
+  // 2.1 - Status token da loja
+  if (selectedLoja.st_token !== 1) {
+    console.log("Loja sem permissão")
+    return { error: "Loja sem permissão solicitação." }
   }
 
-  // % Desconto válido
-  if (novoPreco >= precoAtual) {
-    console.log("Preço maior ou igual ao regular")
-    return { error: "Desconto é inválido, preço maior que Valor Regular." }
+  // 2.2 - Quantidade de tokens disponíveis
+  if ((selectedLoja.qtde_token || 0) <= 0) {
+    console.log("Loja sem tokens disponíveis")
+    return { error: "Não possuí token disponível." }
   }
 
-  // Validar alçada do produto
-  if (selectedProduto.alcada !== 0) {
-    console.log("Produto possui outras alçadas")
-    return { error: "Possuí outros Descontos, não permite a solicitação." }
-  }
-
-  // Calcular margem UF loja
-  const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
-  
-  console.log("Margem UF Loja calculada:", margemUFLojaPercentual, "%")
-
-  // Verificar hierarquia: primeiro produto_margem, depois subgrupo_margem
+  // ETAPA 3: Validar Produto (se possui produto_margem)
   const dataAtual = new Date()
-  
-  // 1. Verificar margem do produto (produto_margem) - primeira prioridade
   const produtoMargem = produtoMargens.find(pm => 
     pm.id_produto === selectedProduto.id_produto && 
     pm.tipo_aplicacao === "estado" &&
     new Date(pm.data_inicio) <= dataAtual &&
-    new Date(pm.data_fim) >= dataAtual
+    new Date(pm.data_fim) >= dataAtual &&
+    pm.st_ativo === 1
   )
 
   if (produtoMargem) {
-    console.log("Validação produto margem - margem UF Loja%:", margemUFLojaPercentual, "margem UF:", produtoMargem.margem)
+    console.log("Validação produto margem encontrada")
     
-    // Validação ZVDC: valor solicitado não pode ser menor que margem ZVDC
-    if (produtoMargem.tipo_margem === "percentual") {
-      if (margemUFLojaPercentual < produtoMargem.margem) {
+    // 3.1 - Status pricing do produto
+    if (selectedProduto.st_pricing !== 0) {
+      console.log("Produto com pricing desativado")
+      return { error: "Desativado Pricing Produto." }
+    }
+
+    // 3.2 - Status ruptura do produto
+    if (selectedProduto.st_ruptura !== 0) {
+      console.log("Produto com ruptura")
+      return { error: "Produto Ruptura." }
+    }
+
+    // 3.3 - Preço mínimo
+    const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
+    if (novoPreco < precoMinimo) {
+      console.log("Preço menor que mínimo")
+      return { error: "Menor que Preço Mínimo." }
+    }
+
+    // 3.4 - Preço regular
+    if (novoPreco >= precoAtual) {
+      console.log("Preço maior que regular")
+      return { error: "Maior que Preço Regular." }
+    }
+
+    // 3.5 - % Desconto máximo do produto
+    const percentualDesconto = ((precoAtual - novoPreco) / precoAtual) * 100
+    if (produtoMargem.desconto && percentualDesconto > produtoMargem.desconto) {
+      console.log("Desconto maior que máximo do produto")
+      return { error: "Maior que desconto máximo Produto." }
+    }
+
+    // 3.6 - Outros descontos (alçada)
+    if (selectedProduto.alcada !== 0) {
+      console.log("Produto possui outros descontos")
+      return { error: "Outros descontos, não permite." }
+    }
+
+    // 3.7 - Data de vigência já validada no find acima
+
+    // 3.8 e 3.9 - Margem UF considerando cliente identificado
+    const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
+    
+    if (clienteIdentificado) {
+      // 3.8 - Com cliente identificado, considera margem adicional ou margem
+      const margemRequerida = produtoMargem.margem_adc || produtoMargem.margem
+      if (margemUFLojaPercentual < margemRequerida) {
         return { 
-          error: produtoMargem.observacao || "Desconto token reprovado, devido a margem UF.",
+          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida (${margemRequerida.toFixed(2)}%).`,
           observacao: produtoMargem.observacao || undefined
         }
       }
     } else {
-      // Se for valor fixo, comparar diretamente com o valor solicitado
-      if (novoPreco < produtoMargem.margem) {
-        return {
-          error: produtoMargem.observacao || `Valor solicitado (R$ ${novoPreco.toFixed(2)}) é menor que a margem ZVDC (R$ ${produtoMargem.margem.toFixed(2)}).`,
-          observacao: produtoMargem.observacao || undefined
-        }
+      // 3.9 - Sem cliente identificado, considera apenas margem
+      if (margemUFLojaPercentual < produtoMargem.margem) {
+        // Continua para validação do subgrupo
+      } else {
+        // Vai para etapa 5 (Loja)
+        return validateLoja(selectedLoja)
       }
     }
-  } else {
-    // 2. Se não tem produto_margem, verificar subgrupo_margem
-    if (selectedProduto.subgrupo_id) {
-      const subgrupoMargem = subgrupoMargens.find(s => 
-        s.cod_subgrupo === selectedProduto.subgrupo_id &&
-        (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
-        (!s.data_fim || new Date(s.data_fim) >= dataAtual)
-      )
-      
-      if (subgrupoMargem) {
-        console.log("Validação subgrupo - margem UF Loja%:", margemUFLojaPercentual, "margem ZVDC permitida:", subgrupoMargem.margem)
-        
-        // Validação ZVDC: valor solicitado não pode ser menor que margem ZVDC (sempre percentual para subgrupo)
-        if (margemUFLojaPercentual < subgrupoMargem.margem) {
-          return { 
-            error: subgrupoMargem.observacao || `Desconto excede a margem permitida para o subgrupo (${subgrupoMargem.margem}%).`,
-            observacao: subgrupoMargem.observacao || undefined
-          }
-        }
-      }
+
+    // Se chegou aqui com cliente identificado e passou, vai para etapa 5
+    if (clienteIdentificado) {
+      return validateLoja(selectedLoja)
     }
   }
 
-  // 3. Validações da Loja
+  // ETAPA 4: Validar Subgrupo (se não passou na validação do produto ou não tem produto_margem)
+  if (selectedProduto.subgrupo_id) {
+    const subgrupoMargem = subgrupoMargens.find(s => 
+      s.cod_subgrupo === selectedProduto.subgrupo_id &&
+      (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
+      (!s.data_fim || new Date(s.data_fim) >= dataAtual)
+    )
+    
+    if (!subgrupoMargem) {
+      return { error: "Não possúi produto/subgrupo token Desconto." }
+    }
+
+    // 4.1 - Status ativo do subgrupo
+    if (subgrupoMargem.st_ativo !== 1) {
+      console.log("Subgrupo desativado")
+      return { error: "Desativado Pricing Subgrupo." }
+    }
+
+    const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
+
+    if (clienteIdentificado) {
+      // 4.2 - Com cliente identificado, considera margem adicional ou margem
+      const margemRequerida = subgrupoMargem.margem_adc || subgrupoMargem.margem
+      if (margemUFLojaPercentual < margemRequerida) {
+        return { 
+          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do subgrupo (${margemRequerida.toFixed(2)}%).`,
+          observacao: subgrupoMargem.observacao || undefined
+        }
+      }
+    } else {
+      // 4.3 - Sem cliente identificado, considera apenas margem
+      if (margemUFLojaPercentual < subgrupoMargem.margem) {
+        return { 
+          error: "Não possuí margem produto/subgrupo.",
+          observacao: subgrupoMargem.observacao || undefined
+        }
+      }
+    }
+
+    // 4.4 - % Desconto máximo do subgrupo
+    const percentualDesconto = ((precoAtual - novoPreco) / precoAtual) * 100
+    if (subgrupoMargem.desconto && percentualDesconto > subgrupoMargem.desconto) {
+      console.log("Desconto maior que máximo do subgrupo")
+      return { error: "Maior que desconto máximo Subgrupo." }
+    }
+
+    // 4.5 - Data de vigência já validada no find acima
+  } else {
+    return { error: "Não possúi produto/subgrupo token Desconto." }
+  }
+
+  // ETAPA 5: Validar Loja final
+  return validateLoja(selectedLoja)
+}
+
+const validateLoja = (selectedLoja: Loja): ValidationResult => {
+  // 5.1 - Meta da loja
   if (selectedLoja.meta_loja !== 1) {
     console.log("Meta loja irregular")
-    return { error: "Bloqueado devido a Meta de Desconto estar irregular." }
+    return { error: "Meta Loja Irregular" }
   }
 
+  // 5.2 - DRE da loja
   if (selectedLoja.dre_negativo !== 1) {
     console.log("DRE irregular")
-    return { error: "Bloqueado devido a DRE estar irregular." }
-  }
-
-  // Validações específicas do produto
-  if (selectedProduto.st_ruptura !== 0) {
-    console.log("Produto com ruptura")
-    return { error: "Produto possui Ruptura de Estoque." }
-  }
-
-  if (selectedProduto.st_pricing !== 0) {
-    console.log("Produto bloqueado para token")
-    return { error: "Produto possui Bloqueado para solicitar Token." }
+    return { error: "DRE Loja Irregular" }
   }
 
   console.log("Validação passou - token aprovado")

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { LojaCombobox } from "@/components/LojaCombobox"
@@ -31,6 +32,7 @@ export default function Vendas() {
 
   const [novoPreco, setNovoPreco] = useState("")
   const [quantidade, setQuantidade] = useState<string>("1")
+  const [clienteIdentificado, setClienteIdentificado] = useState(false)
   const [solicitacaoResult, setSolicitacaoResult] = useState<SolicitacaoResult | null>(null)
   const { toast } = useToast()
 
@@ -50,7 +52,8 @@ export default function Vendas() {
       precoAtual,
       produtoMargens,
       subgrupoMargens,
-      estados
+      estados,
+      clienteIdentificado
     )
     
     const estadoInfo = estados.find(e => e.estado === selectedLoja?.estado)
@@ -185,6 +188,7 @@ export default function Vendas() {
     setSelectedProduto(null)
     setNovoPreco("")
     setQuantidade("1")
+    setClienteIdentificado(false)
   }
 
   return (
@@ -247,6 +251,22 @@ export default function Vendas() {
                   onChange={(e) => setQuantidade(e.target.value)}
                 />
               </div>
+            </div>
+          )}
+
+          {selectedProduto && selectedLoja && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="cliente-identificado"
+                checked={clienteIdentificado}
+                onCheckedChange={(checked) => setClienteIdentificado(checked as boolean)}
+              />
+              <Label
+                htmlFor="cliente-identificado"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Cliente Identificado (considera margem adicional)
+              </Label>
             </div>
           )}
 
