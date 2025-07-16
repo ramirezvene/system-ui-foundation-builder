@@ -33,7 +33,6 @@ export default function DescontoProduto() {
   const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -382,10 +381,7 @@ export default function DescontoProduto() {
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
-            <Button size="sm" onClick={() => setAddDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar
-            </Button>
+            <AddProdutoMargemDialog produtos={produtosCadastro} onAdd={fetchData} />
           </div>
         </CardTitle>
       </CardHeader>
@@ -589,13 +585,6 @@ export default function DescontoProduto() {
           </table>
         </div>
       </CardContent>
-
-      <AddProdutoMargemDialog
-        produtos={produtosCadastro}
-        onAdd={fetchData}
-        isOpen={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
-      />
     </Card>
   )
 }
