@@ -13,6 +13,7 @@ import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { PercentageInput } from "@/components/PercentageInput"
+import { AddSubgrupoMargemDialog } from "@/components/AddSubgrupoMargemDialog"
 
 type SubgrupoMargem = Tables<"subgrupo_margem">
 
@@ -20,6 +21,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
   const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -153,22 +155,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
     document.body.removeChild(link)
   }
 
-  const handleAdd = async () => {
-    const newCodSubgrupo = Math.max(...subgrupos.map(s => s.cod_subgrupo), 0) + 1
-
+  const handleAddSubgrupo = async (formData: any) => {
     try {
       const { error } = await supabase
         .from("subgrupo_margem")
-        .insert({
-          cod_subgrupo: newCodSubgrupo,
-          nome_subgrupo: "Novo Subgrupo",
-          margem: 0,
-          margem_adc: 0,
-          data_inicio: new Date().toISOString().split('T')[0],
-          data_fim: "2030-12-31",
-          observacao: "",
-          st_ativo: 1
-        })
+        .insert(formData)
 
       if (error) throw error
 
@@ -199,6 +190,8 @@ export default function ConfiguracaoDescontoSubgrupo() {
     })
   }
 
+  const maxCodSubgrupo = Math.max(...subgrupos.map(s => s.cod_subgrupo), 0)
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -213,7 +206,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
-            <Button size="sm" onClick={handleAdd}>
+            <Button size="sm" onClick={() => setAddDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Adicionar
             </Button>
@@ -336,6 +329,13 @@ export default function ConfiguracaoDescontoSubgrupo() {
           </table>
         </div>
       </CardContent>
+
+      <AddSubgrupoMargemDialog
+        onAdd={handleAddSubgrupo}
+        isOpen={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        maxCodSubgrupo={maxCodSubgrupo}
+      />
     </Card>
   )
 }

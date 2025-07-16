@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,8 @@ import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { PercentageInput } from "@/components/PercentageInput"
+import { CurrencyInput } from "@/components/CurrencyInput"
+import { AddProdutoMargemDialog } from "@/components/AddProdutoMargemDialog"
 
 type ProdutoMargem = Tables<"produto_margem">
 type CadastroProduto = Tables<"cadastro_produto">
@@ -25,6 +28,7 @@ export default function DescontoProduto() {
   const [produtosCadastro, setProdutosCadastro] = useState<CadastroProduto[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -73,13 +77,31 @@ export default function DescontoProduto() {
   }
 
   const handleMargemChange = (id: number, value: string) => {
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    const item = produtos.find(p => p.id === id)
+    if (!item) return
+
+    let numericValue = 0
+    if (item.tipo_margem === 'percentual') {
+      numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    } else {
+      numericValue = parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.')) / 100 || 0
+    }
+    
     console.log(`Alterando margem do produto ${id} para:`, numericValue)
     handleFieldChange(id, 'margem', numericValue)
   }
 
   const handleMargemAdcChange = (id: number, value: string) => {
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    const item = produtos.find(p => p.id === id)
+    if (!item) return
+
+    let numericValue = 0
+    if (item.tipo_margem === 'percentual') {
+      numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    } else {
+      numericValue = parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.')) / 100 || 0
+    }
+    
     console.log(`Alterando margem adc do produto ${id} para:`, numericValue)
     handleFieldChange(id, 'margem_adc', numericValue)
   }
@@ -90,12 +112,19 @@ export default function DescontoProduto() {
     handleFieldChange(id, 'desconto', numericValue)
   }
 
-  const formatValueForDisplay = (value: number | null, isPercentual: boolean = false) => {
+  const formatValueForDisplay = (value: number | null, isPercentual: boolean = false, tipoMargem: string = 'percentual') => {
     if (value === null || value === undefined) return ''
-    if (isPercentual) {
+    
+    if (isPercentual || tipoMargem === 'percentual') {
       return value.toFixed(2).replace('.', ',') + '%'
+    } else {
+      // Para valores monetários
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 2
+      }).format(value)
     }
-    return value.toFixed(2).replace('.', ',')
   }
 
   const handleSave = async (id: number) => {
@@ -173,42 +202,18 @@ export default function DescontoProduto() {
     document.body.removeChild(link)
   }
 
-  const handleAdd = async () => {
-    // Verificar se há produtos cadastrados
-    if (produtosCadastro.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Não há produtos cadastrados. Por favor, cadastre um produto primeiro.",
-        variant: "destructive"
-      })
-      return
-    }
-
-    // Usar o primeiro produto disponível como padrão
-    const primeiroIdProduto = produtosCadastro[0].id_produto
-
+  const handleAddProduto = async (formData: any) => {
     try {
       const { error } = await supabase
         .from("produto_margem")
-        .insert({
-          id_produto: primeiroIdProduto,
-          margem: 0,
-          margem_adc: 0,
-          desconto: 0,
-          tipo_aplicacao: "percentual",
-          tipo_margem: "percentual",
-          data_inicio: new Date().toISOString().split('T')[0],
-          data_fim: "2030-12-31",
-          observacao: "",
-          st_ativo: 1
-        })
+        .insert(formData)
 
       if (error) throw error
 
       fetchData()
       toast({
         title: "Sucesso",
-        description: "Produto adicionado com sucesso. Edite o ID do produto conforme necessário."
+        description: "Produto adicionado com sucesso"
       })
     } catch (error) {
       console.error("Erro ao adicionar produto:", error)
@@ -259,7 +264,7 @@ export default function DescontoProduto() {
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
-            <Button size="sm" onClick={handleAdd}>
+            <Button size="sm" onClick={() => setAddDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Adicionar
             </Button>
@@ -312,14 +317,12 @@ export default function DescontoProduto() {
                           disabled={!isFieldEditable(item)}
                         />
                       ) : (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.margem || ''}
-                          onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
+                        <CurrencyInput
+                          value={formatValueForDisplay(item.margem, false, 'valor')}
+                          onChange={(value) => handleMargemChange(item.id, value)}
                           className="w-24"
                           disabled={!isFieldEditable(item)}
-                          placeholder="Valor mínimo"
+                          placeholder="R$ 0,00"
                         />
                       )
                     )}
@@ -335,14 +338,12 @@ export default function DescontoProduto() {
                           disabled={!isFieldEditable(item)}
                         />
                       ) : (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.margem_adc || ''}
-                          onChange={(e) => handleFieldChange(item.id, 'margem_adc', parseFloat(e.target.value) || 0)}
+                        <CurrencyInput
+                          value={formatValueForDisplay(item.margem_adc, false, 'valor')}
+                          onChange={(value) => handleMargemAdcChange(item.id, value)}
                           className="w-24"
                           disabled={!isFieldEditable(item)}
-                          placeholder="Valor mínimo"
+                          placeholder="R$ 0,00"
                         />
                       )
                     )}
@@ -441,6 +442,13 @@ export default function DescontoProduto() {
           </table>
         </div>
       </CardContent>
+
+      <AddProdutoMargemDialog
+        produtosCadastro={produtosCadastro}
+        onAdd={handleAddProduto}
+        isOpen={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+      />
     </Card>
   )
 }
