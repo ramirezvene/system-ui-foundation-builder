@@ -53,7 +53,12 @@ export default function ConfiguracaoDescontoSubgrupo() {
   }
 
   const handleMargemChange = (cod_subgrupo: number, value: string) => {
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    // Remove o símbolo % e converte vírgula para ponto
+    const cleanValue = value.replace('%', '').replace(',', '.')
+    const numericValue = parseFloat(cleanValue) || 0
+    
+    console.log(`Alterando margem do subgrupo ${cod_subgrupo} de "${value}" para:`, numericValue)
+    
     setSubgrupos(prev => prev.map(item => 
       item.cod_subgrupo === cod_subgrupo ? { ...item, margem: numericValue } : item
     ))
@@ -61,7 +66,12 @@ export default function ConfiguracaoDescontoSubgrupo() {
   }
 
   const handleMargemAdcChange = (cod_subgrupo: number, value: string) => {
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    // Remove o símbolo % e converte vírgula para ponto
+    const cleanValue = value.replace('%', '').replace(',', '.')
+    const numericValue = parseFloat(cleanValue) || 0
+    
+    console.log(`Alterando margem adc do subgrupo ${cod_subgrupo} de "${value}" para:`, numericValue)
+    
     setSubgrupos(prev => prev.map(item => 
       item.cod_subgrupo === cod_subgrupo ? { ...item, margem_adc: numericValue } : item
     ))
@@ -69,7 +79,12 @@ export default function ConfiguracaoDescontoSubgrupo() {
   }
 
   const handleDescontoChange = (cod_subgrupo: number, value: string) => {
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    // Remove o símbolo % e converte vírgula para ponto
+    const cleanValue = value.replace('%', '').replace(',', '.')
+    const numericValue = parseFloat(cleanValue) || 0
+    
+    console.log(`Alterando desconto do subgrupo ${cod_subgrupo} de "${value}" para:`, numericValue)
+    
     setSubgrupos(prev => prev.map(item => 
       item.cod_subgrupo === cod_subgrupo ? { ...item, desconto: numericValue } : item
     ))
@@ -224,8 +239,9 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     <Input
                       value={subgrupo.nome_subgrupo}
                       onChange={(e) => handleFieldChange(subgrupo.cod_subgrupo, 'nome_subgrupo', e.target.value)}
-                      className="w-48"
-                      disabled={!isFieldEditable(subgrupo)}
+                      className="w-48 bg-gray-100"
+                      disabled={true}
+                      readOnly={true}
                     />
                   </td>
                   <td className="p-2">

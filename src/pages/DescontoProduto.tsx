@@ -120,13 +120,18 @@ export default function DescontoProduto() {
     if (!item) return
 
     let numericValue = 0
+    
     if (item.tipo_margem === 'percentual') {
-      numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+      // Remove o símbolo % e converte vírgula para ponto
+      const cleanValue = value.replace('%', '').replace(',', '.')
+      numericValue = parseFloat(cleanValue) || 0
     } else {
-      numericValue = parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.')) / 100 || 0
+      // Para valores monetários, remove R$, pontos de milhares e converte vírgula para ponto
+      const cleanValue = value.replace('R$', '').replace(/\./g, '').replace(',', '.')
+      numericValue = parseFloat(cleanValue) || 0
     }
     
-    console.log(`Alterando margem do produto ${id} para:`, numericValue)
+    console.log(`Alterando margem do produto ${id} de "${value}" para:`, numericValue)
     handleFieldChange(id, 'margem', numericValue)
   }
 
@@ -135,19 +140,27 @@ export default function DescontoProduto() {
     if (!item) return
 
     let numericValue = 0
+    
     if (item.tipo_margem === 'percentual') {
-      numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+      // Remove o símbolo % e converte vírgula para ponto
+      const cleanValue = value.replace('%', '').replace(',', '.')
+      numericValue = parseFloat(cleanValue) || 0
     } else {
-      numericValue = parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.')) / 100 || 0
+      // Para valores monetários, remove R$, pontos de milhares e converte vírgula para ponto
+      const cleanValue = value.replace('R$', '').replace(/\./g, '').replace(',', '.')
+      numericValue = parseFloat(cleanValue) || 0
     }
     
-    console.log(`Alterando margem adc do produto ${id} para:`, numericValue)
+    console.log(`Alterando margem adc do produto ${id} de "${value}" para:`, numericValue)
     handleFieldChange(id, 'margem_adc', numericValue)
   }
 
   const handleDescontoChange = (id: number, value: string) => {
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
-    console.log(`Alterando desconto do produto ${id} para:`, numericValue)
+    // Remove o símbolo % e converte vírgula para ponto
+    const cleanValue = value.replace('%', '').replace(',', '.')
+    const numericValue = parseFloat(cleanValue) || 0
+    
+    console.log(`Alterando desconto do produto ${id} de "${value}" para:`, numericValue)
     handleFieldChange(id, 'desconto', numericValue)
   }
 

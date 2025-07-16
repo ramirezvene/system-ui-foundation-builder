@@ -12,35 +12,33 @@ interface PercentageInputProps {
 
 export const PercentageInput = forwardRef<HTMLInputElement, PercentageInputProps>(
   ({ value, onChange, placeholder = "0,00%", className, disabled }, ref) => {
-    const formatPercentage = (value: string) => {
-      // Remove tudo que não for número ou vírgula
-      const numbers = value.replace(/[^\d,]/g, '')
-      
-      if (!numbers) return ''
-      
-      // Se tem vírgula, separa a parte inteira da decimal
-      const parts = numbers.split(',')
-      let integerPart = parts[0]
-      let decimalPart = parts[1] || ''
-      
-      // Limita a 2 casas decimais
-      if (decimalPart.length > 2) {
-        decimalPart = decimalPart.substring(0, 2)
-      }
-      
-      // Monta o resultado
-      let result = integerPart
-      if (parts.length > 1 || numbers.includes(',')) {
-        result += ',' + decimalPart
-      }
-      
-      return result + '%'
-    }
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rawValue = e.target.value.replace('%', '')
-      const formatted = formatPercentage(rawValue)
-      onChange(formatted)
+      let inputValue = e.target.value
+      
+      // Remove o símbolo % se existir
+      inputValue = inputValue.replace('%', '')
+      
+      // Permite apenas números, vírgulas e pontos
+      inputValue = inputValue.replace(/[^\d,\.]/g, '')
+      
+      // Substitui ponto por vírgula para padronização brasileira
+      inputValue = inputValue.replace('.', ',')
+      
+      // Garante apenas uma vírgula
+      const parts = inputValue.split(',')
+      if (parts.length > 2) {
+        inputValue = parts[0] + ',' + parts.slice(1).join('')
+      }
+      
+      // Limita a 2 casas decimais após a vírgula
+      if (parts.length === 2 && parts[1].length > 2) {
+        inputValue = parts[0] + ',' + parts[1].substring(0, 2)
+      }
+      
+      // Adiciona o símbolo % no final
+      const formattedValue = inputValue ? inputValue + '%' : ''
+      
+      onChange(formattedValue)
     }
 
     return (
