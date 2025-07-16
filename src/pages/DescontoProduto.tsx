@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -245,27 +244,69 @@ export default function DescontoProduto() {
     document.body.removeChild(link)
   }
 
-  const handleAddProduto = async (formData: any) => {
-    try {
-      const { error } = await supabase
-        .from("produto_margem")
-        .insert(formData)
+  const handleImportCSV = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".csv"
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
 
-      if (error) throw error
+      const text = await file.text()
+      const lines = text.split("\n")
+      
+      try {
+        const updates = []
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(",")
+          if (values.length >= 13) {
+            const id = parseInt(values[0])
+            if (!isNaN(id)) {
+              updates.push({
+                id: id,
+                margem: parseFloat(values[6]) || 0,
+                margem_adc: values[7] ? parseFloat(values[7]) : null,
+                desconto: values[8] ? parseFloat(values[8]) : null,
+                data_inicio: values[9],
+                data_fim: values[10],
+                st_ativo: values[11] === "Ativo" ? 1 : 0,
+                observacao: values[12] || null
+              })
+            }
+          }
+        }
 
-      fetchData()
-      toast({
-        title: "Sucesso",
-        description: "Produto adicionado com sucesso"
-      })
-    } catch (error) {
-      console.error("Erro ao adicionar produto:", error)
-      toast({
-        title: "Erro",
-        description: "Erro ao adicionar produto",
-        variant: "destructive"
-      })
+        for (const update of updates) {
+          await supabase
+            .from("produto_margem")
+            .update({
+              margem: update.margem,
+              margem_adc: update.margem_adc,
+              desconto: update.desconto,
+              data_inicio: update.data_inicio,
+              data_fim: update.data_fim,
+              st_ativo: update.st_ativo,
+              observacao: update.observacao,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", update.id)
+        }
+
+        await fetchData()
+        toast({
+          title: "Sucesso",
+          description: "Dados importados com sucesso"
+        })
+      } catch (error) {
+        console.error("Erro ao importar CSV:", error)
+        toast({
+          title: "Erro",
+          description: "Erro ao importar arquivo CSV",
+          variant: "destructive"
+        })
+      }
     }
+    input.click()
   }
 
   const toggleObservacaoDialog = (id: number) => {
@@ -337,7 +378,7 @@ export default function DescontoProduto() {
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleImportCSV}>
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
@@ -550,8 +591,8 @@ export default function DescontoProduto() {
       </CardContent>
 
       <AddProdutoMargemDialog
-        produtosCadastro={produtosCadastro}
-        onAdd={handleAddProduto}
+        produtos={produtosCadastro}
+        onAdd={fetchData}
         isOpen={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
       />
