@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -39,9 +40,9 @@ export default function ConfiguracaoTokenLoja() {
     }
   }
 
-  const handleLojaChange = (codLoja: number, field: keyof Loja, value: any) => {
+  const handleStatusToggle = (codLoja: number, newStatus: boolean) => {
     setLojas(prev => prev.map(loja => 
-      loja.cod_loja === codLoja ? { ...loja, [field]: value } : loja
+      loja.cod_loja === codLoja ? { ...loja, st_token: newStatus ? 1 : 0 } : loja
     ))
     setEditedRows(prev => new Set(prev).add(codLoja))
   }
@@ -56,7 +57,6 @@ export default function ConfiguracaoTokenLoja() {
         .update({
           st_token: loja.st_token,
           qtde_token: loja.qtde_token
-          // Removidos meta_loja e dre_negativo para bloquear edição
         })
         .eq("cod_loja", codLoja)
 
@@ -84,15 +84,15 @@ export default function ConfiguracaoTokenLoja() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Código", "Loja", "Estado", "Status Token", "Qtde Token", "Meta Loja", "DRE Negativo"],
+      ["Código", "Loja", "Estado", "Qtde Token", "Meta Loja", "DRE Loja", "Status Token"],
       ...lojas.map(loja => [
         loja.cod_loja,
         loja.loja,
         loja.estado,
-        loja.st_token === 1 ? "Ativo" : "Inativo",
         loja.qtde_token || 0,
         loja.meta_loja === 1 ? "Regular" : "Irregular",
-        loja.dre_negativo === 1 ? "Regular" : "Irregular"
+        loja.dre_negativo === 1 ? "Regular" : "Irregular",
+        loja.st_token === 1 ? "Ativo" : "Inativo"
       ])
     ].map(row => row.join(",")).join("\n")
 
@@ -100,24 +100,80 @@ export default function ConfiguracaoTokenLoja() {
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
     link.setAttribute("href", url)
-    link.setAttribute("download", "lojas.csv")
+    link.setAttribute("download", "token_lojas.csv")
     link.style.visibility = "hidden"
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
+  const handleImportCSV = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".csv"
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const text = await file.text()
+      const lines = text.split("\n")
+      const headers = lines[0].split(",")
+      
+      try {
+        const updates = []
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(",")
+          if (values.length >= 7) {
+            const codLoja = parseInt(values[0])
+            const qtdeToken = parseInt(values[3]) || 0
+            const stToken = values[6] === "Ativo" ? 1 : 0
+            
+            updates.push({
+              cod_loja: codLoja,
+              qtde_token: qtdeToken,
+              st_token: stToken
+            })
+          }
+        }
+
+        for (const update of updates) {
+          await supabase
+            .from("cadastro_loja")
+            .update({
+              qtde_token: update.qtde_token,
+              st_token: update.st_token
+            })
+            .eq("cod_loja", update.cod_loja)
+        }
+
+        await fetchLojas()
+        toast({
+          title: "Sucesso",
+          description: "Dados importados com sucesso"
+        })
+      } catch (error) {
+        console.error("Erro ao importar CSV:", error)
+        toast({
+          title: "Erro",
+          description: "Erro ao importar arquivo CSV",
+          variant: "destructive"
+        })
+      }
+    }
+    input.click()
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
-          Configuração Token Loja
+          Token Loja
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleImportCSV}>
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
@@ -125,77 +181,59 @@ export default function ConfiguracaoTokenLoja() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Código</th>
-                <th className="text-left p-2">Loja</th>
-                <th className="text-left p-2">Estado</th>
-                <th className="text-left p-2">Status Token</th>
-                <th className="text-left p-2">Qtde Token</th>
-                <th className="text-left p-2">Meta Loja</th>
-                <th className="text-left p-2">DRE Negativo</th>
-                <th className="text-left p-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lojas.map((loja) => (
-                <tr key={loja.cod_loja} className={`border-b ${editedRows.has(loja.cod_loja) ? 'bg-yellow-50' : ''}`}>
-                  <td className="p-2 font-medium">{loja.cod_loja}</td>
-                  <td className="p-2">{loja.loja}</td>
-                  <td className="p-2">{loja.estado}</td>
-                  <td className="p-2">
-                    <Select
-                      value={loja.st_token?.toString() || "1"}
-                      onValueChange={(value) => handleLojaChange(loja.cod_loja, 'st_token', parseInt(value))}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Ativo</SelectItem>
-                        <SelectItem value="0">Inativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="p-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={loja.qtde_token || 0}
-                      onChange={(e) => handleLojaChange(loja.cod_loja, 'qtde_token', parseInt(e.target.value) || 0)}
-                      className="w-20"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      loja.meta_loja === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {loja.meta_loja === 1 ? "Regular" : "Irregular"}
-                    </span>
-                  </td>
-                  <td className="p-2">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      loja.dre_negativo === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {loja.dre_negativo === 1 ? "Regular" : "Irregular"}
-                    </span>
-                  </td>
-                  <td className="p-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleSave(loja.cod_loja)}
-                      disabled={!editedRows.has(loja.cod_loja)}
-                    >
-                      Salvar
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Código</TableHead>
+              <TableHead>Loja</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Qtde Token</TableHead>
+              <TableHead>Meta Loja</TableHead>
+              <TableHead>DRE Loja</TableHead>
+              <TableHead>Status Token</TableHead>
+              <TableHead>Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lojas.map((loja) => (
+              <TableRow key={loja.cod_loja} className={editedRows.has(loja.cod_loja) ? 'bg-yellow-50' : ''}>
+                <TableCell className="font-medium">{loja.cod_loja}</TableCell>
+                <TableCell>{loja.loja}</TableCell>
+                <TableCell>{loja.estado}</TableCell>
+                <TableCell>{loja.qtde_token || 0}</TableCell>
+                <TableCell>
+                  <Badge variant={loja.meta_loja === 1 ? "default" : "destructive"} className={
+                    loja.meta_loja === 1 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"
+                  }>
+                    {loja.meta_loja === 1 ? "Regular" : "Irregular"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={loja.dre_negativo === 1 ? "default" : "destructive"} className={
+                    loja.dre_negativo === 1 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"
+                  }>
+                    {loja.dre_negativo === 1 ? "Regular" : "Irregular"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={loja.st_token === 1}
+                    onCheckedChange={(checked) => handleStatusToggle(loja.cod_loja, checked)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleSave(loja.cod_loja)}
+                    disabled={!editedRows.has(loja.cod_loja)}
+                  >
+                    Salvar
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   )
