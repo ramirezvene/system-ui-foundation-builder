@@ -257,6 +257,7 @@ export type Database = {
           margem: number
           margem_adc: number | null
           observacao: string | null
+          qtde_max: number
           st_ativo: number
           tipo_aplicacao: string
           tipo_margem: string
@@ -273,6 +274,7 @@ export type Database = {
           margem: number
           margem_adc?: number | null
           observacao?: string | null
+          qtde_max?: number
           st_ativo?: number
           tipo_aplicacao: string
           tipo_margem?: string
@@ -289,6 +291,7 @@ export type Database = {
           margem?: number
           margem_adc?: number | null
           observacao?: string | null
+          qtde_max?: number
           st_ativo?: number
           tipo_aplicacao?: string
           tipo_margem?: string
@@ -350,6 +353,7 @@ export type Database = {
           margem_adc: number | null
           nome_subgrupo: string
           observacao: string | null
+          qtde_max: number
           st_ativo: number
         }
         Insert: {
@@ -361,6 +365,7 @@ export type Database = {
           margem_adc?: number | null
           nome_subgrupo: string
           observacao?: string | null
+          qtde_max?: number
           st_ativo?: number
         }
         Update: {
@@ -372,6 +377,7 @@ export type Database = {
           margem_adc?: number | null
           nome_subgrupo?: string
           observacao?: string | null
+          qtde_max?: number
           st_ativo?: number
         }
         Relationships: []

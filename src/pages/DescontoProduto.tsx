@@ -189,6 +189,7 @@ export default function DescontoProduto() {
           margem: item.margem,
           margem_adc: item.margem_adc,
           desconto: item.desconto,
+          qtde_max: item.qtde_max,
           tipo_aplicacao: item.tipo_aplicacao,
           tipo_margem: item.tipo_margem,
           tipo_referencia: item.tipo_referencia,
@@ -223,13 +224,14 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["ID", "ID Produto", "Nome Produto", "Tipo", "Tipo Ref", "Tipo Margem", "Margem", "Margem Adc", "% Desc", "Data Início", "Data Fim", "Ativo", "Observação"],
+      ["ID", "ID Produto", "Nome Produto", "Tipo", "Tipo Ref", "Qtde Max", "Tipo Margem", "Margem", "Margem Adc", "% Desc", "Data Início", "Data Fim", "Ativo", "Observação"],
       ...produtos.map(item => [
         item.id,
         item.id_produto,
         item.produto?.nome_produto || '',
         item.tipo_aplicacao,
         item.tipo_referencia || '',
+        item.qtde_max,
         item.tipo_margem,
         item.margem,
         item.margem_adc || '',
@@ -267,18 +269,19 @@ export default function DescontoProduto() {
         const updates = []
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(",")
-          if (values.length >= 13) {
+          if (values.length >= 14) {
             const id = parseInt(values[0])
             if (!isNaN(id)) {
               updates.push({
                 id: id,
-                margem: parseFloat(values[6]) || 0,
-                margem_adc: values[7] ? parseFloat(values[7]) : null,
-                desconto: values[8] ? parseFloat(values[8]) : null,
-                data_inicio: values[9],
-                data_fim: values[10],
-                st_ativo: values[11] === "Ativo" ? 1 : 0,
-                observacao: values[12] || null
+                qtde_max: parseInt(values[5]) || 0,
+                margem: parseFloat(values[7]) || 0,
+                margem_adc: values[8] ? parseFloat(values[8]) : null,
+                desconto: values[9] ? parseFloat(values[9]) : null,
+                data_inicio: values[10],
+                data_fim: values[11],
+                st_ativo: values[12] === "Ativo" ? 1 : 0,
+                observacao: values[13] || null
               })
             }
           }
@@ -288,6 +291,7 @@ export default function DescontoProduto() {
           await supabase
             .from("produto_margem")
             .update({
+              qtde_max: update.qtde_max,
               margem: update.margem,
               margem_adc: update.margem_adc,
               desconto: update.desconto,
@@ -404,6 +408,7 @@ export default function DescontoProduto() {
                 <th className="text-left p-2">Nome Produto</th>
                 <th className="text-left p-2">Tipo</th>
                 <th className="text-left p-2">Tipo Ref</th>
+                <th className="text-left p-2">Qtde Max</th>
                 <th className="text-left p-2">Tipo Margem</th>
                 <th className="text-left p-2">Margem</th>
                 <th className="text-left p-2">Margem Adc</th>
@@ -458,6 +463,16 @@ export default function DescontoProduto() {
                         disabled={!isFieldEditable(item)}
                       />
                     )}
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      value={item.qtde_max}
+                      onChange={(e) => handleFieldChange(item.id, 'qtde_max', parseInt(e.target.value) || 0)}
+                      className="w-24"
+                      disabled={!isFieldEditable(item)}
+                      min="0"
+                    />
                   </td>
                   <td className="p-2">
                     <Select

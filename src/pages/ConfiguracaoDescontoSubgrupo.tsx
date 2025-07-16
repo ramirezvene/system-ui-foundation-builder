@@ -108,6 +108,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
           margem: item.margem,
           margem_adc: item.margem_adc,
           desconto: item.desconto,
+          qtde_max: item.qtde_max,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
           st_ativo: item.st_ativo,
@@ -139,10 +140,11 @@ export default function ConfiguracaoDescontoSubgrupo() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Cód Subgrupo", "Nome Subgrupo", "Margem", "Margem Adc", "% Desc", "Data Início", "Data Fim", "Ativo", "Observação"],
+      ["Cód Subgrupo", "Nome Subgrupo", "Qtde Max", "Margem", "Margem Adc", "% Desc", "Data Início", "Data Fim", "Ativo", "Observação"],
       ...subgrupos.map(item => [
         item.cod_subgrupo,
         item.nome_subgrupo,
+        item.qtde_max,
         item.margem,
         item.margem_adc,
         item.desconto,
@@ -165,7 +167,69 @@ export default function ConfiguracaoDescontoSubgrupo() {
   }
 
   const handleImportCSV = () => {
-    // Implementar a lógica de importação CSV aqui
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".csv"
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const text = await file.text()
+      const lines = text.split("\n")
+      
+      try {
+        const updates = []
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(",")
+          if (values.length >= 10) {
+            const cod_subgrupo = parseInt(values[0])
+            if (!isNaN(cod_subgrupo)) {
+              updates.push({
+                cod_subgrupo: cod_subgrupo,
+                qtde_max: parseInt(values[2]) || 0,
+                margem: parseFloat(values[3]) || 0,
+                margem_adc: values[4] ? parseFloat(values[4]) : null,
+                desconto: values[5] ? parseFloat(values[5]) : null,
+                data_inicio: values[6],
+                data_fim: values[7],
+                st_ativo: values[8] === "Ativo" ? 1 : 0,
+                observacao: values[9] || null
+              })
+            }
+          }
+        }
+
+        for (const update of updates) {
+          await supabase
+            .from("subgrupo_margem")
+            .update({
+              qtde_max: update.qtde_max,
+              margem: update.margem,
+              margem_adc: update.margem_adc,
+              desconto: update.desconto,
+              data_inicio: update.data_inicio,
+              data_fim: update.data_fim,
+              st_ativo: update.st_ativo,
+              observacao: update.observacao
+            })
+            .eq("cod_subgrupo", update.cod_subgrupo)
+        }
+
+        await fetchData()
+        toast({
+          title: "Sucesso",
+          description: "Dados importados com sucesso"
+        })
+      } catch (error) {
+        console.error("Erro ao importar CSV:", error)
+        toast({
+          title: "Erro",
+          description: "Erro ao importar arquivo CSV",
+          variant: "destructive"
+        })
+      }
+    }
+    input.click()
   }
 
   const toggleObservacaoDialog = (cod_subgrupo: number) => {
@@ -219,6 +283,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
               <tr className="border-b">
                 <th className="text-left p-2">Cód Subgrupo</th>
                 <th className="text-left p-2">Nome Subgrupo</th>
+                <th className="text-left p-2">Qtde Max</th>
                 <th className="text-left p-2">Margem</th>
                 <th className="text-left p-2">Margem Adc</th>
                 <th className="text-left p-2">% Desc</th>
@@ -242,6 +307,16 @@ export default function ConfiguracaoDescontoSubgrupo() {
                       className="w-48 bg-gray-100"
                       disabled={true}
                       readOnly={true}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      value={subgrupo.qtde_max}
+                      onChange={(e) => handleFieldChange(subgrupo.cod_subgrupo, 'qtde_max', parseInt(e.target.value) || 0)}
+                      className="w-24"
+                      disabled={!isFieldEditable(subgrupo)}
+                      min="0"
                     />
                   </td>
                   <td className="p-2">

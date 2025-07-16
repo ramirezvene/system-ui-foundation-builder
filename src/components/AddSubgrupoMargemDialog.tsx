@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { PercentageInput } from "@/components/PercentageInput"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 interface AddSubgrupoMargemDialogProps {
-  onAdd: (data: any) => void
+  onAdd: () => void
   isOpen: boolean
   onClose: () => void
   maxCodSubgrupo: number
@@ -17,10 +19,12 @@ interface AddSubgrupoMargemDialogProps {
 
 export function AddSubgrupoMargemDialog({ onAdd, isOpen, onClose, maxCodSubgrupo }: AddSubgrupoMargemDialogProps) {
   const [formData, setFormData] = useState({
-    cod_subgrupo: maxCodSubgrupo + 1,
+    cod_subgrupo: maxCodSubgrupo,
     nome_subgrupo: "",
     margem: 0,
     margem_adc: 0,
+    desconto: 0,
+    qtde_max: 0,
     data_inicio: new Date().toISOString().split('T')[0],
     data_fim: "2030-12-31",
     observacao: "",
@@ -29,6 +33,8 @@ export function AddSubgrupoMargemDialog({ onAdd, isOpen, onClose, maxCodSubgrupo
 
   const [margemDisplay, setMargemDisplay] = useState("0,00%")
   const [margemAdcDisplay, setMargemAdcDisplay] = useState("0,00%")
+  const [descontoDisplay, setDescontoDisplay] = useState("0,00%")
+  const { toast } = useToast()
 
   const handleMargemChange = (value: string) => {
     setMargemDisplay(value)
@@ -42,22 +48,63 @@ export function AddSubgrupoMargemDialog({ onAdd, isOpen, onClose, maxCodSubgrupo
     setFormData(prev => ({ ...prev, margem_adc: numericValue }))
   }
 
-  const handleSubmit = () => {
-    onAdd(formData)
-    // Reset form
-    setFormData({
-      cod_subgrupo: maxCodSubgrupo + 1,
-      nome_subgrupo: "",
-      margem: 0,
-      margem_adc: 0,
-      data_inicio: new Date().toISOString().split('T')[0],
-      data_fim: "2030-12-31",
-      observacao: "",
-      st_ativo: 1
-    })
-    setMargemDisplay("0,00%")
-    setMargemAdcDisplay("0,00%")
-    onClose()
+  const handleDescontoChange = (value: string) => {
+    setDescontoDisplay(value)
+    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
+    setFormData(prev => ({ ...prev, desconto: numericValue }))
+  }
+
+  const handleSubmit = async () => {
+    try {
+      const { error } = await supabase
+        .from("subgrupo_margem")
+        .insert({
+          cod_subgrupo: formData.cod_subgrupo,
+          nome_subgrupo: formData.nome_subgrupo,
+          margem: formData.margem,
+          margem_adc: formData.margem_adc,
+          desconto: formData.desconto,
+          qtde_max: formData.qtde_max,
+          data_inicio: formData.data_inicio,
+          data_fim: formData.data_fim,
+          observacao: formData.observacao,
+          st_ativo: formData.st_ativo
+        })
+
+      if (error) throw error
+
+      onAdd()
+      
+      // Reset form
+      setFormData({
+        cod_subgrupo: maxCodSubgrupo + 1,
+        nome_subgrupo: "",
+        margem: 0,
+        margem_adc: 0,
+        desconto: 0,
+        qtde_max: 0,
+        data_inicio: new Date().toISOString().split('T')[0],
+        data_fim: "2030-12-31",
+        observacao: "",
+        st_ativo: 1
+      })
+      setMargemDisplay("0,00%")
+      setMargemAdcDisplay("0,00%")
+      setDescontoDisplay("0,00%")
+      onClose()
+
+      toast({
+        title: "Sucesso",
+        description: "Subgrupo adicionado com sucesso"
+      })
+    } catch (error) {
+      console.error("Erro ao adicionar subgrupo:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar subgrupo",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -87,6 +134,16 @@ export function AddSubgrupoMargemDialog({ onAdd, isOpen, onClose, maxCodSubgrupo
           </div>
 
           <div>
+            <Label>Qtde Max</Label>
+            <Input
+              type="number"
+              value={formData.qtde_max}
+              onChange={(e) => setFormData(prev => ({ ...prev, qtde_max: parseInt(e.target.value) || 0 }))}
+              min="0"
+            />
+          </div>
+
+          <div>
             <Label>% Margem</Label>
             <PercentageInput
               value={margemDisplay}
@@ -100,6 +157,15 @@ export function AddSubgrupoMargemDialog({ onAdd, isOpen, onClose, maxCodSubgrupo
             <PercentageInput
               value={margemAdcDisplay}
               onChange={handleMargemAdcChange}
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <Label>% Desconto</Label>
+            <PercentageInput
+              value={descontoDisplay}
+              onChange={handleDescontoChange}
               className="w-full"
             />
           </div>

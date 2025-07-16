@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -31,6 +30,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
     margem: 0,
     margem_adc: 0,
     desconto: 0,
+    qtde_max: 0,
     tipo_aplicacao: "estado",
     tipo_margem: "percentual",
     tipo_referencia: "estado",
@@ -141,6 +141,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
           margem: formData.margem,
           margem_adc: formData.margem_adc,
           desconto: formData.desconto,
+          qtde_max: formData.qtde_max,
           tipo_aplicacao: formData.tipo_aplicacao,
           tipo_margem: formData.tipo_margem,
           tipo_referencia: formData.tipo_referencia,
@@ -160,6 +161,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
         margem: 0,
         margem_adc: 0,
         desconto: 0,
+        qtde_max: 0,
         tipo_aplicacao: "estado",
         tipo_margem: "percentual",
         tipo_referencia: "estado",
@@ -250,20 +252,32 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
             </div>
           </div>
 
-          <div>
-            <Label>Tipo Margem</Label>
-            <Select
-              value={formData.tipo_margem}
-              onValueChange={handleTipoMargemChange}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="percentual">Percentual</SelectItem>
-                <SelectItem value="valor">Valor</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Qtde Max</Label>
+              <Input
+                type="number"
+                value={formData.qtde_max}
+                onChange={(e) => setFormData(prev => ({ ...prev, qtde_max: parseInt(e.target.value) || 0 }))}
+                min="0"
+              />
+            </div>
+
+            <div>
+              <Label>Tipo Margem</Label>
+              <Select
+                value={formData.tipo_margem}
+                onValueChange={handleTipoMargemChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentual">Percentual</SelectItem>
+                  <SelectItem value="valor">Valor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
