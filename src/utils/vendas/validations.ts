@@ -50,7 +50,7 @@ export const validateHierarchy = (
     return { error: "Não possuí token disponível." }
   }
 
-  // ETAPA 3: Validar Produto (se possui produto_margem)
+  // ETAPA 3: Validar Produto (PRIORIDADE - sempre verificar primeiro)
   const dataAtual = new Date()
   const produtoMargem = produtoMargens.find(pm => 
     pm.id_produto === selectedProduto.id_produto && 
@@ -61,7 +61,7 @@ export const validateHierarchy = (
   )
 
   if (produtoMargem) {
-    console.log("Validação produto margem encontrada")
+    console.log("Validação produto margem encontrada - PRIORIDADE")
     
     // 3.1 - Status pricing do produto
     if (selectedProduto.st_pricing !== 0) {
@@ -92,7 +92,10 @@ export const validateHierarchy = (
     const percentualDesconto = ((precoAtual - novoPreco) / precoAtual) * 100
     if (produtoMargem.desconto && percentualDesconto > produtoMargem.desconto) {
       console.log("Desconto maior que máximo do produto")
-      return { error: "Maior que desconto máximo Produto." }
+      return { 
+        error: "Maior que desconto máximo Produto.",
+        observacao: produtoMargem.observacao || undefined
+      }
     }
 
     // 3.6 - Outros descontos (alçada)
@@ -111,27 +114,28 @@ export const validateHierarchy = (
       const margemRequerida = produtoMargem.margem_adc || produtoMargem.margem
       if (margemUFLojaPercentual < margemRequerida) {
         return { 
-          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida (${margemRequerida.toFixed(2)}%).`,
+          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${margemRequerida.toFixed(2)}%).`,
           observacao: produtoMargem.observacao || undefined
         }
       }
     } else {
       // 3.9 - Sem cliente identificado, considera apenas margem
       if (margemUFLojaPercentual < produtoMargem.margem) {
-        // Continua para validação do subgrupo
-      } else {
-        // Vai para etapa 5 (Loja)
-        return validateLoja(selectedLoja)
+        return { 
+          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${produtoMargem.margem.toFixed(2)}%).`,
+          observacao: produtoMargem.observacao || undefined
+        }
       }
     }
 
-    // Se chegou aqui com cliente identificado e passou, vai para etapa 5
-    if (clienteIdentificado) {
-      return validateLoja(selectedLoja)
-    }
+    // Se chegou aqui e passou em todas as validações do produto, vai direto para etapa 5 (Loja)
+    console.log("Produto passou em todas as validações - indo para validação da loja")
+    return validateLoja(selectedLoja)
   }
 
-  // ETAPA 4: Validar Subgrupo (se não passou na validação do produto ou não tem produto_margem)
+  // ETAPA 4: Validar Subgrupo (somente se não tem produto_margem ou não passou na validação)
+  console.log("Não encontrou produto_margem ativo - validando subgrupo")
+  
   if (selectedProduto.subgrupo_id) {
     const subgrupoMargem = subgrupoMargens.find(s => 
       s.cod_subgrupo === selectedProduto.subgrupo_id &&
@@ -174,7 +178,10 @@ export const validateHierarchy = (
     const percentualDesconto = ((precoAtual - novoPreco) / precoAtual) * 100
     if (subgrupoMargem.desconto && percentualDesconto > subgrupoMargem.desconto) {
       console.log("Desconto maior que máximo do subgrupo")
-      return { error: "Maior que desconto máximo Subgrupo." }
+      return { 
+        error: "Maior que desconto máximo Subgrupo.",
+        observacao: subgrupoMargem.observacao || undefined
+      }
     }
 
     // 4.5 - Data de vigência já validada no find acima

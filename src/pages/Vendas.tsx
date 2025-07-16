@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -96,12 +95,19 @@ export default function Vendas() {
     setSolicitacaoResult(result)
 
     if (validation.error) {
+      // Exibir toast com a validação específica feita
+      let toastMessage = validation.error
+      if (validation.observacao) {
+        toastMessage += ` Observação: ${validation.observacao}`
+      }
+      
       toast({
         title: "Validação",
-        description: validation.error,
+        description: toastMessage,
         variant: "destructive"
       })
-      handleLimpar()
+      
+      // Não limpar os campos quando há erro de validação para o usuário poder ajustar
       return
     }
 
