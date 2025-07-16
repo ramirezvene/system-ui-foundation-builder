@@ -57,15 +57,24 @@ const menuItems = [
   },
   {
     title: "Conf. Desconto Token",
+    url: "/configuracao-desconto-token",
     icon: Settings,
     items: [
       {
-        title: "Desconto Subgrupo",
+        title: "Estado",
+        url: "/configuracao-desconto-token",
+      },
+      {
+        title: "Loja",
+        url: "/configuracao-token-loja",
+      },
+      {
+        title: "Subgrupo",
         url: "/configuracao-desconto-subgrupo",
       },
       {
-        title: "Token Loja",
-        url: "/configuracao-token-loja",
+        title: "Produto",
+        url: "/configuracao-desconto-token",
       },
       {
         title: "Token Estado",
