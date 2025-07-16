@@ -50,7 +50,7 @@ export const validateHierarchy = (
     return { error: "Não possuí token disponível." }
   }
 
-  // ETAPA 3: Validar Produto (PRIORIDADE - sempre verificar primeiro)
+  // ETAPA 3: Validar Produto (PRIORIDADE ABSOLUTA - sempre verificar primeiro)
   const dataAtual = new Date()
   const produtoMargem = produtoMargens.find(pm => 
     pm.id_produto === selectedProduto.id_produto && 
@@ -61,7 +61,7 @@ export const validateHierarchy = (
   )
 
   if (produtoMargem) {
-    console.log("Validação produto margem encontrada - PRIORIDADE")
+    console.log("Validação produto margem encontrada - PRIORIDADE ABSOLUTA")
     
     // 3.1 - Status pricing do produto
     if (selectedProduto.st_pricing !== 0) {
@@ -88,10 +88,10 @@ export const validateHierarchy = (
       return { error: "Maior que Preço Regular." }
     }
 
-    // 3.5 - % Desconto máximo do produto
+    // 3.5 - % Desconto máximo do produto (PRIORIDADE - deve ser validado aqui)
     const percentualDesconto = ((precoAtual - novoPreco) / precoAtual) * 100
     if (produtoMargem.desconto && percentualDesconto > produtoMargem.desconto) {
-      console.log("Desconto maior que máximo do produto")
+      console.log("Desconto maior que máximo do produto - REJEITADO")
       return { 
         error: "Maior que desconto máximo Produto.",
         observacao: produtoMargem.observacao || undefined
@@ -128,12 +128,13 @@ export const validateHierarchy = (
       }
     }
 
-    // Se chegou aqui e passou em todas as validações do produto, vai direto para etapa 5 (Loja)
-    console.log("Produto passou em todas as validações - indo para validação da loja")
+    // Se chegou aqui e passou em TODAS as validações do produto, vai direto para etapa 5 (Loja)
+    // NÃO VAI PARA O SUBGRUPO - o produto tem prioridade absoluta
+    console.log("Produto passou em TODAS as validações - indo DIRETO para validação da loja (sem subgrupo)")
     return validateLoja(selectedLoja)
   }
 
-  // ETAPA 4: Validar Subgrupo (somente se não tem produto_margem ou não passou na validação)
+  // ETAPA 4: Validar Subgrupo (SOMENTE se NÃO tem produto_margem ativo)
   console.log("Não encontrou produto_margem ativo - validando subgrupo")
   
   if (selectedProduto.subgrupo_id) {
@@ -174,7 +175,7 @@ export const validateHierarchy = (
       }
     }
 
-    // 4.4 - % Desconto máximo do subgrupo
+    // 4.4 - % Desconto máximo do subgrupo (SOMENTE se não passou pelo produto)
     const percentualDesconto = ((precoAtual - novoPreco) / precoAtual) * 100
     if (subgrupoMargem.desconto && percentualDesconto > subgrupoMargem.desconto) {
       console.log("Desconto maior que máximo do subgrupo")
