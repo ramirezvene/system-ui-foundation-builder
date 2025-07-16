@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { Download, Upload, Plus, MessageSquare } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
@@ -17,10 +18,12 @@ type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
 type Estado = Tables<"cadastro_estado">
 type Loja = Tables<"cadastro_loja">
+type SubgrupoMargem = Tables<"subgrupo_margem">
 
 interface ProdutoMargemExtended extends ProdutoMargem {
   produto?: Produto
   referencia_nome?: string
+  subgrupo_margem?: SubgrupoMargem
 }
 
 interface NovoRegistro {
@@ -39,6 +42,7 @@ export default function DescontoProduto() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [estados, setEstados] = useState<Estado[]>([])
   const [lojas, setLojas] = useState<Loja[]>([])
+  const [subgrupoMargens, setSubgrupoMargens] = useState<SubgrupoMargem[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
   const [showNovoRegistro, setShowNovoRegistro] = useState(false)
@@ -92,9 +96,19 @@ export default function DescontoProduto() {
       
       if (lojasError) throw lojasError
 
+      // Buscar subgrupo margens
+      const { data: subgrupoData, error: subgrupoError } = await supabase
+        .from("subgrupo_margem")
+        .select("*")
+        .order("cod_subgrupo")
+      
+      if (subgrupoError) throw subgrupoError
+
       // Combinar dados
       const margemExtended = (margemData || []).map(margem => {
         const produto = produtosData?.find(p => p.id_produto === margem.id_produto)
+        const subgrupoMargem = subgrupoData?.find(s => s.cod_subgrupo === produto?.subgrupo_id)
+        
         let referencia_nome = ""
         
         if (margem.tipo_aplicacao === "estado") {
@@ -108,7 +122,8 @@ export default function DescontoProduto() {
         return {
           ...margem,
           produto,
-          referencia_nome
+          referencia_nome,
+          subgrupo_margem
         }
       })
 
@@ -116,6 +131,7 @@ export default function DescontoProduto() {
       setProdutos(produtosData || [])
       setEstados(estadosData || [])
       setLojas(lojasData || [])
+      setSubgrupoMargens(subgrupoData || [])
     } catch (error) {
       console.error("Erro ao buscar dados:", error)
       toast({
@@ -124,6 +140,11 @@ export default function DescontoProduto() {
         variant: "destructive"
       })
     }
+  }
+
+  const calculateDesconto = (margem: number, margemAdc: number | null) => {
+    if (!margemAdc) return 0
+    return margem - margemAdc
   }
 
   const handleFieldChange = (id: number, field: keyof ProdutoMargem, value: any) => {
@@ -292,7 +313,7 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["ID Produto", "Produto", "Tipo Aplicação", "Referência", "Tipo Margem", "Margem", "Data Início", "Data Fim", "Observação"],
+      ["ID Produto", "Produto", "Tipo Aplicação", "Referência", "Tipo Margem", "Margem", "% Margem Adc", "% Desc", "Ativo", "Data Início", "Data Fim", "Observação"],
       ...produtoMargens.map(item => [
         item.id_produto,
         item.produto?.nome_produto || "",
@@ -300,6 +321,9 @@ export default function DescontoProduto() {
         item.referencia_nome || "",
         item.tipo_margem,
         item.margem,
+        item.subgrupo_margem?.margem_adc || 0,
+        calculateDesconto(item.margem, item.subgrupo_margem?.margem_adc || null),
+        item.subgrupo_margem?.st_ativo === 1 ? "Ativo" : "Inativo",
         item.data_inicio,
         item.data_fim,
         item.observacao || ""
@@ -491,9 +515,12 @@ export default function DescontoProduto() {
                 <th className="text-left p-3">Tipo Aplicação</th>
                 <th className="text-left p-3">Referência</th>
                 <th className="text-left p-3">Tipo Margem</th>
-                <th className="text-left p-3">Margem</th>
+                <th className="text-left p-3">% Margem</th>
+                <th className="text-left p-3">% Margem Adc</th>
+                <th className="text-left p-3">% Desc</th>
                 <th className="text-left p-3 w-36">Data Início</th>
                 <th className="text-left p-3 w-36">Data Fim</th>
+                <th className="text-left p-3">Ativo</th>
                 <th className="text-left p-3">Observação</th>
                 <th className="text-left p-3">Ações</th>
               </tr>
@@ -535,6 +562,20 @@ export default function DescontoProduto() {
                     )}
                   </td>
                   <td className="p-3">
+                    <span className="text-sm">
+                      {item.subgrupo_margem?.margem_adc 
+                        ? `${item.subgrupo_margem.margem_adc.toFixed(2)}%` 
+                        : "N/A"}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <span className="text-sm">
+                      {item.subgrupo_margem?.margem_adc 
+                        ? `${calculateDesconto(item.margem, item.subgrupo_margem.margem_adc).toFixed(2)}%`
+                        : "N/A"}
+                    </span>
+                  </td>
+                  <td className="p-3">
                     <Input
                       type="date"
                       value={item.data_inicio}
@@ -549,6 +590,11 @@ export default function DescontoProduto() {
                       onChange={(e) => handleFieldChange(item.id, 'data_fim', e.target.value)}
                       className="w-full"
                     />
+                  </td>
+                  <td className="p-3">
+                    <Badge variant={item.subgrupo_margem?.st_ativo === 1 ? "default" : "destructive"}>
+                      {item.subgrupo_margem?.st_ativo === 1 ? "Ativo" : "Inativo"}
+                    </Badge>
                   </td>
                   <td className="p-3">
                     <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>

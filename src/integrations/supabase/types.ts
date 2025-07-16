@@ -336,25 +336,34 @@ export type Database = {
           cod_subgrupo: number
           data_fim: string | null
           data_inicio: string | null
+          desconto: number | null
           margem: number
+          margem_adc: number | null
           nome_subgrupo: string
           observacao: string | null
+          st_ativo: number
         }
         Insert: {
           cod_subgrupo: number
           data_fim?: string | null
           data_inicio?: string | null
+          desconto?: number | null
           margem: number
+          margem_adc?: number | null
           nome_subgrupo: string
           observacao?: string | null
+          st_ativo?: number
         }
         Update: {
           cod_subgrupo?: number
           data_fim?: string | null
           data_inicio?: string | null
+          desconto?: number | null
           margem?: number
+          margem_adc?: number | null
           nome_subgrupo?: string
           observacao?: string | null
+          st_ativo?: number
         }
         Relationships: []
       }
