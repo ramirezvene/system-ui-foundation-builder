@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,6 +22,7 @@ interface ProdutoMargemWithProduto extends ProdutoMargem {
 
 export default function DescontoProduto() {
   const [produtos, setProdutos] = useState<ProdutoMargemWithProduto[]>([])
+  const [produtosCadastro, setProdutosCadastro] = useState<CadastroProduto[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
   const { toast } = useToast()
@@ -43,8 +43,17 @@ export default function DescontoProduto() {
       
       if (error) throw error
 
+      // Buscar produtos para o dropdown de adicionar
+      const { data: produtosData, error: produtosError } = await supabase
+        .from("cadastro_produto")
+        .select("*")
+        .order("nome_produto")
+      
+      if (produtosError) throw produtosError
+
       console.log("Dados carregados:", data)
       setProdutos(data || [])
+      setProdutosCadastro(produtosData || [])
     } catch (error) {
       console.error("Erro ao buscar dados:", error)
       toast({
@@ -165,15 +174,28 @@ export default function DescontoProduto() {
   }
 
   const handleAdd = async () => {
+    // Verificar se há produtos cadastrados
+    if (produtosCadastro.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Não há produtos cadastrados. Por favor, cadastre um produto primeiro.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Usar o primeiro produto disponível como padrão
+    const primeiroIdProduto = produtosCadastro[0].id_produto
+
     try {
       const { error } = await supabase
         .from("produto_margem")
         .insert({
-          id_produto: 0,
+          id_produto: primeiroIdProduto,
           margem: 0,
           margem_adc: 0,
           desconto: 0,
-          tipo_aplicacao: "estado",
+          tipo_aplicacao: "percentual",
           tipo_margem: "percentual",
           data_inicio: new Date().toISOString().split('T')[0],
           data_fim: "2030-12-31",
@@ -186,7 +208,7 @@ export default function DescontoProduto() {
       fetchData()
       toast({
         title: "Sucesso",
-        description: "Produto adicionado com sucesso"
+        description: "Produto adicionado com sucesso. Edite o ID do produto conforme necessário."
       })
     } catch (error) {
       console.error("Erro ao adicionar produto:", error)
@@ -268,10 +290,16 @@ export default function DescontoProduto() {
                 <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''} ${!isFieldEditable(item) ? 'bg-gray-50' : ''}`}>
                   <td className="p-2">{item.id}</td>
                   <td className="p-2">
-                    <span className="text-sm">{item.id_produto}</span>
+                    <Input
+                      type="number"
+                      value={item.id_produto}
+                      onChange={(e) => handleFieldChange(item.id, 'id_produto', parseInt(e.target.value) || 0)}
+                      className="w-24"
+                      disabled={!isFieldEditable(item)}
+                    />
                   </td>
                   <td className="p-2">
-                    <span className="text-sm">{item.produto?.nome_produto || 'N/A'}</span>
+                    <span className="text-sm">{item.produto?.nome_produto || 'Produto não encontrado'}</span>
                   </td>
                   {/* Margem */}
                   <td className="p-2">
