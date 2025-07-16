@@ -55,7 +55,6 @@ export const calculateAdditionalInfo = (
     const produtoMargem = produtoMargens.find(pm => 
       pm.id_produto === selectedProduto.id_produto && 
       pm.tipo_aplicacao === "estado" &&
-      pm.codigo_referencia === estadoId &&
       new Date(pm.data_inicio) <= dataAtual &&
       new Date(pm.data_fim) >= dataAtual
     )

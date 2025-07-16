@@ -81,7 +81,6 @@ export const validateHierarchy = (
   const produtoMargem = produtoMargens.find(pm => 
     pm.id_produto === selectedProduto.id_produto && 
     pm.tipo_aplicacao === "estado" &&
-    pm.codigo_referencia === estadoInfo?.id &&
     new Date(pm.data_inicio) <= dataAtual &&
     new Date(pm.data_fim) >= dataAtual
   )

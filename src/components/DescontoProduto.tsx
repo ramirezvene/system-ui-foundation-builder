@@ -11,19 +11,14 @@ import { useToast } from "@/hooks/use-toast"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
-type Estado = Tables<"cadastro_estado">
-type Loja = Tables<"cadastro_loja">
 
 interface ProdutoMargemExtended extends ProdutoMargem {
   produto?: Produto
-  referencia_nome?: string
 }
 
 export default function DescontoProduto() {
   const [produtoMargens, setProdutoMargens] = useState<ProdutoMargemExtended[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
-  const [estados, setEstados] = useState<Estado[]>([])
-  const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const { toast } = useToast()
 
@@ -49,46 +44,17 @@ export default function DescontoProduto() {
       
       if (produtosError) throw produtosError
 
-      // Buscar estados
-      const { data: estadosData, error: estadosError } = await supabase
-        .from("cadastro_estado")
-        .select("*")
-        .order("nome_estado")
-      
-      if (estadosError) throw estadosError
-
-      // Buscar lojas
-      const { data: lojasData, error: lojasError } = await supabase
-        .from("cadastro_loja")
-        .select("*")
-        .order("loja")
-      
-      if (lojasError) throw lojasError
-
       // Combinar dados
       const margemExtended = (margemData || []).map(margem => {
         const produto = produtosData?.find(p => p.id_produto === margem.id_produto)
-        let referencia_nome = ""
-        
-        if (margem.tipo_aplicacao === "estado") {
-          const estado = estadosData?.find(e => e.id === margem.codigo_referencia)
-          referencia_nome = estado?.estado || ""
-        } else {
-          const loja = lojasData?.find(l => l.cod_loja === margem.codigo_referencia)
-          referencia_nome = loja ? `${loja.cod_loja} - ${loja.loja} - ${loja.estado}` : ""
-        }
-
         return {
           ...margem,
-          produto,
-          referencia_nome
+          produto
         }
       })
 
       setProdutoMargens(margemExtended)
       setProdutos(produtosData || [])
-      setEstados(estadosData || [])
-      setLojas(lojasData || [])
     } catch (error) {
       console.error("Erro ao buscar dados:", error)
       toast({
@@ -145,11 +111,10 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["Produto", "Tipo Aplicação", "Referência", "Margem", "Data Início", "Data Fim"],
+      ["Produto", "Tipo Aplicação", "Margem", "Data Início", "Data Fim"],
       ...produtoMargens.map(item => [
         item.produto?.nome_produto || "",
         item.tipo_aplicacao,
-        item.referencia_nome || "",
         item.margem,
         item.data_inicio,
         item.data_fim
@@ -191,7 +156,6 @@ export default function DescontoProduto() {
               <tr className="border-b">
                 <th className="text-left p-2">Produto</th>
                 <th className="text-left p-2">Tipo Aplicação</th>
-                <th className="text-left p-2">Referência</th>
                 <th className="text-left p-2">Margem (%)</th>
                 <th className="text-left p-2">Data Início</th>
                 <th className="text-left p-2">Data Fim</th>
@@ -203,7 +167,6 @@ export default function DescontoProduto() {
                 <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-2">{item.produto?.nome_produto}</td>
                   <td className="p-2">{item.tipo_aplicacao}</td>
-                  <td className="p-2">{item.referencia_nome}</td>
                   <td className="p-2">
                     <Input
                       type="number"
