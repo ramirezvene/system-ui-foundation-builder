@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, Upload, Plus } from "lucide-react"
+import { Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
@@ -274,7 +274,7 @@ export default function DescontoProduto() {
         <CardTitle className="flex justify-between items-center">
           Desconto Produto
           <div className="flex gap-2">
-            <AddProdutoMargemDialog onAdd={fetchData} />
+            <AddProdutoMargemDialog produtos={produtos} onAdd={fetchData} />
             <Button variant="outline" size="sm" onClick={handleExportCSV}>
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV

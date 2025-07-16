@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { Plus } from "lucide-react"
 import { Tables } from "@/integrations/supabase/types"
 import { PercentageInput } from "@/components/PercentageInput"
 import { CurrencyInput } from "@/components/CurrencyInput"
@@ -19,10 +21,11 @@ type Estado = Tables<"cadastro_estado">
 type Loja = Tables<"cadastro_loja">
 
 interface AddProdutoMargemDialogProps {
+  produtos: CadastroProduto[]
   onAdd: () => void
 }
 
-export function AddProdutoMargemDialog({ onAdd }: AddProdutoMargemDialogProps) {
+export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDialogProps) {
   const [formData, setFormData] = useState({
     id_produto: 0,
     margem: 0,
@@ -187,7 +190,13 @@ export function AddProdutoMargemDialog({ onAdd }: AddProdutoMargemDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => setIsOpen(false)}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Plus className="w-4 h-4 mr-2" />
+          Adicionar
+        </Button>
+      </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Adicionar Produto Margem</DialogTitle>
@@ -197,7 +206,7 @@ export function AddProdutoMargemDialog({ onAdd }: AddProdutoMargemDialogProps) {
           <div>
             <Label>Produto</Label>
             <ProdutoCombobox
-              produtos={produtosCadastro}
+              produtos={produtos}
               selectedProduto={selectedProduto}
               onProdutoChange={setSelectedProduto}
               placeholder="Selecionar produto..."
