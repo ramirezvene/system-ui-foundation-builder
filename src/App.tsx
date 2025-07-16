@@ -32,11 +32,13 @@ function App() {
                 <Route path="/vendas" element={<Vendas />} />
                 <Route path="/solicitacao-tokens" element={<SolicitacaoTokens />} />
                 <Route path="/aprovacao-token" element={<AprovacaoToken />} />
-                <Route path="/configuracao-desconto-token" element={<ConfiguracaoDescontoToken />} />
+                {/* <Route path="/configuracao-desconto-token" element={<ConfiguracaoDescontoToken />} /> */}
+                
                 <Route path="/configuracao-desconto-subgrupo" element={<ConfiguracaoDescontoSubgrupo />} />
                 <Route path="/configuracao-token-loja" element={<ConfiguracaoTokenLoja />} />
                 <Route path="/token-estado" element={<TokenEstado />} />
                 <Route path="/desconto-produto" element={<DescontoProduto />} />
+                
                 <Route path="/visualizacao-tokens" element={<VisualizacaoTokens />} />
                 <Route path="/relatorios" element={<Relatorios />} />
               </Routes>
