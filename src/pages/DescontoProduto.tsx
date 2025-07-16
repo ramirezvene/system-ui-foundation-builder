@@ -15,9 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { PercentageInput } from "@/components/PercentageInput"
 import { CurrencyInput } from "@/components/CurrencyInput"
 import { AddProdutoMargemDialog } from "@/components/AddProdutoMargemDialog"
+import { EstadoCombobox } from "@/components/EstadoCombobox"
+import { LojaCombobox } from "@/components/LojaCombobox"
 
 type ProdutoMargem = Tables<"produto_margem">
 type CadastroProduto = Tables<"cadastro_produto">
+type Estado = Tables<"cadastro_estado">
+type Loja = Tables<"cadastro_loja">
 
 interface ProdutoMargemWithProduto extends ProdutoMargem {
   produto?: CadastroProduto
@@ -26,6 +30,8 @@ interface ProdutoMargemWithProduto extends ProdutoMargem {
 export default function DescontoProduto() {
   const [produtos, setProdutos] = useState<ProdutoMargemWithProduto[]>([])
   const [produtosCadastro, setProdutosCadastro] = useState<CadastroProduto[]>([])
+  const [estados, setEstados] = useState<Estado[]>([])
+  const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -55,9 +61,28 @@ export default function DescontoProduto() {
       
       if (produtosError) throw produtosError
 
+      // Buscar estados
+      const { data: estadosData, error: estadosError } = await supabase
+        .from("cadastro_estado")
+        .select("*")
+        .eq("st_ativo", 1)
+        .order("estado")
+      
+      if (estadosError) throw estadosError
+
+      // Buscar lojas
+      const { data: lojasData, error: lojasError } = await supabase
+        .from("cadastro_loja")
+        .select("*")
+        .order("cod_loja")
+      
+      if (lojasError) throw lojasError
+
       console.log("Dados carregados:", data)
       setProdutos(data || [])
       setProdutosCadastro(produtosData || [])
+      setEstados(estadosData || [])
+      setLojas(lojasData || [])
     } catch (error) {
       console.error("Erro ao buscar dados:", error)
       toast({
@@ -143,6 +168,7 @@ export default function DescontoProduto() {
           desconto: item.desconto,
           tipo_aplicacao: item.tipo_aplicacao,
           tipo_margem: item.tipo_margem,
+          tipo_referencia: item.tipo_referencia,
           data_inicio: item.data_inicio,
           data_fim: item.data_fim,
           observacao: item.observacao,
@@ -174,16 +200,17 @@ export default function DescontoProduto() {
 
   const handleExportCSV = () => {
     const csvContent = [
-      ["ID", "ID Produto", "Nome Produto", "Margem", "Margem Adc", "% Desc", "Tipo Aplicação", "Tipo Margem", "Data Início", "Data Fim", "Ativo", "Observação"],
+      ["ID", "ID Produto", "Nome Produto", "Tipo", "Tipo Ref", "Tipo Margem", "Margem", "Margem Adc", "% Desc", "Data Início", "Data Fim", "Ativo", "Observação"],
       ...produtos.map(item => [
         item.id,
         item.id_produto,
         item.produto?.nome_produto || '',
+        item.tipo_aplicacao,
+        item.tipo_referencia || '',
+        item.tipo_margem,
         item.margem,
         item.margem_adc || '',
         item.desconto || '',
-        item.tipo_aplicacao,
-        item.tipo_margem,
         item.data_inicio,
         item.data_fim,
         item.st_ativo === 1 ? 'Ativo' : 'Inativo',
@@ -250,6 +277,26 @@ export default function DescontoProduto() {
     return false
   }
 
+  const getTipoReferenciaOptions = (tipoAplicacao: string) => {
+    if (tipoAplicacao === 'estado') {
+      return estados
+    } else if (tipoAplicacao === 'loja') {
+      return lojas
+    }
+    return []
+  }
+
+  const getTipoReferenciaDisplay = (item: ProdutoMargemWithProduto) => {
+    if (item.tipo_aplicacao === 'estado') {
+      const estado = estados.find(e => e.estado === item.tipo_referencia)
+      return estado ? `${estado.estado} - ${estado.nome_estado}` : item.tipo_referencia
+    } else if (item.tipo_aplicacao === 'loja') {
+      const loja = lojas.find(l => l.cod_loja.toString() === item.tipo_referencia)
+      return loja ? `${loja.cod_loja} - ${loja.loja} - ${loja.estado}` : item.tipo_referencia
+    }
+    return item.tipo_referencia || ''
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -279,10 +326,12 @@ export default function DescontoProduto() {
                 <th className="text-left p-2">ID</th>
                 <th className="text-left p-2">ID Produto</th>
                 <th className="text-left p-2">Nome Produto</th>
+                <th className="text-left p-2">Tipo</th>
+                <th className="text-left p-2">Tipo Ref</th>
+                <th className="text-left p-2">Tipo Margem</th>
                 <th className="text-left p-2">Margem</th>
                 <th className="text-left p-2">Margem Adc</th>
                 <th className="text-left p-2">% Desc</th>
-                <th className="text-left p-2">Tipo Aplicação</th>
                 <th className="text-left p-2 w-32">Data Início</th>
                 <th className="text-left p-2 w-32">Data Fim</th>
                 <th className="text-left p-2">Ativo</th>
@@ -295,16 +344,49 @@ export default function DescontoProduto() {
                 <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''} ${!isFieldEditable(item) ? 'bg-gray-50' : ''}`}>
                   <td className="p-2">{item.id}</td>
                   <td className="p-2">
-                    <Input
-                      type="number"
-                      value={item.id_produto}
-                      onChange={(e) => handleFieldChange(item.id, 'id_produto', parseInt(e.target.value) || 0)}
-                      className="w-24"
-                      disabled={!isFieldEditable(item)}
-                    />
+                    <span className="text-sm">{item.id_produto}</span>
                   </td>
                   <td className="p-2">
                     <span className="text-sm">{item.produto?.nome_produto || 'Produto não encontrado'}</span>
+                  </td>
+                  <td className="p-2">
+                    <Select
+                      value={item.tipo_aplicacao}
+                      onValueChange={(value) => handleFieldChange(item.id, 'tipo_aplicacao', value)}
+                      disabled={!isFieldEditable(item)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="estado">Estado</SelectItem>
+                        <SelectItem value="loja">Loja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      value={getTipoReferenciaDisplay(item)}
+                      onChange={(e) => handleFieldChange(item.id, 'tipo_referencia', e.target.value)}
+                      className="w-40"
+                      disabled={!isFieldEditable(item)}
+                      placeholder="Selecionar referência..."
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Select
+                      value={item.tipo_margem}
+                      onValueChange={(value) => handleFieldChange(item.id, 'tipo_margem', value)}
+                      disabled={!isFieldEditable(item)}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentual">Percentual</SelectItem>
+                        <SelectItem value="valor">Valor</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   {/* Margem */}
                   <td className="p-2">
@@ -358,21 +440,6 @@ export default function DescontoProduto() {
                         disabled={!isFieldEditable(item)}
                       />
                     )}
-                  </td>
-                  <td className="p-2">
-                    <Select
-                      value={item.tipo_aplicacao}
-                      onValueChange={(value) => handleFieldChange(item.id, 'tipo_aplicacao', value)}
-                      disabled={!isFieldEditable(item)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentual">Percentual</SelectItem>
-                        <SelectItem value="valor">Valor</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </td>
                   <td className="p-2">
                     <Input

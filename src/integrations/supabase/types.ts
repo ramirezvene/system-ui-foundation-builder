@@ -260,6 +260,7 @@ export type Database = {
           st_ativo: number
           tipo_aplicacao: string
           tipo_margem: string
+          tipo_referencia: string | null
           updated_at: string
         }
         Insert: {
@@ -275,6 +276,7 @@ export type Database = {
           st_ativo?: number
           tipo_aplicacao: string
           tipo_margem?: string
+          tipo_referencia?: string | null
           updated_at?: string
         }
         Update: {
@@ -290,6 +292,7 @@ export type Database = {
           st_ativo?: number
           tipo_aplicacao?: string
           tipo_margem?: string
+          tipo_referencia?: string | null
           updated_at?: string
         }
         Relationships: [
