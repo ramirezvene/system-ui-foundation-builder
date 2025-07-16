@@ -72,10 +72,10 @@ const menuItems = [
         title: "Subgrupo",
         url: "/configuracao-desconto-subgrupo",
       },
-      {
-        title: "Produto",
-        url: "/configuracao-desconto-token",
-      },
+      // {
+      //   title: "Produto",
+      //   url: "/configuracao-desconto-token",
+      // },
       {
         title: "Token Estado",
         url: "/token-estado",
