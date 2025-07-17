@@ -45,11 +45,11 @@ const menuItems = [
     url: "/vendas",
     icon: ShoppingCart,
   },
-  {
-    title: "Solicitação Token",
-    url: "/solicitacao-tokens",
-    icon: FileText,
-  },
+  // {
+  //   title: "Solicitação Token",
+  //   url: "/solicitacao-tokens",
+  //   icon: FileText,
+  // },
   {
     title: "Aprovação Token",
     url: "/aprovacao-token",
