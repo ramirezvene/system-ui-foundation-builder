@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -95,6 +94,7 @@ export default function Vendas() {
       descontoAlcada: additionalInfo.descontoAlcada,
       margemUF: additionalInfo.margemUF,
       margemZVDC: additionalInfo.margemZVDC,
+      margemAdc: additionalInfo.margemAdc,
       aliqUF: additionalInfo.aliqUF,
       piscofinsUF: additionalInfo.piscofinsUF,
       ruptura: additionalInfo.ruptura,

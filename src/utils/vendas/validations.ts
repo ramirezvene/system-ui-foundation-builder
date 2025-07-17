@@ -1,6 +1,4 @@
 
-
-
 import { Produto, Loja, ProdutoMargem, SubgrupoMargem, Estado } from "@/types/vendas"
 import { calculateMinPrice, calculateUFMargin } from "./priceCalculations"
 
@@ -133,7 +131,7 @@ export const validateHierarchy = (
 
     // 3.4 - Preço regular
     if (novoPreco >= precoAtual) {
-      console.log("Preço maior que regular")
+      console.log("Preço maior ou igual que regular")
       return { error: "Maior que Preço Regular." }
     }
 
@@ -188,6 +186,7 @@ export const validateHierarchy = (
   if (selectedProduto.subgrupo_id) {
     const subgrupoMargem = subgrupoMargens.find(s => 
       s.cod_subgrupo === selectedProduto.subgrupo_id &&
+      s.st_ativo === 1 &&
       (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
       (!s.data_fim || new Date(s.data_fim) >= dataAtual)
     )
@@ -196,11 +195,7 @@ export const validateHierarchy = (
       return { error: "Não possúi produto/subgrupo token Desconto." }
     }
 
-    // 4.1 - Status ativo do subgrupo
-    if (subgrupoMargem.st_ativo !== 1) {
-      console.log("Subgrupo desativado")
-      return { error: "Desativado Pricing Subgrupo." }
-    }
+    // 4.1 - Status ativo do subgrupo já validado no find
 
     const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
 
@@ -258,4 +253,3 @@ const validateLoja = (selectedLoja: Loja): ValidationResult => {
   console.log("Validação passou - token aprovado")
   return { error: null }
 }
-

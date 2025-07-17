@@ -1,6 +1,6 @@
 
 import { Produto, Loja, SubgrupoMargem, ProdutoMargem } from "@/types/vendas"
-import { calculateMinPrice, getCMGForState } from "./priceCalculations"
+import { calculateMinPrice, calculateUFMargin } from "./priceCalculations"
 
 export interface AdditionalInfo {
   precoMinimo: number
@@ -8,6 +8,7 @@ export interface AdditionalInfo {
   descontoAlcada: string
   margemUF: string
   margemZVDC: string
+  margemAdc: string
   aliqUF: number
   piscofinsUF: number
   ruptura: number
@@ -18,77 +19,78 @@ export const calculateAdditionalInfo = (
   selectedLoja: Loja | null,
   novoPreco: number,
   subgrupoMargens: SubgrupoMargem[],
-  produtoMargens?: ProdutoMargem[],
+  produtoMargens: ProdutoMargem[],
   estadoId?: number
 ): AdditionalInfo | null => {
-  if (!selectedProduto || !selectedLoja) return null
-
-  const estado = selectedLoja.estado.toLowerCase()
-  let aliq = 0
-  let piscofins = 0
-  
-  if (estado === 'rs') {
-    aliq = selectedProduto.aliq_rs || 0
-    piscofins = selectedProduto.piscofins || 0
-  } else if (estado === 'sc') {
-    aliq = selectedProduto.aliq_sc || 0
-    piscofins = selectedProduto.piscofins || 0
-  } else if (estado === 'pr') {
-    aliq = selectedProduto.aliq_pr || 0
-    piscofins = selectedProduto.piscofins || 0
+  if (!selectedProduto || !selectedLoja) {
+    return null
   }
+
+  // Buscar produto_margem ativo para o produto
+  const dataAtual = new Date()
+  const produtoMargem = produtoMargens.find(pm => {
+    const dataInicio = new Date(pm.data_inicio)
+    const dataFim = new Date(pm.data_fim)
+    
+    let vinculacaoCorreta = false
+    if (pm.tipo_aplicacao === "estado") {
+      vinculacaoCorreta = pm.tipo_referencia === estadoId?.toString()
+    } else if (pm.tipo_aplicacao === "loja") {
+      vinculacaoCorreta = pm.tipo_referencia === selectedLoja.cod_loja.toString()
+    }
+    
+    return pm.id_produto === selectedProduto.id_produto && 
+           vinculacaoCorreta &&
+           pm.st_ativo === 1 &&
+           dataInicio <= dataAtual &&
+           dataFim >= dataAtual
+  })
+
+  // Buscar subgrupo_margem se não encontrou produto_margem
+  const subgrupoMargem = !produtoMargem && selectedProduto.subgrupo_id 
+    ? subgrupoMargens.find(s => 
+        s.cod_subgrupo === selectedProduto.subgrupo_id &&
+        s.st_ativo === 1 &&
+        (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
+        (!s.data_fim || new Date(s.data_fim) >= dataAtual)
+      )
+    : null
 
   const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
-  const cmgProduto = getCMGForState(selectedProduto, selectedLoja)
+  const margemUF = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
 
-  const descontoAlcada = selectedProduto.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA"
-  
-  const margemUFLoja = (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))) - cmgProduto) / (novoPreco * (1 - ((aliq / 100) + (piscofins / 100))))
-  const margemUF = `${(margemUFLoja * 100).toFixed(2)}%`
-  
-  // Hierarquia ZVDC: primeiro produto_margem, depois subgrupo_margem
-  let margemZVDC = "N/A"
-  const dataAtual = new Date()
-  
-  // 1. Verificar produto_margem primeiro
-  if (produtoMargens && estadoId) {
-    const produtoMargem = produtoMargens.find(pm => 
-      pm.id_produto === selectedProduto.id_produto && 
-      pm.tipo_aplicacao === "estado" &&
-      new Date(pm.data_inicio) <= dataAtual &&
-      new Date(pm.data_fim) >= dataAtual
-    )
-    
-    if (produtoMargem) {
-      if (produtoMargem.tipo_margem === "percentual") {
-        margemZVDC = `${produtoMargem.margem}%`
-      } else {
-        margemZVDC = `R$ ${produtoMargem.margem.toFixed(2)}`
-      }
-    }
+  const estado = selectedLoja.estado.toLowerCase()
+  let cmgProduto = 0
+  let aliqUF = 0
+
+  if (estado === 'rs') {
+    cmgProduto = selectedProduto.cmg_rs || 0
+    aliqUF = selectedProduto.aliq_rs || 0
+  } else if (estado === 'sc') {
+    cmgProduto = selectedProduto.cmg_sc || 0
+    aliqUF = selectedProduto.aliq_sc || 0
+  } else if (estado === 'pr') {
+    cmgProduto = selectedProduto.cmg_pr || 0
+    aliqUF = selectedProduto.aliq_pr || 0
   }
-  
-  // 2. Se não encontrou produto_margem, verificar subgrupo_margem
-  if (margemZVDC === "N/A" && selectedProduto.subgrupo_id) {
-    const subgrupoMargem = subgrupoMargens.find(s => 
-      s.cod_subgrupo === selectedProduto.subgrupo_id &&
-      (!s.data_inicio || new Date(s.data_inicio) <= dataAtual) &&
-      (!s.data_fim || new Date(s.data_fim) >= dataAtual)
-    )
-    
-    if (subgrupoMargem) {
-      margemZVDC = `${subgrupoMargem.margem}%`
-    }
+
+  // Obter margem adicional
+  let margemAdc = "N/A"
+  if (produtoMargem?.margem_adc) {
+    margemAdc = `${produtoMargem.margem_adc.toFixed(2)}%`
+  } else if (subgrupoMargem?.margem_adc) {
+    margemAdc = `${subgrupoMargem.margem_adc.toFixed(2)}%`
   }
 
   return {
     precoMinimo,
     cmgProduto,
-    descontoAlcada,
-    margemUF,
-    margemZVDC,
-    aliqUF: aliq,
-    piscofinsUF: piscofins,
+    descontoAlcada: selectedProduto.alcada === 0 ? "SEM OUTROS" : "COM OUTROS",
+    margemUF: `${margemUF.toFixed(2)}%`,
+    margemZVDC: `${margemUF.toFixed(2)}%`, // Mantendo mesmo valor por compatibilidade
+    margemAdc,
+    aliqUF,
+    piscofinsUF: selectedProduto.piscofins || 0,
     ruptura: selectedProduto.st_ruptura || 0
   }
 }
