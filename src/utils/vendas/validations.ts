@@ -64,7 +64,8 @@ export const validateHierarchy = (
       tipo_referencia: pm.tipo_referencia,
       st_ativo: pm.st_ativo,
       data_inicio: pm.data_inicio,
-      data_fim: pm.data_fim
+      data_fim: pm.data_fim,
+      tipo_margem: pm.tipo_margem
     })
     
     const dataInicio = new Date(pm.data_inicio)
@@ -153,24 +154,54 @@ export const validateHierarchy = (
 
     // 3.7 - Data de vigência já validada na busca
 
-    // 3.8 e 3.9 - Margem UF considerando cliente identificado
-    const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
-    
-    if (clienteIdentificado) {
-      // 3.8 - Com cliente identificado, considera margem adicional ou margem
-      const margemRequerida = produtoMargem.margem_adc || produtoMargem.margem
-      if (margemUFLojaPercentual < margemRequerida) {
-        return { 
-          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${margemRequerida.toFixed(2)}%).`,
-          observacao: produtoMargem.observacao || undefined
+    // 3.8 e 3.9 - Validação de margem baseada no tipo_margem
+    console.log("Validando margem do produto_margem:", {
+      tipo_margem: produtoMargem.tipo_margem,
+      margem: produtoMargem.margem,
+      margem_adc: produtoMargem.margem_adc,
+      clienteIdentificado: clienteIdentificado
+    })
+
+    if (produtoMargem.tipo_margem === "valor") {
+      // Validação por valor - verifica se o preço solicitado é >= margem
+      if (clienteIdentificado) {
+        // Com cliente identificado, considera margem adicional ou margem
+        const margemRequerida = produtoMargem.margem_adc || produtoMargem.margem
+        if (novoPreco < margemRequerida) {
+          return { 
+            error: `Preço solicitado (${novoPreco.toFixed(2)}) menor que margem requerida do produto (${margemRequerida.toFixed(2)}).`,
+            observacao: produtoMargem.observacao || undefined
+          }
+        }
+      } else {
+        // Sem cliente identificado, considera apenas margem
+        if (novoPreco < produtoMargem.margem) {
+          return { 
+            error: `Preço solicitado (${novoPreco.toFixed(2)}) menor que margem requerida do produto (${produtoMargem.margem.toFixed(2)}).`,
+            observacao: produtoMargem.observacao || undefined
+          }
         }
       }
     } else {
-      // 3.9 - Sem cliente identificado, considera apenas margem
-      if (margemUFLojaPercentual < produtoMargem.margem) {
-        return { 
-          error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${produtoMargem.margem.toFixed(2)}%).`,
-          observacao: produtoMargem.observacao || undefined
+      // Validação por percentual - usa margem UF
+      const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
+      
+      if (clienteIdentificado) {
+        // Com cliente identificado, considera margem adicional ou margem
+        const margemRequerida = produtoMargem.margem_adc || produtoMargem.margem
+        if (margemUFLojaPercentual < margemRequerida) {
+          return { 
+            error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${margemRequerida.toFixed(2)}%).`,
+            observacao: produtoMargem.observacao || undefined
+          }
+        }
+      } else {
+        // Sem cliente identificado, considera apenas margem
+        if (margemUFLojaPercentual < produtoMargem.margem) {
+          return { 
+            error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${produtoMargem.margem.toFixed(2)}%).`,
+            observacao: produtoMargem.observacao || undefined
+          }
         }
       }
     }
@@ -195,12 +226,20 @@ export const validateHierarchy = (
       return { error: "Não possúi produto/subgrupo token Desconto." }
     }
 
+    console.log("Subgrupo_margem encontrado:", {
+      cod_subgrupo: subgrupoMargem.cod_subgrupo,
+      margem: subgrupoMargem.margem,
+      margem_adc: subgrupoMargem.margem_adc,
+      desconto: subgrupoMargem.desconto
+    })
+
     // 4.1 - Status ativo do subgrupo já validado no find
 
+    // 4.2 e 4.3 - Validação de margem do subgrupo (sempre por percentual)
     const margemUFLojaPercentual = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
 
     if (clienteIdentificado) {
-      // 4.2 - Com cliente identificado, considera margem adicional ou margem
+      // Com cliente identificado, considera margem adicional ou margem
       const margemRequerida = subgrupoMargem.margem_adc || subgrupoMargem.margem
       if (margemUFLojaPercentual < margemRequerida) {
         return { 
@@ -209,7 +248,7 @@ export const validateHierarchy = (
         }
       }
     } else {
-      // 4.3 - Sem cliente identificado, considera apenas margem
+      // Sem cliente identificado, considera apenas margem
       if (margemUFLojaPercentual < subgrupoMargem.margem) {
         return { 
           error: "Não possuí margem produto/subgrupo.",

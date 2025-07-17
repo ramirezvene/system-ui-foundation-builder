@@ -7,7 +7,7 @@ export interface AdditionalInfo {
   cmgProduto: number
   descontoAlcada: string
   margemUF: string
-  margemZVDC: string
+  margem: string
   margemAdc: string
   aliqUF: number
   piscofinsUF: number
@@ -74,12 +74,29 @@ export const calculateAdditionalInfo = (
     aliqUF = selectedProduto.aliq_pr || 0
   }
 
-  // Obter margem adicional
+  // Obter margens baseadas na fonte (produto_margem ou subgrupo_margem)
+  let margem = "N/A"
   let margemAdc = "N/A"
-  if (produtoMargem?.margem_adc) {
-    margemAdc = `${produtoMargem.margem_adc.toFixed(2)}%`
-  } else if (subgrupoMargem?.margem_adc) {
-    margemAdc = `${subgrupoMargem.margem_adc.toFixed(2)}%`
+  
+  if (produtoMargem) {
+    // Usar margens do produto_margem
+    if (produtoMargem.tipo_margem === "valor") {
+      margem = `R$ ${produtoMargem.margem.toFixed(2)}`
+      if (produtoMargem.margem_adc) {
+        margemAdc = `R$ ${produtoMargem.margem_adc.toFixed(2)}`
+      }
+    } else {
+      margem = `${produtoMargem.margem.toFixed(2)}%`
+      if (produtoMargem.margem_adc) {
+        margemAdc = `${produtoMargem.margem_adc.toFixed(2)}%`
+      }
+    }
+  } else if (subgrupoMargem) {
+    // Usar margens do subgrupo_margem (sempre percentual)
+    margem = `${subgrupoMargem.margem.toFixed(2)}%`
+    if (subgrupoMargem.margem_adc) {
+      margemAdc = `${subgrupoMargem.margem_adc.toFixed(2)}%`
+    }
   }
 
   return {
@@ -87,7 +104,7 @@ export const calculateAdditionalInfo = (
     cmgProduto,
     descontoAlcada: selectedProduto.alcada === 0 ? "SEM OUTROS" : "COM OUTROS",
     margemUF: `${margemUF.toFixed(2)}%`,
-    margemZVDC: `${margemUF.toFixed(2)}%`, // Mantendo mesmo valor por compatibilidade
+    margem,
     margemAdc,
     aliqUF,
     piscofinsUF: selectedProduto.piscofins || 0,

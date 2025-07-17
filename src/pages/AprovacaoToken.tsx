@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -42,10 +43,10 @@ export default function AprovacaoToken() {
     return parseFloat(cleanPrice) || 0
   }
 
-  const handleSolicitarToken = async () => {
+  const handleAprovarToken = async () => {
     const novoPrecoNum = parsePrice(novoPreco)
     
-    console.log("=== SOLICITAÇÃO DE TOKEN ===")
+    console.log("=== APROVAÇÃO DE TOKEN ===")
     console.log("Cliente identificado:", clienteIdentificado)
     console.log("Produto:", selectedProduto?.id_produto, selectedProduto?.nome_produto)
     console.log("Loja:", selectedLoja?.cod_loja, selectedLoja?.loja)
@@ -93,7 +94,7 @@ export default function AprovacaoToken() {
       cmgProduto: additionalInfo.cmgProduto,
       descontoAlcada: additionalInfo.descontoAlcada,
       margemUF: additionalInfo.margemUF,
-      margemZVDC: additionalInfo.margemZVDC,
+      margem: additionalInfo.margem,
       margemAdc: additionalInfo.margemAdc,
       aliqUF: additionalInfo.aliqUF,
       piscofinsUF: additionalInfo.piscofinsUF,
@@ -139,7 +140,7 @@ export default function AprovacaoToken() {
         .insert({
           cod_loja: selectedLoja!.cod_loja,
           codigo_token: tokenCode,
-          st_aprovado: null
+          st_aprovado: 1
         })
         .select()
         .single()
@@ -163,28 +164,28 @@ export default function AprovacaoToken() {
           preco_min: additionalInfo.precoMinimo,
           desc_alcada: additionalInfo.descontoAlcada,
           margem_uf: additionalInfo.margemUF,
-          margem_zvdc: additionalInfo.margemZVDC
+          margem_zvdc: additionalInfo.margem
         })
 
       if (insertDetailError) throw insertDetailError
 
       toast({
         title: "Sucesso",
-        description: `Token ${tokenCode} solicitado com sucesso!`
+        description: `Token ${tokenCode} aprovado com sucesso!`
       })
 
       setSolicitacaoResult(prev => prev ? {
         ...prev,
-        retorno: `Solicitado - Token: ${tokenCode}`
+        retorno: `Aprovado - Token: ${tokenCode}`
       } : null)
 
       handleLimpar()
 
     } catch (error) {
-      console.error("Erro ao solicitar token:", error)
+      console.error("Erro ao aprovar token:", error)
       toast({
         title: "Erro",
-        description: "Erro ao solicitar token",
+        description: "Erro ao aprovar token",
         variant: "destructive"
       })
       handleLimpar()
@@ -297,7 +298,7 @@ export default function AprovacaoToken() {
           )}
 
           <div className="flex gap-2">
-            <Button onClick={handleSolicitarToken} disabled={!selectedLoja || !selectedProduto || !novoPreco}>
+            <Button onClick={handleAprovarToken} disabled={!selectedLoja || !selectedProduto || !novoPreco}>
               Aprovar Token
             </Button>
             <Button variant="outline" onClick={handleLimpar}>

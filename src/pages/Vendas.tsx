@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -93,7 +94,7 @@ export default function Vendas() {
       cmgProduto: additionalInfo.cmgProduto,
       descontoAlcada: additionalInfo.descontoAlcada,
       margemUF: additionalInfo.margemUF,
-      margemZVDC: additionalInfo.margemZVDC,
+      margem: additionalInfo.margem,
       margemAdc: additionalInfo.margemAdc,
       aliqUF: additionalInfo.aliqUF,
       piscofinsUF: additionalInfo.piscofinsUF,
@@ -163,7 +164,7 @@ export default function Vendas() {
           preco_min: additionalInfo.precoMinimo,
           desc_alcada: additionalInfo.descontoAlcada,
           margem_uf: additionalInfo.margemUF,
-          margem_zvdc: additionalInfo.margemZVDC
+          margem_zvdc: additionalInfo.margem
         })
 
       if (insertDetailError) throw insertDetailError

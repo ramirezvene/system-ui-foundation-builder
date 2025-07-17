@@ -22,7 +22,7 @@ export interface SolicitacaoResult {
   cmgProduto: number
   descontoAlcada: string
   margemUF: string
-  margemZVDC: string
+  margem: string
   margemAdc: string
   aliqUF: number
   piscofinsUF: number
