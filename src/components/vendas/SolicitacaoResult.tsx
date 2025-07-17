@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle } from "lucide-react"
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { SolicitacaoResult } from "@/types/vendas"
 
 interface SolicitacaoResultCardProps {
@@ -10,6 +10,26 @@ interface SolicitacaoResultCardProps {
 }
 
 export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoResultCardProps) {
+  // Verificar se é um motivo específico de reprovação que deve ser destacado
+  const motivosDestaque = [
+    "Maior que desconto máximo",
+    "Não possuí margem",
+    "Menor que Preço Mínimo",
+    "Maior que Preço Regular",
+    "Desativado Pricing Produto",
+    "Produto Ruptura",
+    "Outros descontos, não permite",
+    "Estado sem permissão",
+    "Loja sem permissão",
+    "Não possuí token disponível",
+    "Meta Loja Irregular",
+    "DRE Loja Irregular"
+  ]
+
+  const isDestaque = motivosDestaque.some(motivo => 
+    result.retorno.includes(motivo)
+  )
+
   return (
     <Card className="w-full max-w-4xl">
       <CardHeader>
@@ -122,16 +142,40 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
           </div>
         </div>
 
-        {/* Retorno */}
+        {/* Retorno com destaque para reprovações */}
         <div>
-          <h3 className="font-semibold mb-2">Retorno</h3>
-          <p className="text-sm bg-muted p-3 rounded">{result.retorno}</p>
+          <h3 className="font-semibold mb-2 flex items-center gap-2">
+            Retorno
+            {!result.aprovado && isDestaque && (
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+            )}
+          </h3>
+          <div className={`p-3 rounded border-l-4 ${
+            result.aprovado 
+              ? "bg-green-50 border-green-400 text-green-800" 
+              : isDestaque 
+                ? "bg-red-50 border-red-400 text-red-800" 
+                : "bg-muted border-muted-foreground"
+          }`}>
+            <p className={`text-sm font-medium ${
+              !result.aprovado && isDestaque ? "text-red-800" : ""
+            }`}>
+              {result.retorno}
+            </p>
+          </div>
+          
           {result.observacaoRejeicao && (
             <div className="mt-2">
               <h4 className="font-semibold text-sm mb-1">Observação:</h4>
-              <p className="text-sm text-muted-foreground bg-yellow-50 p-2 rounded border-l-4 border-yellow-400">
-                {result.observacaoRejeicao}
-              </p>
+              <div className={`p-2 rounded border-l-4 ${
+                isDestaque 
+                  ? "bg-red-50 border-red-400 text-red-700" 
+                  : "bg-yellow-50 border-yellow-400 text-yellow-700"
+              }`}>
+                <p className="text-sm">
+                  {result.observacaoRejeicao}
+                </p>
+              </div>
             </div>
           )}
         </div>

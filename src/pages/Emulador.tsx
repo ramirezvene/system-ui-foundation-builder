@@ -1,666 +1,247 @@
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
 import { LojaCombobox } from "@/components/LojaCombobox"
 import { ProdutoCombobox } from "@/components/ProdutoCombobox"
 import { CurrencyInput } from "@/components/CurrencyInput"
-import { supabase } from "@/integrations/supabase/client"
-import { Tables } from "@/integrations/supabase/types"
-import { useNavigate, useLocation } from "react-router-dom"
-import { useToast } from "@/hooks/use-toast"
+import { SolicitacaoResultCard } from "@/components/vendas/SolicitacaoResult"
+import { useVendasData } from "@/hooks/useVendasData"
 import { validateHierarchy } from "@/utils/vendas/validations"
 import { calculateAdditionalInfo } from "@/utils/vendas/tokenCalculations"
-import { calculateMinPrice, getCMGForState } from "@/utils/vendas/priceCalculations"
-
-type Loja = Tables<"cadastro_loja">
-type Produto = Tables<"cadastro_produto">
-type SubgrupoMargem = Tables<"subgrupo_margem">
-type ProdutoMargem = Tables<"produto_margem">
-type Estado = Tables<"cadastro_estado">
-
-interface TokenData {
-  id: number
-  codigo_token: string
-  cod_loja: number
-  loja_nome: string
-  loja_estado: string
-  produto: string
-  quantidade: number
-  valor_solicitado: number
-}
+import { SolicitacaoResult } from "@/types/vendas"
 
 export default function Emulador() {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const {
+    lojas,
+    produtos,
+    produtoMargens,
+    subgrupoMargens,
+    estados,
+    selectedLoja,
+    setSelectedLoja,
+    selectedProduto,
+    setSelectedProduto,
+    precoAtual
+  } = useVendasData()
+
+  const [novoPreco, setNovoPreco] = useState("")
+  const [quantidade, setQuantidade] = useState<string>("1")
+  const [clienteIdentificado, setClienteIdentificado] = useState(false)
+  const [solicitacaoResult, setSolicitacaoResult] = useState<SolicitacaoResult | null>(null)
   const { toast } = useToast()
-  const tokenData = location.state?.tokenData as TokenData
-  
-  const [lojas, setLojas] = useState<Loja[]>([])
-  const [produtos, setProdutos] = useState<Produto[]>([])
-  const [produtoMargens, setProdutoMargens] = useState<ProdutoMargem[]>([])
-  const [subgrupoMargens, setSubgrupoMargens] = useState<SubgrupoMargem[]>([])
-  const [estados, setEstados] = useState<Estado[]>([])
-  const [lojaSelecionada, setLojaSelecionada] = useState<Loja | null>(null)
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
-  const [valorSolicitado, setValorSolicitado] = useState("")
-  const [quantidade, setQuantidade] = useState("1")
-  const [tokensNoMes, setTokensNoMes] = useState(0)
-  
-  // Campos calculados usando as novas funções
-  const [precoMinimo, setPrecoMinimo] = useState("")
-  const [cmgProduto, setCmgProduto] = useState("")
-  const [precoRegular, setPrecoRegular] = useState("")
-  const [descontoAlcada, setDescontoAlcada] = useState("")
-  const [margemUFLoja, setMargemUFLoja] = useState("")
-  const [margemZVDC, setMargemZVDC] = useState("")
-  const [percentualDesconto, setPercentualDesconto] = useState("")
-  const [observacao, setObservacao] = useState("")
-  const [situacao, setSituacao] = useState("")
 
-  useEffect(() => {
-    fetchLojas()
-    fetchProdutos()
-    fetchProdutoMargens()
-    fetchSubgrupoMargens()
-    fetchEstados()
-  }, [])
-
-  // Pré-preencher os dados se vier da tela de validação
-  useEffect(() => {
-    if (tokenData) {
-      setQuantidade(tokenData.quantidade.toString())
-      setValorSolicitado(tokenData.valor_solicitado.toFixed(2).replace('.', ','))
-    }
-  }, [tokenData])
-
-  useEffect(() => {
-    if (tokenData && lojas.length > 0) {
-      const loja = lojas.find(l => l.cod_loja === tokenData.cod_loja)
-      if (loja) {
-        setLojaSelecionada(loja)
-      }
-    }
-  }, [tokenData, lojas])
-
-  useEffect(() => {
-    if (tokenData && produtos.length > 0) {
-      const produtoInfo = tokenData.produto
-      if (produtoInfo) {
-        const idMatch = produtoInfo.match(/^(\d+)\s*-/)
-        if (idMatch) {
-          const produtoId = parseInt(idMatch[1])
-          const produto = produtos.find(p => p.id_produto === produtoId)
-          if (produto) {
-            setProdutoSelecionado(produto)
-          }
-        } else {
-          const produto = produtos.find(p => produtoInfo.includes(p.nome_produto))
-          if (produto) {
-            setProdutoSelecionado(produto)
-          }
-        }
-      }
-    }
-  }, [tokenData, produtos])
-
-  useEffect(() => {
-    calculateFields()
-  }, [lojaSelecionada, produtoSelecionado, subgrupoMargens, produtoMargens, estados, valorSolicitado])
-
-  useEffect(() => {
-    if (lojaSelecionada) {
-      checkTokensThisMonth()
-    }
-  }, [lojaSelecionada])
-
-  const fetchLojas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("cadastro_loja")
-        .select("*")
-        .order("loja")
-      
-      if (error) throw error
-      setLojas(data || [])
-    } catch (error) {
-      console.error("Erro ao buscar lojas:", error)
-    }
+  const parsePrice = (priceString: string): number => {
+    if (!priceString) return 0
+    const cleanPrice = priceString.replace(/[^\d,]/g, '').replace(',', '.')
+    return parseFloat(cleanPrice) || 0
   }
 
-  const fetchProdutos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("cadastro_produto")
-        .select("*")
-        .order("nome_produto")
-      
-      if (error) throw error
-      setProdutos(data || [])
-    } catch (error) {
-      console.error("Erro ao buscar produtos:", error)
-    }
-  }
-
-  const fetchProdutoMargens = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("produto_margem")
-        .select("*")
-      
-      if (error) throw error
-      setProdutoMargens(data || [])
-    } catch (error) {
-      console.error("Erro ao buscar produto margens:", error)
-    }
-  }
-
-  const fetchSubgrupoMargens = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("subgrupo_margem")
-        .select("*")
-      
-      if (error) throw error
-      setSubgrupoMargens(data || [])
-    } catch (error) {
-      console.error("Erro ao buscar subgrupo margens:", error)
-    }
-  }
-
-  const fetchEstados = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("cadastro_estado")
-        .select("*")
-      
-      if (error) throw error
-      setEstados(data || [])
-    } catch (error) {
-      console.error("Erro ao buscar estados:", error)
-    }
-  }
-
-  const checkTokensThisMonth = async () => {
-    if (!lojaSelecionada) return
-
-    try {
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
-
-      const { data, error } = await supabase
-        .from("token_loja")
-        .select("*")
-        .eq("cod_loja", lojaSelecionada.cod_loja)
-        .gte("data_criacao", startOfMonth.toISOString())
-        .lte("data_criacao", endOfMonth.toISOString())
-
-      if (error) throw error
-      setTokensNoMes(data?.length || 0)
-    } catch (error) {
-      console.error("Erro ao verificar tokens do mês:", error)
-    }
-  }
-
-  const getPrecoAtual = (): number => {
-    if (!lojaSelecionada || !produtoSelecionado) return 0
+  const handleEmularValidacao = () => {
+    const novoPrecoNum = parsePrice(novoPreco)
     
-    const estado = lojaSelecionada.estado.toLowerCase()
-    if (estado === 'rs') {
-      return produtoSelecionado.pmc_rs || 0
-    } else if (estado === 'sc') {
-      return produtoSelecionado.pmc_sc || 0
-    } else if (estado === 'pr') {
-      return produtoSelecionado.pmc_pr || 0
+    console.log("=== EMULAÇÃO DE VALIDAÇÃO ===")
+    console.log("Cliente identificado:", clienteIdentificado)
+    console.log("Produto:", selectedProduto?.id_produto, selectedProduto?.nome_produto)
+    console.log("Loja:", selectedLoja?.cod_loja, selectedLoja?.loja)
+    console.log("Preço atual:", precoAtual)
+    console.log("Novo preço:", novoPrecoNum)
+    
+    const validation = validateHierarchy(
+      selectedProduto,
+      selectedLoja,
+      novoPrecoNum,
+      precoAtual,
+      produtoMargens,
+      subgrupoMargens,
+      estados,
+      clienteIdentificado
+    )
+    
+    const estadoInfo = estados.find(e => e.estado === selectedLoja?.estado)
+    const additionalInfo = calculateAdditionalInfo(
+      selectedProduto,
+      selectedLoja,
+      novoPrecoNum,
+      subgrupoMargens,
+      produtoMargens,
+      estadoInfo?.id
+    )
+    
+    if (!additionalInfo) return
+
+    const result: SolicitacaoResult = {
+      loja: selectedLoja,
+      produto: selectedProduto,
+      precoRegular: precoAtual,
+      precoSolicitado: novoPrecoNum,
+      desconto: precoAtual > 0 ? ((precoAtual - novoPrecoNum) / precoAtual * 100) : 0,
+      quantidade: parseInt(quantidade),
+      tokenDisponivel: selectedLoja?.qtde_token || 0,
+      tokenDisponipelAtualizado: selectedLoja?.qtde_token || 0,
+      retorno: validation.error || "Aprovado",
+      aprovado: !validation.error,
+      precoMinimo: additionalInfo.precoMinimo,
+      cmgProduto: additionalInfo.cmgProduto,
+      descontoAlcada: additionalInfo.descontoAlcada,
+      margemUF: additionalInfo.margemUF,
+      margem: additionalInfo.margem,
+      margemAdc: additionalInfo.margemAdc,
+      aliqUF: additionalInfo.aliqUF,
+      piscofinsUF: additionalInfo.piscofinsUF,
+      ruptura: additionalInfo.ruptura,
+      observacaoRejeicao: validation.observacao
     }
-    return 0
-  }
 
-  const calculateFields = () => {
-    if (!lojaSelecionada || !produtoSelecionado) {
-      resetCalculatedFields()
-      return
-    }
+    setSolicitacaoResult(result)
 
-    const precoAtual = getPrecoAtual()
-    setPrecoRegular(precoAtual.toFixed(2))
-
-    // Calcular Preço Mínimo usando a função das validações
-    const precoMin = calculateMinPrice(produtoSelecionado, lojaSelecionada, subgrupoMargens)
-    setPrecoMinimo(precoMin.toFixed(2))
-
-    // CMG Produto
-    const cmg = getCMGForState(produtoSelecionado, lojaSelecionada)
-    setCmgProduto(cmg.toFixed(2))
-
-    // Desconto Alçada
-    setDescontoAlcada(produtoSelecionado.alcada === 0 ? "SEM ALÇADA" : "COM ALÇADA")
-
-    // Calcular informações adicionais usando tokenCalculations
-    if (valorSolicitado) {
-      const valorSolic = parseMoneyValue(valorSolicitado)
-      const estadoInfo = estados.find(e => e.estado === lojaSelecionada.estado)
-      const additionalInfo = calculateAdditionalInfo(
-        produtoSelecionado,
-        lojaSelecionada,
-        valorSolic,
-        subgrupoMargens,
-        produtoMargens,
-        estadoInfo?.id
-      )
-
-      if (additionalInfo) {
-        setMargemUFLoja(additionalInfo.margemUF)
-        setMargemZVDC(additionalInfo.margemZVDC)
+    if (validation.error) {
+      let toastMessage = validation.error
+      if (validation.observacao) {
+        toastMessage += ` Observação: ${validation.observacao}`
       }
-
-      // % Desconto = ((preço regular - valor solicitado) / preço regular) * 100
-      const desconto = ((precoAtual - valorSolic) / precoAtual) * 100
-      setPercentualDesconto(`${desconto.toFixed(2)}%`)
-
-      // Validar usando as funções de validação
-      const validation = validateHierarchy(
-        produtoSelecionado,
-        lojaSelecionada,
-        valorSolic,
-        precoAtual,
-        produtoMargens,
-        subgrupoMargens,
-        estados
-      )
-
-      setSituacao(validation.error ? "Reprovado" : "Aprovado")
-      setObservacao(validation.error || validation.observacao || "")
+      
+      toast({
+        title: "Validação",
+        description: toastMessage,
+        variant: "destructive"
+      })
     } else {
-      setMargemUFLoja("")
-      setMargemZVDC("")
-      setPercentualDesconto("")
-      setSituacao("")
-      
-      // Verificar status da loja para observação
-      if (lojaSelecionada.st_token === 0) {
-        setObservacao("Loja bloqueada para geração de Token.")
-      } else {
-        setObservacao(produtoSelecionado.observacao || "")
-      }
-    }
-  }
-
-  const parseMoneyValue = (value: string): number => {
-    if (!value) return 0
-    return parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0
-  }
-
-  const resetCalculatedFields = () => {
-    setPrecoMinimo("")
-    setCmgProduto("")
-    setPrecoRegular("")
-    setDescontoAlcada("")
-    setMargemUFLoja("")
-    setMargemZVDC("")
-    setPercentualDesconto("")
-    setObservacao("")
-    setSituacao("")
-  }
-
-  const canApprove = () => {
-    if (!lojaSelecionada || !valorSolicitado || !produtoSelecionado || situacao !== "Aprovado") {
-      return false
-    }
-    
-    // Se a loja está bloqueada (st_token = 0), não pode aprovar
-    if (lojaSelecionada.st_token === 0) {
-      return false
-    }
-
-    // Verificar limite de tokens por mês
-    const limiteTokens = lojaSelecionada.qtde_token || 0
-    if (tokensNoMes >= limiteTokens) {
-      return false
-    }
-
-    return true
-  }
-
-  const canReprove = () => {
-    return lojaSelecionada && produtoSelecionado && valorSolicitado
-  }
-
-  const handleAprovar = async () => {
-    if (!canApprove()) return
-
-    try {
-      if (tokenData) {
-        // Atualizar o token existente com st_aprovado = 1 e data_validacao
-        const { error } = await supabase
-          .from("token_loja")
-          .update({ 
-            st_aprovado: 1,
-            data_validacao: new Date().toISOString()
-          })
-          .eq("id", tokenData.id)
-
-        if (error) throw error
-
-        toast({
-          title: "Sucesso",
-          description: `Token ${tokenData.codigo_token} aprovado com sucesso!`,
-        })
-      } else {
-        // Lógica original para criar novo token
-        const { data: tokenCode } = await supabase.rpc('generate_token_code')
-        
-        if (!tokenCode) {
-          throw new Error("Erro ao gerar código do token")
-        }
-
-        const { data: tokenLoja, error: tokenError } = await supabase
-          .from("token_loja")
-          .insert({
-            codigo_token: tokenCode,
-            cod_loja: lojaSelecionada!.cod_loja,
-            st_aprovado: 1,
-            data_validacao: new Date().toISOString()
-          })
-          .select()
-          .single()
-
-        if (tokenError) throw tokenError
-
-        const { error: detalheError } = await supabase
-          .from("token_loja_detalhado")
-          .insert({
-            codigo_token: tokenLoja.id,
-            produto: produtoSelecionado!.nome_produto,
-            qtde_solic: parseInt(quantidade),
-            vlr_solic: parseMoneyValue(valorSolicitado),
-            preco_min: parseFloat(precoMinimo),
-            cmg_produto: parseFloat(cmgProduto),
-            preco_regul: parseFloat(precoRegular),
-            desconto: percentualDesconto,
-            desc_alcada: descontoAlcada,
-            margem_uf: margemUFLoja,
-            margem_zvdc: margemZVDC,
-            observacao: observacao
-          })
-
-        if (detalheError) throw detalheError
-
-        toast({
-          title: "Sucesso",
-          description: `Token gerado com sucesso: ${tokenCode}`,
-        })
-      }
-
-      handleVoltar()
-    } catch (error) {
-      console.error("Erro ao aprovar token:", error)
       toast({
-        title: "Erro",
-        description: "Erro ao aprovar token. Tente novamente.",
-        variant: "destructive"
+        title: "Sucesso",
+        description: "Token seria aprovado!",
+        variant: "default"
       })
     }
   }
 
-  const handleReprovar = async () => {
-    if (!canReprove()) return
-
-    try {
-      if (tokenData) {
-        // Atualizar o token existente com st_aprovado = 0 e data_validacao
-        const { error } = await supabase
-          .from("token_loja")
-          .update({ 
-            st_aprovado: 0,
-            data_validacao: new Date().toISOString()
-          })
-          .eq("id", tokenData.id)
-
-        if (error) throw error
-
-        toast({
-          title: "Sucesso",
-          description: `Token ${tokenData.codigo_token} reprovado com sucesso!`,
-        })
-      } else {
-        // Lógica original para reprovar
-        const { data: tokenLoja, error: tokenError } = await supabase
-          .from("token_loja")
-          .insert({
-            codigo_token: "REPROVADO",
-            cod_loja: lojaSelecionada!.cod_loja,
-            st_aprovado: 0,
-            data_validacao: new Date().toISOString()
-          })
-          .select()
-          .single()
-
-        if (tokenError) throw tokenError
-
-        const { error: detalheError } = await supabase
-          .from("token_loja_detalhado")
-          .insert({
-            codigo_token: tokenLoja.id,
-            produto: produtoSelecionado!.nome_produto,
-            qtde_solic: parseInt(quantidade),
-            vlr_solic: parseMoneyValue(valorSolicitado),
-            preco_min: parseFloat(precoMinimo),
-            cmg_produto: parseFloat(cmgProduto),
-            preco_regul: parseFloat(precoRegular),
-            desconto: percentualDesconto,
-            desc_alcada: descontoAlcada,
-            margem_uf: margemUFLoja,
-            margem_zvdc: margemZVDC,
-            observacao: observacao
-          })
-
-        if (detalheError) throw detalheError
-
-        toast({
-          title: "Sucesso",
-          description: "Solicitação reprovada e registrada com sucesso!",
-        })
-      }
-
-      handleVoltar()
-    } catch (error) {
-      console.error("Erro ao reprovar:", error)
-      toast({
-        title: "Erro",
-        description: "Erro ao reprovar. Tente novamente.",
-        variant: "destructive"
-      })
-    }
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
   }
 
-  const handleReset = () => {
-    setLojaSelecionada(null)
-    setProdutoSelecionado(null)
-    setValorSolicitado("")
+  const handleLimpar = () => {
+    setSelectedLoja(null)
+    setSelectedProduto(null)
+    setNovoPreco("")
     setQuantidade("1")
-    setTokensNoMes(0)
-    resetCalculatedFields()
-  }
-
-  const handleVoltar = () => {
-    navigate("/solicitacao-tokens")
+    setClienteIdentificado(false)
+    setSolicitacaoResult(null)
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-foreground mb-6">
-        {tokenData ? `Aprovação Token - ${tokenData.codigo_token}` : "Aprovação Token"}
-      </h1>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold text-foreground mb-6">Emulador de Validação</h1>
       
-      <div className="space-y-6">
-        {/* Painel de Seleção */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Seleção</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="loja">Loja</Label>
-                <LojaCombobox
-                  lojas={lojas}
-                  selectedLoja={lojaSelecionada}
-                  onLojaChange={setLojaSelecionada}
-                />
-                {tokenData && (
-                  <div className="text-xs text-muted-foreground">
-                    Campo bloqueado durante validação
-                  </div>
-                )}
-              </div>
+      <Card className="w-full max-w-4xl">
+        <CardHeader>
+          <CardTitle>Simular Validação de Token</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Loja</Label>
+              <LojaCombobox
+                lojas={lojas}
+                selectedLoja={selectedLoja}
+                onLojaChange={setSelectedLoja}
+                placeholder="Selecione uma loja..."
+              />
+            </div>
+            
+            <div>
+              <Label>Produto</Label>
+              <ProdutoCombobox
+                produtos={produtos}
+                selectedProduto={selectedProduto}
+                onProdutoChange={setSelectedProduto}
+                placeholder="Selecione um produto..."
+              />
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="produto">Produto</Label>
-                <ProdutoCombobox
-                  produtos={produtos}
-                  selectedProduto={produtoSelecionado}
-                  onProdutoChange={setProdutoSelecionado}
-                />
-                {tokenData && (
-                  <div className="text-xs text-muted-foreground">
-                    Campo bloqueado durante validação
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantidade">Quantidade</Label>
+          {selectedProduto && selectedLoja && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Preço Atual da Loja</Label>
                 <Input
-                  id="quantidade"
+                  value={formatCurrency(precoAtual)}
+                  readOnly
+                  className="bg-muted"
+                />
+              </div>
+              
+              <div>
+                <Label>Novo Preço Solicitado</Label>
+                <CurrencyInput
+                  value={novoPreco}
+                  onChange={setNovoPreco}
+                  placeholder="R$ 0,00"
+                />
+              </div>
+              
+              <div>
+                <Label>Quantidade</Label>
+                <Input
                   type="number"
                   min="1"
-                  placeholder="1"
                   value={quantidade}
                   onChange={(e) => setQuantidade(e.target.value)}
-                  disabled={!!tokenData}
                 />
-                {tokenData && (
-                  <div className="text-xs text-muted-foreground">
-                    Campo bloqueado durante validação
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="valorSolicitado">Valor Solicitado</Label>
-                <CurrencyInput
-                  value={valorSolicitado}
-                  onChange={setValorSolicitado}
-                  placeholder="R$ 0,00"
-                  disabled={!!tokenData}
-                />
-                {tokenData && (
-                  <div className="text-xs text-muted-foreground">
-                    Campo bloqueado durante validação
-                  </div>
-                )}
               </div>
             </div>
+          )}
 
-            {lojaSelecionada && (
-              <div className="mt-4 p-3 bg-muted rounded-lg">
-                <div className="text-sm text-muted-foreground">
-                  Limite de tokens no mês: {lojaSelecionada.qtde_token || 0} | 
-                  Tokens já utilizados: {tokensNoMes} | 
-                  Status da loja: {lojaSelecionada.st_token === 1 ? "Ativa" : "Bloqueada"}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-4 mt-6">
-              <Button 
-                className={`px-8 py-3 ${canApprove() ? "bg-green-600 hover:bg-green-700" : ""}`}
-                disabled={!canApprove()}
-                onClick={handleAprovar}
+          {selectedProduto && selectedLoja && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="cliente-identificado"
+                checked={clienteIdentificado}
+                onCheckedChange={(checked) => setClienteIdentificado(checked as boolean)}
+              />
+              <Label
+                htmlFor="cliente-identificado"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                APROVAR
-              </Button>
-              <Button 
-                className="px-8 py-3 text-white hover:opacity-90"
-                style={{ backgroundColor: "#E52E20" }}
-                disabled={!canReprove()}
-                onClick={handleReprovar}
-              >
-                REPROVAR
-              </Button>
-              <Button variant="outline" onClick={handleVoltar} className="px-8 py-3">
-                VOLTAR
-              </Button>
+                Cliente Identificado (considera margem adicional)
+              </Label>
             </div>
-          </CardContent>
-        </Card>
+          )}
 
-        {/* Painel de Resultados */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Informações do Produto</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Preço Mínimo</Label>
-                <Input value={precoMinimo} readOnly className="bg-muted" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">CMG Produto</Label>
-                <Input value={cmgProduto} readOnly className="bg-muted" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Preço Regular</Label>
-                <Input value={precoRegular} readOnly className="bg-muted" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">% Desconto</Label>
-                <Input value={percentualDesconto} readOnly className="bg-muted" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Desconto Alçada</Label>
-                <Input value={descontoAlcada} readOnly className="bg-muted" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Margem UF Loja</Label>
-                <Input value={margemUFLoja} readOnly className="bg-muted" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Margem ZVDC</Label>
-                <Input value={margemZVDC} readOnly className="bg-muted" />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Situação</Label>
-                <Input 
-                  value={situacao} 
-                  readOnly 
-                  className={`bg-muted font-medium ${
-                    situacao === "Aprovado" ? "text-green-600" : 
-                    situacao === "Reprovado" ? "text-red-600" : ""
-                  }`}
-                />
-              </div>
+          {novoPreco && precoAtual > 0 && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <strong>Desconto:</strong> {((precoAtual - parsePrice(novoPreco)) / precoAtual * 100).toFixed(2)}%
+              </p>
+              <p className="text-sm text-blue-700">
+                <strong>Economia:</strong> {formatCurrency(precoAtual - parsePrice(novoPreco))}
+              </p>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Observação</Label>
-              <Input value={observacao} readOnly className="bg-muted" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="flex gap-2">
+            <Button onClick={handleEmularValidacao} disabled={!selectedLoja || !selectedProduto || !novoPreco}>
+              Emular Validação
+            </Button>
+            <Button variant="outline" onClick={handleLimpar}>
+              Limpar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {solicitacaoResult && (
+        <SolicitacaoResultCard 
+          result={solicitacaoResult} 
+          formatCurrency={formatCurrency}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,7 @@ import { useVendasData } from "@/hooks/useVendasData"
 import { validateHierarchy } from "@/utils/vendas/validations"
 import { calculateAdditionalInfo } from "@/utils/vendas/tokenCalculations"
 import { SolicitacaoResult } from "@/types/vendas"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function AprovacaoToken() {
   const {
@@ -34,11 +35,68 @@ export default function AprovacaoToken() {
   const [quantidade, setQuantidade] = useState<string>("1")
   const [clienteIdentificado, setClienteIdentificado] = useState(false)
   const [solicitacaoResult, setSolicitacaoResult] = useState<SolicitacaoResult | null>(null)
+  const [tokensPendentes, setTokensPendentes] = useState<any[]>([])
+  const [selectedToken, setSelectedToken] = useState<any>(null)
   const { toast } = useToast()
+
+  useEffect(() => {
+    fetchTokensPendentes()
+  }, [])
+
+  const fetchTokensPendentes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("token_loja")
+        .select(`
+          *,
+          token_loja_detalhado (*),
+          cadastro_loja (*)
+        `)
+        .is("st_aprovado", null)
+        .order("data_criacao", { ascending: false })
+
+      if (error) throw error
+      setTokensPendentes(data || [])
+    } catch (error) {
+      console.error("Erro ao buscar tokens pendentes:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar tokens pendentes",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleTokenSelect = (tokenId: string) => {
+    const token = tokensPendentes.find(t => t.id.toString() === tokenId)
+    if (token) {
+      setSelectedToken(token)
+      // Auto-preencher campos baseado no token selecionado
+      const loja = lojas.find(l => l.cod_loja === token.cod_loja)
+      if (loja) {
+        setSelectedLoja(loja)
+      }
+      
+      // Buscar produto baseado no token_loja_detalhado
+      if (token.token_loja_detalhado?.length > 0) {
+        const detalhado = token.token_loja_detalhado[0]
+        if (detalhado.produto) {
+          // Extrair ID do produto da string "ID - Nome"
+          const produtoId = parseInt(detalhado.produto.split(' - ')[0])
+          const produto = produtos.find(p => p.id_produto === produtoId)
+          if (produto) {
+            setSelectedProduto(produto)
+          }
+        }
+        
+        setNovoPreco(detalhado.vlr_solic?.toString() || "")
+        setQuantidade(detalhado.qtde_solic?.toString() || "1")
+      }
+    }
+  }
 
   const parsePrice = (priceString: string): number => {
     if (!priceString) return 0
-    // Remove currency symbols and convert comma to dot for decimal
     const cleanPrice = priceString.replace(/[^\d,]/g, '').replace(',', '.')
     return parseFloat(cleanPrice) || 0
   }
@@ -104,91 +162,115 @@ export default function AprovacaoToken() {
 
     setSolicitacaoResult(result)
 
-    if (validation.error) {
-      // Exibir toast com a validação específica feita
-      let toastMessage = validation.error
-      if (validation.observacao) {
-        toastMessage += ` Observação: ${validation.observacao}`
-      }
-      
-      toast({
-        title: "Validação",
-        description: toastMessage,
-        variant: "destructive"
-      })
-      
-      // Não limpar os campos quando há erro de validação para o usuário poder ajustar
-      return
-    }
-
     try {
-      // Atualizar quantidade de token disponível na loja
+      let tokenId: number
+      let tokenCode: string
+
+      if (selectedToken) {
+        // Usar token existente
+        tokenId = selectedToken.id
+        tokenCode = selectedToken.codigo_token
+      } else {
+        // Gerar novo código do token
+        const { data: newTokenCode, error: tokenError } = await supabase
+          .rpc('generate_token_code')
+        
+        if (tokenError) throw tokenError
+        tokenCode = newTokenCode
+
+        // Inserir novo token na tabela token_loja
+        const { data: tokenData, error: insertTokenError } = await supabase
+          .from("token_loja")
+          .insert({
+            cod_loja: selectedLoja!.cod_loja,
+            codigo_token: tokenCode,
+            st_aprovado: validation.error ? 0 : 1
+          })
+          .select()
+          .single()
+
+        if (insertTokenError) throw insertTokenError
+        tokenId = tokenData.id
+      }
+
+      // Atualizar status do token
       await supabase
-        .from("cadastro_loja")
-        .update({ qtde_token: tokenDisponipelAtualizado })
-        .eq("cod_loja", selectedLoja!.cod_loja)
-
-      // Gerar código do token
-      const { data: tokenCode, error: tokenError } = await supabase
-        .rpc('generate_token_code')
-      
-      if (tokenError) throw tokenError
-
-      // Inserir token na tabela token_loja
-      const { data: tokenData, error: insertTokenError } = await supabase
         .from("token_loja")
-        .insert({
-          cod_loja: selectedLoja!.cod_loja,
-          codigo_token: tokenCode,
-          st_aprovado: 1
+        .update({ 
+          st_aprovado: validation.error ? 0 : 1,
+          data_validacao: new Date().toISOString()
         })
-        .select()
-        .single()
-
-      if (insertTokenError) throw insertTokenError
+        .eq("id", tokenId)
 
       // Calcular desconto
       const desconto = ((precoAtual - novoPrecoNum) / precoAtual * 100).toFixed(2)
 
-      // Inserir detalhes do token
-      const { error: insertDetailError } = await supabase
-        .from("token_loja_detalhado")
-        .insert({
-          codigo_token: tokenData.id,
-          produto: `${selectedProduto!.id_produto} - ${selectedProduto!.nome_produto}`,
-          qtde_solic: parseInt(quantidade),
-          preco_regul: precoAtual,
-          vlr_solic: novoPrecoNum,
-          desconto: `${desconto}%`,
-          cmg_produto: additionalInfo.cmgProduto,
-          preco_min: additionalInfo.precoMinimo,
-          desc_alcada: additionalInfo.descontoAlcada,
-          margem_uf: additionalInfo.margemUF,
-          margem_zvdc: additionalInfo.margem
+      // Inserir ou atualizar detalhes do token
+      const detailData = {
+        codigo_token: tokenId,
+        produto: `${selectedProduto!.id_produto} - ${selectedProduto!.nome_produto}`,
+        qtde_solic: parseInt(quantidade),
+        preco_regul: precoAtual,
+        vlr_solic: novoPrecoNum,
+        desconto: `${desconto}%`,
+        cmg_produto: additionalInfo.cmgProduto,
+        preco_min: additionalInfo.precoMinimo,
+        desc_alcada: additionalInfo.descontoAlcada,
+        margem_uf: additionalInfo.margemUF,
+        margem_zvdc: additionalInfo.margem,
+        observacao: validation.error ? `${validation.error}${validation.observacao ? ` - ${validation.observacao}` : ''}` : 'Aprovado'
+      }
+
+      if (selectedToken && selectedToken.token_loja_detalhado?.length > 0) {
+        // Atualizar detalhes existentes
+        await supabase
+          .from("token_loja_detalhado")
+          .update(detailData)
+          .eq("codigo_token", tokenId)
+      } else {
+        // Inserir novos detalhes
+        const { error: insertDetailError } = await supabase
+          .from("token_loja_detalhado")
+          .insert(detailData)
+
+        if (insertDetailError) throw insertDetailError
+      }
+
+      if (!validation.error) {
+        // Atualizar quantidade de token disponível na loja apenas se aprovado
+        await supabase
+          .from("cadastro_loja")
+          .update({ qtde_token: tokenDisponipelAtualizado })
+          .eq("cod_loja", selectedLoja!.cod_loja)
+
+        toast({
+          title: "Sucesso",
+          description: `Token ${tokenCode} aprovado com sucesso!`
         })
 
-      if (insertDetailError) throw insertDetailError
+        setSolicitacaoResult(prev => prev ? {
+          ...prev,
+          retorno: `Aprovado - Token: ${tokenCode}`
+        } : null)
+      } else {
+        toast({
+          title: "Token Reprovado",
+          description: `Token ${tokenCode} foi reprovado: ${validation.error}`,
+          variant: "destructive"
+        })
+      }
 
-      toast({
-        title: "Sucesso",
-        description: `Token ${tokenCode} aprovado com sucesso!`
-      })
-
-      setSolicitacaoResult(prev => prev ? {
-        ...prev,
-        retorno: `Aprovado - Token: ${tokenCode}`
-      } : null)
-
+      // Atualizar lista de tokens pendentes
+      fetchTokensPendentes()
       handleLimpar()
 
     } catch (error) {
-      console.error("Erro ao aprovar token:", error)
+      console.error("Erro ao processar token:", error)
       toast({
         title: "Erro",
-        description: "Erro ao aprovar token",
+        description: "Erro ao processar token",
         variant: "destructive"
       })
-      handleLimpar()
     }
   }
 
@@ -205,11 +287,44 @@ export default function AprovacaoToken() {
     setNovoPreco("")
     setQuantidade("1")
     setClienteIdentificado(false)
+    setSelectedToken(null)
   }
 
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold text-foreground mb-6">Aprovação de Token</h1>
+      
+      {tokensPendentes.length > 0 && (
+        <Card className="w-full max-w-4xl">
+          <CardHeader>
+            <CardTitle>Tokens Pendentes de Aprovação</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label>Selecionar Token Pendente (Opcional)</Label>
+              <Select onValueChange={handleTokenSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um token pendente..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {tokensPendentes.map((token) => (
+                    <SelectItem key={token.id} value={token.id.toString()}>
+                      {token.codigo_token} - {token.cadastro_loja?.loja} - {new Date(token.data_criacao).toLocaleDateString('pt-BR')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedToken && (
+                <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                  <strong>Token selecionado:</strong> {selectedToken.codigo_token} - 
+                  Loja: {selectedToken.cadastro_loja?.loja} - 
+                  Criado em: {new Date(selectedToken.data_criacao).toLocaleString('pt-BR')}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <Card className="w-full max-w-4xl">
         <CardHeader>
@@ -299,7 +414,7 @@ export default function AprovacaoToken() {
 
           <div className="flex gap-2">
             <Button onClick={handleAprovarToken} disabled={!selectedLoja || !selectedProduto || !novoPreco}>
-              Aprovar Token
+              {selectedToken ? "Validar Token" : "Aprovar Token"}
             </Button>
             <Button variant="outline" onClick={handleLimpar}>
               Limpar
