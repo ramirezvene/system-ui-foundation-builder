@@ -86,7 +86,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
           </div>
           <div>
             <h3 className="font-semibold mb-2">Margem</h3>
-            <p className="text-sm font-mono">{result.margemZVDC}</p>
+            <p className="text-sm font-mono">{result.margem}</p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">Margem Adicional</h3>
