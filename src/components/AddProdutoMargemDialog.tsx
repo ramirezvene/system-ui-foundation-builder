@@ -22,16 +22,17 @@ type Loja = Tables<"cadastro_loja">
 interface AddProdutoMargemDialogProps {
   produtos: CadastroProduto[]
   onAdd: () => void
+  tipoFixo?: "estado" | "loja"
 }
 
-export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDialogProps) {
+export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProdutoMargemDialogProps) {
   const [formData, setFormData] = useState({
     id_produto: 0,
     margem: 0,
     margem_adc: 0,
     desconto: 0,
     qtde_max: 0,
-    tipo_aplicacao: "estado",
+    tipo_aplicacao: tipoFixo || "estado",
     tipo_margem: "percentual",
     tipo_referencia: "estado",
     data_inicio: new Date().toISOString().split('T')[0],
@@ -133,6 +134,17 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
   const handleSubmit = async () => {
     if (!selectedProduto) return
 
+    let tipoReferencia = ""
+    const tipoAplicacao = tipoFixo || formData.tipo_aplicacao
+
+    if (tipoAplicacao === "estado" && selectedEstado) {
+      tipoReferencia = selectedEstado.estado
+    } else if (tipoAplicacao === "loja" && selectedLoja) {
+      tipoReferencia = selectedLoja.cod_loja.toString()
+    }
+
+    if (!tipoReferencia) return
+
     try {
       const { error } = await supabase
         .from("produto_margem")
@@ -142,9 +154,9 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
           margem_adc: formData.margem_adc,
           desconto: formData.desconto,
           qtde_max: formData.qtde_max,
-          tipo_aplicacao: formData.tipo_aplicacao,
+          tipo_aplicacao: tipoAplicacao,
           tipo_margem: formData.tipo_margem,
-          tipo_referencia: formData.tipo_referencia,
+          tipo_referencia: tipoReferencia,
           data_inicio: formData.data_inicio,
           data_fim: formData.data_fim,
           observacao: formData.observacao,
@@ -162,7 +174,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
         margem_adc: 0,
         desconto: 0,
         qtde_max: 0,
-        tipo_aplicacao: "estado",
+        tipo_aplicacao: tipoFixo || "estado",
         tipo_margem: "percentual",
         tipo_referencia: "estado",
         data_inicio: new Date().toISOString().split('T')[0],
@@ -215,26 +227,28 @@ export function AddProdutoMargemDialog({ produtos, onAdd }: AddProdutoMargemDial
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                value={formData.tipo_aplicacao}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_aplicacao: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="estado">Estado</SelectItem>
-                  <SelectItem value="loja">Loja</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className={`grid ${tipoFixo ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+            {!tipoFixo && (
+              <div>
+                <Label>Tipo</Label>
+                <Select
+                  value={formData.tipo_aplicacao}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_aplicacao: value as "estado" | "loja" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="estado">Estado</SelectItem>
+                    <SelectItem value="loja">Loja</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div>
               <Label>Tipo Ref</Label>
-              {formData.tipo_aplicacao === "estado" ? (
+              {(tipoFixo || formData.tipo_aplicacao) === "estado" ? (
                 <EstadoCombobox
                   estados={estados}
                   selectedEstado={selectedEstado}

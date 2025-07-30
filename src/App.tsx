@@ -12,7 +12,8 @@ import ConfiguracaoDescontoToken from "@/pages/ConfiguracaoDescontoToken"
 import ConfiguracaoDescontoSubgrupo from "@/pages/ConfiguracaoDescontoSubgrupo"
 import ConfiguracaoTokenLoja from "@/pages/ConfiguracaoTokenLoja"
 import TokenEstado from "@/pages/TokenEstado"
-import DescontoProduto from "@/pages/DescontoProduto"
+import DescontoProdutoEstado from "@/pages/DescontoProdutoEstado"
+import DescontoProdutoLoja from "@/pages/DescontoProdutoLoja"
 import VisualizacaoTokens from "@/pages/VisualizacaoTokens"
 import Relatorios from "@/pages/Relatorios"
 import { useEffect, useState } from "react"
@@ -37,7 +38,8 @@ function App() {
                 <Route path="/configuracao-desconto-subgrupo" element={<ConfiguracaoDescontoSubgrupo />} />
                 <Route path="/configuracao-token-loja" element={<ConfiguracaoTokenLoja />} />
                 <Route path="/token-estado" element={<TokenEstado />} />
-                <Route path="/desconto-produto" element={<DescontoProduto />} />
+                <Route path="/desconto-produto-estado" element={<DescontoProdutoEstado />} />
+                <Route path="/desconto-produto-loja" element={<DescontoProdutoLoja />} />
                 
                 <Route path="/visualizacao-tokens" element={<VisualizacaoTokens />} />
                 <Route path="/relatorios" element={<Relatorios />} />

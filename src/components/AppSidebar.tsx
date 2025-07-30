@@ -81,8 +81,12 @@ const menuItems = [
         url: "/token-estado",
       },
       {
-        title: "Desconto Produto",
-        url: "/desconto-produto",
+        title: "Desconto Produto Estado",
+        url: "/desconto-produto-estado",
+      },
+      {
+        title: "Desconto Produto Loja",
+        url: "/desconto-produto-loja",
       },
     ],
   },
