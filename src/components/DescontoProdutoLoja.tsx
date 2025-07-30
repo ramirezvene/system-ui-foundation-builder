@@ -266,112 +266,114 @@ export default function DescontoProdutoLoja() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[1200px]">
+      <CardContent className="p-0">
+        <div className="w-full">
+          <table className="w-full border-collapse table-fixed">
             <thead>
-              <tr className="border-b">
-                <th className="text-left p-2 w-16">ID</th>
-                <th className="text-left p-2 w-20">ID Produto</th>
-                <th className="text-left p-2 min-w-[200px]">Nome Produto</th>
-                <th className="text-left p-2 min-w-[150px]">Loja</th>
-                <th className="text-left p-2 w-24">Tipo Margem</th>
-                <th className="text-left p-2 w-20">Margem</th>
-                <th className="text-left p-2 w-20">Margem Adc</th>
-                <th className="text-left p-2 w-20">% Desc</th>
-                <th className="text-left p-2 w-32">Data Início</th>
-                <th className="text-left p-2 w-32">Data Fim</th>
-                <th className="text-left p-2 w-16">Ativo</th>
-                <th className="text-left p-2 w-24">Observação</th>
-                <th className="text-left p-2 w-20">Ações</th>
+              <tr className="border-b bg-gray-50">
+                <th className="text-left p-3 w-16 text-sm font-medium">ID</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">ID Produto</th>
+                <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Produto</th>
+                <th className="text-left p-3 w-32 text-sm font-medium">Loja</th>
+                <th className="text-left p-3 w-24 text-sm font-medium">Tipo Margem</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Margem</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Margem Adc</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">% Desc</th>
+                <th className="text-left p-3 w-28 text-sm font-medium">Data Início</th>
+                <th className="text-left p-3 w-28 text-sm font-medium">Data Fim</th>
+                <th className="text-left p-3 w-16 text-sm font-medium">Ativo</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Obs</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
               {produtoMargens.map((item) => (
-                <tr key={item.id} className={`border-b ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
-                  <td className="p-2 font-medium">{item.id}</td>
-                  <td className="p-2">{item.id_produto}</td>
-                  <td className="p-2">
-                    <div className="max-w-[200px] truncate" title={item.produto?.nome_produto}>
+                <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
+                  <td className="p-3 font-medium text-sm">{item.id}</td>
+                  <td className="p-3 text-sm">{item.id_produto}</td>
+                  <td className="p-3">
+                    <div className="text-sm truncate" title={item.produto?.nome_produto}>
                       {item.produto?.nome_produto}
                     </div>
                   </td>
-                  <td className="p-2">
-                    <LojaCombobox
-                      lojas={lojas}
-                      selectedLoja={getSelectedLoja(item)}
-                      onLojaChange={(loja) => handleTipoReferenciaChange(item.id, loja)}
-                      disabled={item.st_ativo === 0}
-                    />
+                  <td className="p-3">
+                    <div className="w-full">
+                      <LojaCombobox
+                        lojas={lojas}
+                        selectedLoja={getSelectedLoja(item)}
+                        onLojaChange={(loja) => handleTipoReferenciaChange(item.id, loja)}
+                        disabled={item.st_ativo === 0}
+                      />
+                    </div>
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <select
                       value={item.tipo_margem}
                       onChange={(e) => handleFieldChange(item.id, 'tipo_margem', e.target.value)}
                       disabled={item.st_ativo === 0}
-                      className="w-full p-1 border rounded text-xs"
+                      className="w-full p-2 border rounded text-sm bg-background"
                     >
-                      <option value="percentual">Percentual</option>
-                      <option value="valor">Valor</option>
+                      <option value="percentual">%</option>
+                      <option value="valor">R$</option>
                     </select>
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="number"
                       step="0.01"
                       value={item.margem}
                       onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
                       disabled={item.st_ativo === 0}
-                      className="w-full text-xs"
+                      className="w-full text-sm h-8"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="number"
                       step="0.01"
                       value={item.margem_adc || ""}
                       onChange={(e) => handleFieldChange(item.id, 'margem_adc', parseFloat(e.target.value) || null)}
                       disabled={item.st_ativo === 0}
-                      className="w-full text-xs"
+                      className="w-full text-sm h-8"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="number"
                       step="0.01"
                       value={item.desconto || ""}
                       onChange={(e) => handleFieldChange(item.id, 'desconto', parseFloat(e.target.value) || null)}
                       disabled={item.st_ativo === 0 || item.tipo_margem === "valor"}
-                      className="w-full text-xs"
+                      className="w-full text-sm h-8"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="date"
                       value={item.data_inicio}
                       onChange={(e) => handleFieldChange(item.id, 'data_inicio', e.target.value)}
                       disabled={item.st_ativo === 0}
-                      className="w-full text-xs"
+                      className="w-full text-sm h-8"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="date"
                       value={item.data_fim}
                       onChange={(e) => handleFieldChange(item.id, 'data_fim', e.target.value)}
                       disabled={item.st_ativo === 0}
-                      className="w-full text-xs"
+                      className="w-full text-sm h-8"
                     />
                   </td>
-                  <td className="p-2">
-                    <Badge variant={item.st_ativo === 1 ? "default" : "secondary"} className="text-xs">
+                  <td className="p-3">
+                    <Badge variant={item.st_ativo === 1 ? "default" : "secondary"} className="text-xs px-2">
                       {item.st_ativo === 1 ? "Ativo" : "Inativo"}
                     </Badge>
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                           <MessageSquare className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
@@ -391,12 +393,12 @@ export default function DescontoProdutoLoja() {
                       </DialogContent>
                     </Dialog>
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Button 
                       size="sm" 
                       onClick={() => handleSave(item.id)}
                       disabled={!editedRows.has(item.id)}
-                      className="text-xs"
+                      className="text-xs h-8"
                     >
                       Salvar
                     </Button>
