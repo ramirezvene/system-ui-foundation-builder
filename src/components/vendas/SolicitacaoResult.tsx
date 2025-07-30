@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { SolicitacaoResult } from "@/types/vendas"
+import { useState, useEffect } from "react"
+import { supabase } from "@/integrations/supabase/client"
 
 interface SolicitacaoResultCardProps {
   result: SolicitacaoResult
@@ -10,6 +12,27 @@ interface SolicitacaoResultCardProps {
 }
 
 export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoResultCardProps) {
+  const [tokensUtilizados, setTokensUtilizados] = useState(0)
+
+  useEffect(() => {
+    const calcularTokensUtilizados = async () => {
+      if (!result.loja) return
+
+      try {
+        const { data } = await supabase
+          .from("token_loja")
+          .select("id")
+          .eq("cod_loja", result.loja.cod_loja)
+          .eq("st_aprovado", 1)
+
+        setTokensUtilizados(data?.length || 0)
+      } catch (error) {
+        console.error("Erro ao calcular tokens utilizados:", error)
+      }
+    }
+
+    calcularTokensUtilizados()
+  }, [result.loja])
   // Verificar se é um motivo específico de reprovação que deve ser destacado
   const motivosDestaque = [
     "Maior que desconto máximo",
@@ -131,14 +154,17 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
         </div>
 
         {/* Tokens */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <h3 className="font-semibold mb-2">Token Disponível</h3>
-            <p className="text-sm font-mono">{result.tokenDisponivel}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2">Token Atualizado</h3>
-            <p className="text-sm font-mono">{result.tokenDisponipelAtualizado}</p>
+            <h3 className="font-semibold mb-2">Tokens</h3>
+            <div className="text-sm space-y-1">
+              <div className="font-mono">
+                {result.tokenDisponivel + tokensUtilizados} / {tokensUtilizados} / {result.tokenDisponipelAtualizado}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Total / Usado / Restante
+              </div>
+            </div>
           </div>
         </div>
 

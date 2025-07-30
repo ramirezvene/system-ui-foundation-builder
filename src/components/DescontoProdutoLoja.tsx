@@ -377,7 +377,7 @@ export default function DescontoProdutoLoja() {
                           <MessageSquare className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md">
+                      <DialogContent className="max-w-md z-50">
                         <DialogHeader>
                           <DialogTitle>Observação - Produto {item.id}</DialogTitle>
                         </DialogHeader>
