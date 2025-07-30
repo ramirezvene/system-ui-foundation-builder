@@ -93,16 +93,13 @@ export default function Relatorios() {
           />
         </div>
         
-        {/* Terceira linha - 2 cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Terceira linha - 1 coluna completa */}
+        <div className="grid grid-cols-1">
           <CuponsDisponiveis 
             selectedMonth={selectedMonth} 
             selectedYear={selectedYear}
             onLojasFiltradas={setLojasFiltradas}
           />
-          <div className="min-h-[400px] bg-card rounded-lg border shadow-sm flex items-center justify-center">
-            <span className="text-muted-foreground">Espaço para futuros dashboards</span>
-          </div>
         </div>
       </div>
     </div>
