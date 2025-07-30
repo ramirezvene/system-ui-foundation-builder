@@ -1,6 +1,7 @@
 
 import TokenChart from "@/components/TokenChart"
 import TopLojasChart from "@/components/TopLojasChart"
+import TopProdutosChart from "@/components/TopProdutosChart"
 import TokenStatusChart from "@/components/TokenStatusChart"
 import CuponsDisponiveis from "@/components/CuponsDisponiveis"
 import { useState } from "react"
@@ -66,29 +67,33 @@ export default function Relatorios() {
       </div>
       
       <div className="grid gap-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <TokenChart 
-              selectedMonth={selectedMonth} 
-              selectedYear={selectedYear}
-              lojasFiltradas={lojasFiltradas}
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <TopLojasChart 
-              selectedMonth={selectedMonth} 
-              selectedYear={selectedYear} 
-            />
-          </div>
-          <div className="lg:col-span-1">
-            <TokenStatusChart 
-              selectedMonth={selectedMonth} 
-              selectedYear={selectedYear}
-              lojasFiltradas={lojasFiltradas}
-            />
-          </div>
+        {/* Primeira linha - 2 cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TokenChart 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear}
+            lojasFiltradas={lojasFiltradas}
+          />
+          <TopLojasChart 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear} 
+          />
         </div>
         
+        {/* Segunda linha - 2 cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopProdutosChart 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear} 
+          />
+          <TokenStatusChart 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear}
+            lojasFiltradas={lojasFiltradas}
+          />
+        </div>
+        
+        {/* Terceira linha - 1 card largo */}
         <div className="grid grid-cols-1">
           <CuponsDisponiveis 
             selectedMonth={selectedMonth} 

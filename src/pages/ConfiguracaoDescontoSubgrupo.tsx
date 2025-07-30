@@ -276,92 +276,90 @@ export default function ConfiguracaoDescontoSubgrupo() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+      <CardContent className="p-0">
+        <div className="w-full">
+          <table className="w-full border-collapse table-fixed">
             <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Cód Subgrupo</th>
-                <th className="text-left p-2">Nome Subgrupo</th>
-                <th className="text-left p-2">Qtde Max</th>
-                <th className="text-left p-2">Margem</th>
-                <th className="text-left p-2">Margem Adc</th>
-                <th className="text-left p-2">% Desc</th>
-                <th className="text-left p-2 w-32">Data Início</th>
-                <th className="text-left p-2 w-32">Data Fim</th>
-                <th className="text-left p-2">Ativo</th>
-                <th className="text-left p-2">Observação</th>
-                <th className="text-left p-2">Ações</th>
+              <tr className="border-b bg-gray-50">
+                <th className="text-left p-3 w-20 text-sm font-medium">Cód Subgrupo</th>
+                <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Subgrupo</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Qtde Max</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Margem</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Margem Adc</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">% Desc</th>
+                <th className="text-left p-3 w-28 text-sm font-medium">Data Início</th>
+                <th className="text-left p-3 w-28 text-sm font-medium">Data Fim</th>
+                <th className="text-left p-3 w-16 text-sm font-medium">Ativo</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Obs</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
               {subgrupos.map((subgrupo) => (
-                <tr key={subgrupo.cod_subgrupo} className={`border-b ${editedRows.has(subgrupo.cod_subgrupo) ? 'bg-yellow-50' : ''} ${!isFieldEditable(subgrupo) ? 'bg-gray-50' : ''}`}>
-                  <td className="p-2">
-                    <span className="font-medium">{subgrupo.cod_subgrupo}</span>
-                  </td>
-                  <td className="p-2">
+                <tr key={subgrupo.cod_subgrupo} className={`border-b hover:bg-gray-50 ${editedRows.has(subgrupo.cod_subgrupo) ? 'bg-yellow-50' : ''} ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`}>
+                  <td className="p-3 font-medium text-sm">{subgrupo.cod_subgrupo}</td>
+                  <td className="p-3">
                     <Input
                       value={subgrupo.nome_subgrupo}
                       onChange={(e) => handleFieldChange(subgrupo.cod_subgrupo, 'nome_subgrupo', e.target.value)}
-                      className="w-48 bg-gray-100"
+                      className="w-full bg-gray-100 text-sm h-8"
                       disabled={true}
                       readOnly={true}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="number"
                       value={subgrupo.qtde_max}
                       onChange={(e) => handleFieldChange(subgrupo.cod_subgrupo, 'qtde_max', parseInt(e.target.value) || 0)}
-                      className="w-24"
+                      className="w-full text-sm h-8"
                       disabled={!isFieldEditable(subgrupo)}
                       min="0"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <PercentageInput
                       value={formatValueForDisplay(subgrupo.margem)}
                       onChange={(value) => handleMargemChange(subgrupo.cod_subgrupo, value)}
-                      className="w-24"
+                      className="w-full text-sm h-8"
                       disabled={!isFieldEditable(subgrupo)}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <PercentageInput
                       value={formatValueForDisplay(subgrupo.margem_adc)}
                       onChange={(value) => handleMargemAdcChange(subgrupo.cod_subgrupo, value)}
-                      className="w-24"
+                      className="w-full text-sm h-8"
                       disabled={!isFieldEditable(subgrupo)}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <PercentageInput
                       value={formatValueForDisplay(subgrupo.desconto)}
                       onChange={(value) => handleDescontoChange(subgrupo.cod_subgrupo, value)}
-                      className="w-24"
+                      className="w-full text-sm h-8"
                       disabled={!isFieldEditable(subgrupo)}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="date"
                       value={subgrupo.data_inicio || ''}
                       onChange={(e) => handleFieldChange(subgrupo.cod_subgrupo, 'data_inicio', e.target.value)}
-                      className="w-full"
+                      className="w-full text-sm h-8"
                       disabled={!isFieldEditable(subgrupo)}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Input
                       type="date"
                       value={subgrupo.data_fim || ''}
                       onChange={(e) => handleFieldChange(subgrupo.cod_subgrupo, 'data_fim', e.target.value)}
-                      className="w-full"
+                      className="w-full text-sm h-8"
                       disabled={!isFieldEditable(subgrupo)}
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <div className="flex items-center space-x-2">
                       <Switch
                         checked={subgrupo.st_ativo === 1}
@@ -372,14 +370,14 @@ export default function ConfiguracaoDescontoSubgrupo() {
                       </Label>
                     </div>
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Dialog open={observacaoDialogs.has(subgrupo.cod_subgrupo)} onOpenChange={() => toggleObservacaoDialog(subgrupo.cod_subgrupo)}>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                           <MessageSquare className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md">
+                      <DialogContent className="max-w-md z-50">
                         <DialogHeader>
                           <DialogTitle>Observação - Subgrupo {subgrupo.cod_subgrupo}</DialogTitle>
                         </DialogHeader>
@@ -395,11 +393,12 @@ export default function ConfiguracaoDescontoSubgrupo() {
                       </DialogContent>
                     </Dialog>
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <Button 
                       size="sm" 
                       onClick={() => handleSave(subgrupo.cod_subgrupo)}
                       disabled={!editedRows.has(subgrupo.cod_subgrupo)}
+                      className="text-xs h-8"
                     >
                       Salvar
                     </Button>
