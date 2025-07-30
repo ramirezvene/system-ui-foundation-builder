@@ -205,7 +205,8 @@ export default function ConfiguracaoTokenLoja() {
   }
 
   return (
-    <Card className="w-full">
+    <div className="container mx-auto p-6">
+      <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           Token Loja
@@ -300,5 +301,6 @@ export default function ConfiguracaoTokenLoja() {
         </div>
       </CardContent>
     </Card>
+    </div>
   )
 }

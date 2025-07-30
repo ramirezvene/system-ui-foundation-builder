@@ -91,7 +91,8 @@ export default function TokenEstado() {
   }
 
   return (
-    <Card className="w-full">
+    <div className="container mx-auto p-6">
+      <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           Token Estado
@@ -145,5 +146,6 @@ export default function TokenEstado() {
         </div>
       </CardContent>
     </Card>
+    </div>
   )
 }

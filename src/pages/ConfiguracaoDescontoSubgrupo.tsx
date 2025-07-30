@@ -256,7 +256,8 @@ export default function ConfiguracaoDescontoSubgrupo() {
   }
 
   return (
-    <Card className="w-full">
+    <div className="container mx-auto p-6">
+      <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           Configuração Desconto Subgrupo
@@ -417,5 +418,6 @@ export default function ConfiguracaoDescontoSubgrupo() {
         maxCodSubgrupo={getMaxCodSubgrupo()}
       />
     </Card>
+    </div>
   )
 }

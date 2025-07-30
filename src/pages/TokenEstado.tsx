@@ -108,20 +108,41 @@ export default function TokenEstado() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {estados.map((estado) => (
-              <div key={estado.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <span className="font-medium text-lg">{estado.estado}</span>
-                  <span className="text-muted-foreground">{estado.nome_estado}</span>
-                </div>
-                <Switch
-                  checked={estado.st_ativo === 1}
-                  onCheckedChange={(checked) => handleStatusChange(estado.id, checked)}
-                />
-              </div>
-            ))}
+        <CardContent className="p-0">
+          <div className="w-full">
+            <table className="w-full border-collapse table-fixed">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left p-3 w-20 text-sm font-medium">Estado</th>
+                  <th className="text-left p-3 w-1/2 text-sm font-medium">Nome Estado</th>
+                  <th className="text-left p-3 w-24 text-sm font-medium">Status</th>
+                  <th className="text-left p-3 w-20 text-sm font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estados.map((estado) => (
+                  <tr key={estado.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 font-medium text-sm">{estado.estado}</td>
+                    <td className="p-3">
+                      <div className="text-sm truncate" title={estado.nome_estado}>
+                        {estado.nome_estado}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <Switch
+                        checked={estado.st_ativo === 1}
+                        onCheckedChange={(checked) => handleStatusChange(estado.id, checked)}
+                      />
+                    </td>
+                    <td className="p-3">
+                      <span className="text-xs text-muted-foreground">
+                        {estado.st_ativo === 1 ? "Ativo" : "Inativo"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
