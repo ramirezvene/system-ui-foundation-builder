@@ -284,6 +284,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
               <tr className="border-b bg-gray-50">
                 <th className="text-left p-3 w-20 text-sm font-medium">Cód Subgrupo</th>
                 <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Subgrupo</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Qtde Min</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Qtde Max</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Margem</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Margem Adc</th>
@@ -306,6 +307,16 @@ export default function ConfiguracaoDescontoSubgrupo() {
                       className="w-full bg-gray-100 text-sm h-8"
                       disabled={true}
                       readOnly={true}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <Input
+                      type="number"
+                      value={0}
+                      className="w-full bg-gray-100 text-sm h-8"
+                      disabled={true}
+                      readOnly={true}
+                      min="0"
                     />
                   </td>
                   <td className="p-3">
