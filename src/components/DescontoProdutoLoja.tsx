@@ -276,6 +276,8 @@ export default function DescontoProdutoLoja() {
                 <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Produto</th>
                 <th className="text-left p-3 w-32 text-sm font-medium">Loja</th>
                 <th className="text-left p-3 w-24 text-sm font-medium">Tipo Margem</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Qtde Min</th>
+                <th className="text-left p-3 w-20 text-sm font-medium">Qtde Max</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Margem</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Margem Adc</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">% Desc</th>
@@ -306,27 +308,47 @@ export default function DescontoProdutoLoja() {
                       />
                     </div>
                   </td>
-                  <td className="p-3">
-                    <select
-                      value={item.tipo_margem}
-                      onChange={(e) => handleFieldChange(item.id, 'tipo_margem', e.target.value)}
-                      disabled={item.st_ativo === 0}
-                      className="w-full p-2 border rounded text-sm bg-background"
-                    >
-                      <option value="percentual">%</option>
-                      <option value="valor">R$</option>
-                    </select>
-                  </td>
-                  <td className="p-3">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={item.margem}
-                      onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
-                      disabled={item.st_ativo === 0}
-                      className="w-full text-sm h-8"
-                    />
-                  </td>
+                   <td className="p-3">
+                     <select
+                       value={item.tipo_margem}
+                       onChange={(e) => handleFieldChange(item.id, 'tipo_margem', e.target.value)}
+                       disabled={item.st_ativo === 0}
+                       className="w-full p-2 border rounded text-sm bg-background"
+                     >
+                       <option value="percentual">%</option>
+                       <option value="valor">R$</option>
+                     </select>
+                   </td>
+                   <td className="p-3">
+                     <Input
+                       type="number"
+                       value={0}
+                       className="w-full bg-gray-100 text-sm h-8"
+                       disabled={true}
+                       readOnly={true}
+                       min="0"
+                     />
+                   </td>
+                   <td className="p-3">
+                     <Input
+                       type="number"
+                       value={item.qtde_max}
+                       onChange={(e) => handleFieldChange(item.id, 'qtde_max', parseInt(e.target.value) || 0)}
+                       disabled={item.st_ativo === 0}
+                       className="w-full text-sm h-8"
+                       min="0"
+                     />
+                   </td>
+                   <td className="p-3">
+                     <Input
+                       type="number"
+                       step="0.01"
+                       value={item.margem}
+                       onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
+                       disabled={item.st_ativo === 0}
+                       className="w-full text-sm h-8"
+                     />
+                   </td>
                   <td className="p-3">
                     <Input
                       type="number"
