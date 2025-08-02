@@ -324,7 +324,7 @@ export default function DescontoProdutoEstado() {
                      <Input
                        type="number"
                        value={0}
-                       className="w-full bg-gray-100 text-sm h-8"
+                       className="w-full bg-background text-sm h-8"
                        disabled={false}
                        readOnly={false}
                        min="0"
