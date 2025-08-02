@@ -325,7 +325,7 @@ export default function DescontoProdutoEstado() {
                        type="number"
                        value={0}
                        className="w-full bg-gray-100 text-sm h-8"
-                       disabled={true}
+                       disabled={false}
                        readOnly={true}
                        min="0"
                      />
