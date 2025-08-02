@@ -326,7 +326,7 @@ export default function DescontoProdutoEstado() {
                        value={0}
                        className="w-full bg-gray-100 text-sm h-8"
                        disabled={false}
-                       readOnly={true}
+                       readOnly={false}
                        min="0"
                      />
                    </td>
