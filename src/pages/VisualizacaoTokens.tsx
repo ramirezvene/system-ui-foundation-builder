@@ -37,7 +37,7 @@ export default function VisualizacaoTokens() {
   const [filterCodigoToken, setFilterCodigoToken] = useState("")
   const [filterCodigoLoja, setFilterCodigoLoja] = useState("")
   const [filterEstado, setFilterEstado] = useState("")
-  const [filterStatus, setFilterStatus] = useState("")
+  const [filterStatus, setFilterStatus] = useState("todos")
   const [filterDataInicio, setFilterDataInicio] = useState("")
   const [filterDataFim, setFilterDataFim] = useState("")
   
@@ -73,7 +73,7 @@ export default function VisualizacaoTokens() {
       )
     }
 
-    if (filterStatus) {
+    if (filterStatus && filterStatus !== "todos") {
       const statusValue = filterStatus === "aprovado" ? 1 : filterStatus === "rejeitado" ? 0 : null
       filtered = filtered.filter(token => token.st_aprovado === statusValue)
     }
@@ -102,7 +102,7 @@ export default function VisualizacaoTokens() {
     setFilterCodigoToken("")
     setFilterCodigoLoja("")
     setFilterEstado("")
-    setFilterStatus("")
+    setFilterStatus("todos")
     setFilterDataInicio("")
     setFilterDataFim("")
   }
@@ -318,7 +318,7 @@ export default function VisualizacaoTokens() {
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="todos">Todos</SelectItem>
                         <SelectItem value="aprovado">Aprovado</SelectItem>
                         <SelectItem value="rejeitado">Rejeitado</SelectItem>
                         <SelectItem value="pendente">Pendente</SelectItem>
