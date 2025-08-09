@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Eye } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Eye, Download } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
@@ -17,8 +18,10 @@ interface TokenWithLoja extends TokenLoja {
   cadastro_loja: {
     loja: string
     estado: string
+    cod_loja: number
   }
 }
+
 
 export default function VisualizacaoTokens() {
   const [tokens, setTokens] = useState<TokenWithLoja[]>([])
@@ -50,7 +53,8 @@ export default function VisualizacaoTokens() {
           *,
           cadastro_loja (
             loja,
-            estado
+            estado,
+            cod_loja
           )
         `)
         .order("data_criacao", { ascending: false })
@@ -104,13 +108,101 @@ export default function VisualizacaoTokens() {
     }).format(value)
   }
 
+  const formatPercentage = (value: string | null) => {
+    if (!value) return "0%"
+    return `${value}%`
+  }
+
+  const getStatusBadge = (status: number | null) => {
+    if (status === 1) {
+      return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Aprovado</Badge>
+    } else if (status === 0) {
+      return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Rejeitado</Badge>
+    }
+    return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pendente</Badge>
+  }
+
+  const exportToCSV = () => {
+    const headers = [
+      'Código Token',
+      'Loja ID',
+      'Loja Nome',
+      'UF',
+      'Produto ID',
+      'Produto Nome',
+      'Preço Regular',
+      'Preço Solicitado',
+      'Desconto (%)',
+      'Quantidade',
+      'Preço Mínimo',
+      'CMG Produto',
+      'Outros Descontos',
+      'Margem UF',
+      'Margem',
+      'Margem Adicional',
+      'Impostos (%)',
+      'Status',
+      'Data Criação',
+      'Observação'
+    ]
+
+    const csvData = []
+    csvData.push(headers.join(','))
+
+    filteredTokens.forEach(token => {
+      if (token.id === selectedToken?.id && tokenDetalhes.length > 0) {
+        tokenDetalhes.forEach(detalhe => {
+          const row = [
+            token.codigo_token,
+            token.cadastro_loja.cod_loja,
+            token.cadastro_loja.loja,
+            token.cadastro_loja.estado,
+            '', // Produto ID - não disponível na estrutura atual
+            detalhe.produto || '',
+            detalhe.preco_regul || '',
+            detalhe.vlr_solic || '',
+            detalhe.desconto || '',
+            detalhe.qtde_solic || '',
+            detalhe.preco_min || '',
+            detalhe.cmg_produto || '',
+            '', // Outros descontos
+            detalhe.margem_uf || '',
+            detalhe.margem_zvdc || '',
+            '', // Margem adicional
+            '', // Impostos
+            token.st_aprovado === 1 ? 'Aprovado' : token.st_aprovado === 0 ? 'Rejeitado' : 'Pendente',
+            formatDate(token.data_criacao!),
+            detalhe.observacao || ''
+          ]
+          csvData.push(row.join(','))
+        })
+      }
+    })
+
+    const blob = new Blob([csvData.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `tokens_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-foreground mb-6">Visualização de Tokens</h1>
       
       <Card className="w-full">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Tokens Gerados</CardTitle>
+          <Button onClick={exportToCSV} variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -127,6 +219,7 @@ export default function VisualizacaoTokens() {
                 <TableHead>Código Token</TableHead>
                 <TableHead>Loja</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Data Criação</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -135,8 +228,9 @@ export default function VisualizacaoTokens() {
               {filteredTokens.map((token) => (
                 <TableRow key={token.id}>
                   <TableCell className="font-mono">{token.codigo_token}</TableCell>
-                  <TableCell>{token.cadastro_loja.loja}</TableCell>
+                  <TableCell>{`${token.cadastro_loja.cod_loja} - ${token.cadastro_loja.loja} - ${token.cadastro_loja.estado}`}</TableCell>
                   <TableCell>{token.cadastro_loja.estado}</TableCell>
+                  <TableCell>{getStatusBadge(token.st_aprovado)}</TableCell>
                   <TableCell>{formatDate(token.data_criacao!)}</TableCell>
                   <TableCell>
                     <Button
@@ -163,15 +257,18 @@ export default function VisualizacaoTokens() {
               
               {selectedToken && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
                     <div>
-                      <strong>Loja:</strong> {selectedToken.cadastro_loja.loja}
+                      <strong>Código Token:</strong> {selectedToken.codigo_token}
                     </div>
                     <div>
-                      <strong>Estado:</strong> {selectedToken.cadastro_loja.estado}
+                      <strong>Status:</strong> {getStatusBadge(selectedToken.st_aprovado)}
                     </div>
                     <div>
-                      <strong>Data:</strong> {formatDate(selectedToken.data_criacao!)}
+                      <strong>Data Criação:</strong> {formatDate(selectedToken.data_criacao!)}
+                    </div>
+                    <div>
+                      <strong>Data Validação:</strong> {selectedToken.data_validacao ? formatDate(selectedToken.data_validacao) : 'Não validado'}
                     </div>
                   </div>
 
@@ -179,31 +276,43 @@ export default function VisualizacaoTokens() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Produto</TableHead>
-                          <TableHead>Qtde</TableHead>
-                          <TableHead>Vlr Solicitado</TableHead>
-                          <TableHead>Preço Mín</TableHead>
-                          <TableHead>CMG</TableHead>
-                          <TableHead>Preço Reg</TableHead>
-                          <TableHead>% Desc</TableHead>
-                          <TableHead>Alçada</TableHead>
+                          <TableHead>Loja (ID - Nome - UF)</TableHead>
+                          <TableHead>Produto (ID - Nome)</TableHead>
+                          <TableHead>Preço Regular</TableHead>
+                          <TableHead>Preço Solicitado</TableHead>
+                          <TableHead>Desconto (%)</TableHead>
+                          <TableHead>Quantidade</TableHead>
+                          <TableHead>Preço Mínimo</TableHead>
+                          <TableHead>CMG Produto</TableHead>
+                          <TableHead>Outros Descontos</TableHead>
                           <TableHead>Margem UF</TableHead>
-                          <TableHead>Margem ZVDC</TableHead>
+                          <TableHead>Margem</TableHead>
+                          <TableHead>Margem Adicional</TableHead>
+                          <TableHead>Impostos (%)</TableHead>
+                          <TableHead>Retorno</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {tokenDetalhes.map((detalhe) => (
                           <TableRow key={detalhe.id}>
-                            <TableCell>{detalhe.produto}</TableCell>
-                            <TableCell>{detalhe.qtde_solic}</TableCell>
+                            <TableCell>
+                              {`${selectedToken?.cadastro_loja.cod_loja} - ${selectedToken?.cadastro_loja.loja} - ${selectedToken?.cadastro_loja.estado}`}
+                            </TableCell>
+                            <TableCell>
+                              {detalhe.produto || 'N/A'}
+                            </TableCell>
+                            <TableCell>{formatCurrency(detalhe.preco_regul)}</TableCell>
                             <TableCell>{formatCurrency(detalhe.vlr_solic)}</TableCell>
+                            <TableCell>{formatPercentage(detalhe.desconto)}</TableCell>
+                            <TableCell>{detalhe.qtde_solic}</TableCell>
                             <TableCell>{formatCurrency(detalhe.preco_min)}</TableCell>
                             <TableCell>{formatCurrency(detalhe.cmg_produto)}</TableCell>
-                            <TableCell>{formatCurrency(detalhe.preco_regul)}</TableCell>
-                            <TableCell>{detalhe.desconto}</TableCell>
-                            <TableCell>{detalhe.desc_alcada}</TableCell>
+                            <TableCell>-</TableCell>
                             <TableCell>{detalhe.margem_uf}</TableCell>
                             <TableCell>{detalhe.margem_zvdc}</TableCell>
+                            <TableCell>-</TableCell>
+                            <TableCell>-</TableCell>
+                            <TableCell>{detalhe.desc_alcada}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
