@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Download } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
+import { Eye, Download, Filter, X } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
@@ -26,10 +28,19 @@ interface TokenWithLoja extends TokenLoja {
 export default function VisualizacaoTokens() {
   const [tokens, setTokens] = useState<TokenWithLoja[]>([])
   const [filteredTokens, setFilteredTokens] = useState<TokenWithLoja[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
   const [selectedToken, setSelectedToken] = useState<TokenWithLoja | null>(null)
   const [tokenDetalhes, setTokenDetalhes] = useState<TokenLojaDetalhado[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  
+  // Filtros
+  const [filterCodigoToken, setFilterCodigoToken] = useState("")
+  const [filterCodigoLoja, setFilterCodigoLoja] = useState("")
+  const [filterEstado, setFilterEstado] = useState("")
+  const [filterStatus, setFilterStatus] = useState("")
+  const [filterDataInicio, setFilterDataInicio] = useState("")
+  const [filterDataFim, setFilterDataFim] = useState("")
+  
   const { toast } = useToast()
 
   useEffect(() => {
@@ -37,13 +48,64 @@ export default function VisualizacaoTokens() {
   }, [])
 
   useEffect(() => {
-    const filtered = tokens.filter(token =>
-      token.codigo_token.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.cadastro_loja.loja.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.cadastro_loja.estado.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    applyFilters()
+  }, [tokens, filterCodigoToken, filterCodigoLoja, filterEstado, filterStatus, filterDataInicio, filterDataFim])
+
+  const applyFilters = () => {
+    let filtered = tokens
+
+    if (filterCodigoToken) {
+      filtered = filtered.filter(token => 
+        token.codigo_token.toLowerCase().includes(filterCodigoToken.toLowerCase())
+      )
+    }
+
+    if (filterCodigoLoja) {
+      filtered = filtered.filter(token => 
+        token.cadastro_loja.cod_loja.toString().includes(filterCodigoLoja) ||
+        token.cadastro_loja.loja.toLowerCase().includes(filterCodigoLoja.toLowerCase())
+      )
+    }
+
+    if (filterEstado) {
+      filtered = filtered.filter(token => 
+        token.cadastro_loja.estado.toLowerCase().includes(filterEstado.toLowerCase())
+      )
+    }
+
+    if (filterStatus) {
+      const statusValue = filterStatus === "aprovado" ? 1 : filterStatus === "rejeitado" ? 0 : null
+      filtered = filtered.filter(token => token.st_aprovado === statusValue)
+    }
+
+    if (filterDataInicio) {
+      filtered = filtered.filter(token => {
+        const tokenDate = new Date(token.data_criacao!)
+        const startDate = new Date(filterDataInicio)
+        return tokenDate >= startDate
+      })
+    }
+
+    if (filterDataFim) {
+      filtered = filtered.filter(token => {
+        const tokenDate = new Date(token.data_criacao!)
+        const endDate = new Date(filterDataFim)
+        endDate.setHours(23, 59, 59, 999) // Incluir o dia inteiro
+        return tokenDate <= endDate
+      })
+    }
+
     setFilteredTokens(filtered)
-  }, [tokens, searchTerm])
+  }
+
+  const clearFilters = () => {
+    setFilterCodigoToken("")
+    setFilterCodigoLoja("")
+    setFilterEstado("")
+    setFilterStatus("")
+    setFilterDataInicio("")
+    setFilterDataFim("")
+  }
 
   const fetchTokens = async () => {
     try {
@@ -199,19 +261,101 @@ export default function VisualizacaoTokens() {
       <Card className="w-full">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Tokens Gerados</CardTitle>
-          <Button onClick={exportToCSV} variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowFilters(!showFilters)} 
+              variant="outline" 
+              size="sm"
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filtros
+            </Button>
+            <Button onClick={exportToCSV} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <Input
-              placeholder="Pesquisar por código, loja ou estado..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {showFilters && (
+            <Card className="mb-4">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="filterCodigoToken">Código Token</Label>
+                    <Input
+                      id="filterCodigoToken"
+                      placeholder="Buscar código..."
+                      value={filterCodigoToken}
+                      onChange={(e) => setFilterCodigoToken(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="filterCodigoLoja">Código/Loja</Label>
+                    <Input
+                      id="filterCodigoLoja"
+                      placeholder="Buscar loja..."
+                      value={filterCodigoLoja}
+                      onChange={(e) => setFilterCodigoLoja(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="filterEstado">Estado</Label>
+                    <Input
+                      id="filterEstado"
+                      placeholder="Buscar estado..."
+                      value={filterEstado}
+                      onChange={(e) => setFilterEstado(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="filterStatus">Status</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="aprovado">Aprovado</SelectItem>
+                        <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                        <SelectItem value="pendente">Pendente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="filterDataInicio">Data Início</Label>
+                    <Input
+                      id="filterDataInicio"
+                      type="date"
+                      value={filterDataInicio}
+                      onChange={(e) => setFilterDataInicio(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="filterDataFim">Data Fim</Label>
+                    <Input
+                      id="filterDataFim"
+                      type="date"
+                      value={filterDataFim}
+                      onChange={(e) => setFilterDataFim(e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end mt-4">
+                  <Button onClick={clearFilters} variant="outline" size="sm">
+                    <X className="w-4 h-4 mr-2" />
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Table>
             <TableHeader>
