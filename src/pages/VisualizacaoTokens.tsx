@@ -380,7 +380,7 @@ export default function VisualizacaoTokens() {
           </Table>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-full max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   Detalhes do Token: {selectedToken?.codigo_token}
