@@ -343,9 +343,9 @@ export default function DescontoProdutoLoja() {
                     <td className="p-3">
                       {item.tipo_margem === "percentual" ? (
                         <PercentageInput
-                          value={item.margem ? `${item.margem}%` : ""}
+                          value={item.margem ? `${item.margem.toFixed(2)}%` : ""}
                           onChange={(value) => {
-                            const numericValue = parseFloat(value.replace('%', '')) || 0;
+                            const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0;
                             if (numericValue >= 0 && numericValue <= 100) {
                               handleFieldChange(item.id, 'margem', numericValue);
                             }
@@ -376,9 +376,9 @@ export default function DescontoProdutoLoja() {
                    <td className="p-3">
                      {item.tipo_margem === "percentual" ? (
                        <PercentageInput
-                         value={item.margem_adc ? `${item.margem_adc}%` : ""}
+                         value={item.margem_adc ? `${item.margem_adc.toFixed(2)}%` : ""}
                          onChange={(value) => {
-                           const numericValue = parseFloat(value.replace('%', '')) || null;
+                           const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || null;
                            if (numericValue === null || (numericValue >= 0 && numericValue <= 100)) {
                              handleFieldChange(item.id, 'margem_adc', numericValue);
                            }
