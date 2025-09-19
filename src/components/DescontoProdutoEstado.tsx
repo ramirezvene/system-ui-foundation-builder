@@ -14,6 +14,8 @@ import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
 import { AddProdutoMargemDialog } from "./AddProdutoMargemDialog"
 import { EstadoCombobox } from "./EstadoCombobox"
+import { CurrencyInput } from "./CurrencyInput"
+import { PercentageInput } from "./PercentageInput"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -369,26 +371,72 @@ export default function DescontoProdutoEstado() {
                        min="0"
                      />
                    </td>
+                    <td className="p-3">
+                      {item.tipo_margem === "percentual" ? (
+                        <PercentageInput
+                          value={item.margem ? `${item.margem}%` : ""}
+                          onChange={(value) => {
+                            const numericValue = parseFloat(value.replace('%', '')) || 0;
+                            if (numericValue >= 0 && numericValue <= 100) {
+                              handleFieldChange(item.id, 'margem', numericValue);
+                            }
+                          }}
+                          disabled={item.st_ativo === 0}
+                          className="w-full text-sm h-8"
+                          placeholder="0,00%"
+                        />
+                      ) : (
+                        <CurrencyInput
+                          value={item.margem ? new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            minimumFractionDigits: 2
+                          }).format(item.margem) : ""}
+                          onChange={(value) => {
+                            const numericValue = parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+                            if (numericValue >= 0) {
+                              handleFieldChange(item.id, 'margem', numericValue);
+                            }
+                          }}
+                          disabled={item.st_ativo === 0}
+                          className="w-full text-sm h-8"
+                          placeholder="R$ 0,00"
+                        />
+                      )}
+                    </td>
                    <td className="p-3">
-                     <Input
-                       type="number"
-                       step="0.01"
-                       value={item.margem}
-                       onChange={(e) => handleFieldChange(item.id, 'margem', parseFloat(e.target.value) || 0)}
-                       disabled={item.st_ativo === 0}
-                       className="w-full text-sm h-8"
-                     />
+                     {item.tipo_margem === "percentual" ? (
+                       <PercentageInput
+                         value={item.margem_adc ? `${item.margem_adc}%` : ""}
+                         onChange={(value) => {
+                           const numericValue = parseFloat(value.replace('%', '')) || null;
+                           if (numericValue === null || (numericValue >= 0 && numericValue <= 100)) {
+                             handleFieldChange(item.id, 'margem_adc', numericValue);
+                           }
+                         }}
+                         disabled={item.st_ativo === 0}
+                         className="w-full text-sm h-8"
+                         placeholder="0,00%"
+                       />
+                     ) : (
+                       <CurrencyInput
+                         value={item.margem_adc ? new Intl.NumberFormat('pt-BR', {
+                           style: 'currency',
+                           currency: 'BRL',
+                           minimumFractionDigits: 2
+                         }).format(item.margem_adc) : ""}
+                         onChange={(value) => {
+                           const numericValue = parseFloat(value.replace(/[^\d,]/g, '').replace(',', '.')) || null;
+                           if (numericValue === null || numericValue >= 0) {
+                             handleFieldChange(item.id, 'margem_adc', numericValue);
+                           }
+                         }}
+                         disabled={item.st_ativo === 0}
+                         className="w-full text-sm h-8"
+                         placeholder="R$ 0,00"
+                       />
+                     )}
                    </td>
-                  <td className="p-3">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={item.margem_adc || ""}
-                      onChange={(e) => handleFieldChange(item.id, 'margem_adc', parseFloat(e.target.value) || null)}
-                      disabled={item.st_ativo === 0}
-                      className="w-full text-sm h-8"
-                    />
-                  </td>
                   <td className="p-3">
                     <Input
                       type="number"
