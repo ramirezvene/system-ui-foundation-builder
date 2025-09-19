@@ -176,26 +176,6 @@ const Index = () => {
             </Link>
           </CardContent>
         </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <BarChart className="w-6 h-6 text-primary" />
-              <CardTitle>Relatórios</CardTitle>
-            </div>
-            <CardDescription>
-              Acesse relatórios detalhados de tokens, aprovações e estatísticas.
-              Análise completa do desempenho do sistema.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/relatorios">
-              <Button className="w-full">
-                Ver Relatórios
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="mt-12 p-6 bg-card rounded-lg border max-w-7xl">
