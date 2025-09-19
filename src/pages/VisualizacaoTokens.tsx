@@ -12,6 +12,7 @@ import { Eye, Download, X } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
+import { TokenDetailsCard } from "@/components/vendas/TokenDetailsCard"
 
 type TokenLoja = Tables<"token_loja">
 type TokenLojaDetalhado = Tables<"token_loja_detalhado">
@@ -380,83 +381,13 @@ export default function VisualizacaoTokens() {
           </Table>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-full max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  Detalhes do Token: {selectedToken?.codigo_token}
-                </DialogTitle>
-              </DialogHeader>
-              
-              {selectedToken && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-                    <div>
-                      <strong>Código Token:</strong> {selectedToken.codigo_token}
-                    </div>
-                    <div>
-                      <strong>Status:</strong> {getStatusBadge(selectedToken.st_aprovado)}
-                    </div>
-                    <div>
-                      <strong>Data Criação:</strong> {formatDate(selectedToken.data_criacao!)}
-                    </div>
-                    <div>
-                      <strong>Data Validação:</strong> {selectedToken.data_validacao ? formatDate(selectedToken.data_validacao) : 'Não validado'}
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Loja (ID - Nome - UF)</TableHead>
-                          <TableHead>Produto (ID - Nome)</TableHead>
-                          <TableHead>Preço Regular</TableHead>
-                          <TableHead>Preço Solicitado</TableHead>
-                          <TableHead>Desconto (%)</TableHead>
-                          <TableHead>Quantidade</TableHead>
-                          <TableHead>Preço Mínimo</TableHead>
-                          <TableHead>CMG Produto</TableHead>
-                          <TableHead>Outros Descontos</TableHead>
-                          <TableHead>Margem UF</TableHead>
-                          <TableHead>Margem</TableHead>
-                          <TableHead>Margem Adicional</TableHead>
-                          <TableHead>Impostos (%)</TableHead>
-                          <TableHead>Retorno</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tokenDetalhes.map((detalhe) => (
-                          <TableRow key={detalhe.id}>
-                            <TableCell>
-                              {`${selectedToken?.cadastro_loja.cod_loja} - ${selectedToken?.cadastro_loja.loja} - ${selectedToken?.cadastro_loja.estado}`}
-                            </TableCell>
-                            <TableCell>
-                              {detalhe.produto || 'N/A'}
-                            </TableCell>
-                            <TableCell>{formatCurrency(detalhe.preco_regul)}</TableCell>
-                            <TableCell>{formatCurrency(detalhe.vlr_solic)}</TableCell>
-                            <TableCell>{formatPercentage(detalhe.desconto)}</TableCell>
-                            <TableCell>{detalhe.qtde_solic}</TableCell>
-                            <TableCell>{formatCurrency(detalhe.preco_min)}</TableCell>
-                            <TableCell>{formatCurrency(detalhe.cmg_produto)}</TableCell>
-                            <TableCell>-</TableCell>
-                            <TableCell>{detalhe.margem_uf}</TableCell>
-                            <TableCell>{detalhe.margem_zvdc}</TableCell>
-                            <TableCell>-</TableCell>
-                            <TableCell>-</TableCell>
-                            <TableCell>{detalhe.desc_alcada}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {tokenDetalhes.length > 0 && tokenDetalhes[0].observacao && (
-                    <div className="p-4 bg-muted rounded-lg">
-                      <strong>Observação:</strong> {tokenDetalhes[0].observacao}
-                    </div>
-                  )}
-                </div>
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+              {selectedToken && tokenDetalhes.length > 0 && (
+                <TokenDetailsCard
+                  token={selectedToken}
+                  tokenDetalhes={tokenDetalhes}
+                  formatCurrency={formatCurrency}
+                />
               )}
             </DialogContent>
           </Dialog>
