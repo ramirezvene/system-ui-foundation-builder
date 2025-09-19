@@ -95,7 +95,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         margem: item.margem,
         margem_adc: item.margem_adc,
         desconto: item.desconto,
-        qtde_min: item.qtde_min,
+        
         qtde_max: item.qtde_max,
         data_inicio: item.data_inicio,
         data_fim: item.data_fim,
@@ -261,7 +261,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     <Input value={subgrupo.nome_subgrupo} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'nome_subgrupo', e.target.value)} className="w-full bg-gray-100 text-sm h-8" disabled={true} readOnly={true} />
                   </td>
                   <td className="p-3">
-                    <Input type="number" value={subgrupo.qtde_min} onChange={e => handleFieldChange(subgrupo.cod_sugrupo, 'qtde_min', parseInt(e.target.value) || 0)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disable={!isFieldEditable(subgrupo)} min="0" />
+                    <Input type="number" value={0} onChange={e => {}} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} min="0" />
                   </td>
                   <td className="p-3">
                     <Input type="number" value={subgrupo.qtde_max} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'qtde_max', parseInt(e.target.value) || 0)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} min="0" />
