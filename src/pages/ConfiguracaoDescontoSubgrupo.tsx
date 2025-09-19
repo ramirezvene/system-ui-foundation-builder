@@ -252,7 +252,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
               </tr>
             </thead>
             <tbody>
-              {subgrupos.map(subgrupo => <tr key={subgrupo.cod_subgrupo} className={`border-b hover:bg-gray-50 ${editedRows.has(subgrupo.cod_subgrupo) ? 'bg-yellow-50' : ''} ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`}>
+              {subgrupos.map(subgrupo => <tr key={subgrupo.cod_subgrupo} className={`border-b hover:bg-gray-50 ${editedRows.has(subgrupo.cod_subgrupo) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-3 font-medium text-sm">{subgrupo.cod_subgrupo}</td>
                   <td className="p-3">
                     <Input value={subgrupo.nome_subgrupo} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'nome_subgrupo', e.target.value)} className="w-full bg-gray-100 text-sm h-8" disabled={true} readOnly={true} />
@@ -261,22 +261,22 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     <Input type="number" value={0} className="w-full bg-gray-100 text-sm h-8" disabled={true} readOnly={true} min="0" />
                   </td>
                   <td className="p-3">
-                    <Input type="number" value={subgrupo.qtde_max} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'qtde_max', parseInt(e.target.value) || 0)} className="w-full text-sm h-8" disabled={!isFieldEditable(subgrupo)} min="0" />
+                    <Input type="number" value={subgrupo.qtde_max} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'qtde_max', parseInt(e.target.value) || 0)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} min="0" />
                   </td>
                   <td className="p-3">
-                    <PercentageInput value={formatValueForDisplay(subgrupo.margem)} onChange={value => handleMargemChange(subgrupo.cod_subgrupo, value)} className="w-full text-sm h-8" disabled={!isFieldEditable(subgrupo)} />
+                    <PercentageInput value={formatValueForDisplay(subgrupo.margem)} onChange={value => handleMargemChange(subgrupo.cod_subgrupo, value)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} />
                   </td>
                   <td className="p-3">
-                    <PercentageInput value={formatValueForDisplay(subgrupo.margem_adc)} onChange={value => handleMargemAdcChange(subgrupo.cod_subgrupo, value)} className="w-full text-sm h-8" disabled={!isFieldEditable(subgrupo)} />
+                    <PercentageInput value={formatValueForDisplay(subgrupo.margem_adc)} onChange={value => handleMargemAdcChange(subgrupo.cod_subgrupo, value)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} />
                   </td>
                   <td className="p-3">
-                    <PercentageInput value={formatValueForDisplay(subgrupo.desconto)} onChange={value => handleDescontoChange(subgrupo.cod_subgrupo, value)} className="w-full text-sm h-8" disabled={!isFieldEditable(subgrupo)} />
+                    <PercentageInput value={formatValueForDisplay(subgrupo.desconto)} onChange={value => handleDescontoChange(subgrupo.cod_subgrupo, value)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} />
                   </td>
                   <td className="p-3">
-                    <Input type="date" value={subgrupo.data_inicio || ''} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'data_inicio', e.target.value)} className="w-full text-sm h-8" disabled={!isFieldEditable(subgrupo)} />
+                    <Input type="date" value={subgrupo.data_inicio || ''} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'data_inicio', e.target.value)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} />
                   </td>
                   <td className="p-3">
-                    <Input type="date" value={subgrupo.data_fim || ''} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'data_fim', e.target.value)} className="w-full text-sm h-8" disabled={!isFieldEditable(subgrupo)} />
+                    <Input type="date" value={subgrupo.data_fim || ''} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'data_fim', e.target.value)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} />
                   </td>
                   <td className="p-3">
                     <div className="flex items-center space-x-2">
