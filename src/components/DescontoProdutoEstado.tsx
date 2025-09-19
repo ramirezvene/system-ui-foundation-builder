@@ -420,7 +420,7 @@ export default function DescontoProdutoEstado() {
                    <td className="p-3">
                      <Switch
                        checked={item.st_ativo === 1}
-                       onCheckedChange={(checked) => handleStatusChange(item.id, checked)}
+                       onCheckedChange={(checked) => handleFieldChange(item.id, 'st_ativo', checked ? 1 : 0)}
                        disabled={false}
                      />
                    </td>
