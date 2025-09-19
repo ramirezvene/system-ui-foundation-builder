@@ -9,6 +9,7 @@ import { Download, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
+import { TableFilter } from "@/components/TableFilter";
 type Loja = Tables<"cadastro_loja">;
 interface LojaWithTokenStats extends Loja {
   tokensUtilizados: number;
@@ -17,7 +18,9 @@ interface LojaWithTokenStats extends Loja {
 }
 export default function ConfiguracaoTokenLoja() {
   const [lojas, setLojas] = useState<LojaWithTokenStats[]>([]);
+  const [filteredLojas, setFilteredLojas] = useState<LojaWithTokenStats[]>([]);
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set());
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const {
     toast
   } = useToast();
@@ -51,6 +54,7 @@ export default function ConfiguracaoTokenLoja() {
         tokensRestantes: Math.max(0, (loja.qtde_token || 0) - (tokensUtilizadosPorLoja[loja.cod_loja] || 0))
       }));
       setLojas(lojasComStats);
+      setFilteredLojas(lojasComStats);
     } catch (error) {
       console.error("Erro ao buscar lojas:", error);
       toast({
@@ -166,6 +170,44 @@ export default function ConfiguracaoTokenLoja() {
     };
     input.click();
   };
+
+  const filterOptions = [
+    { value: "cod_loja", label: "Código" },
+    { value: "loja", label: "Loja" },
+    { value: "estado", label: "Estado" },
+    { value: "qtde_token", label: "Qtde Token" },
+    { value: "st_token", label: "Status Token" },
+  ];
+
+  const applyFilters = (data: LojaWithTokenStats[]) => {
+    let filtered = [...data];
+    
+    Object.entries(activeFilters).forEach(([field, value]) => {
+      if (value) {
+        filtered = filtered.filter(item => {
+          const fieldValue = String(item[field as keyof LojaWithTokenStats] || '').toLowerCase();
+          return fieldValue.includes(value.toLowerCase());
+        });
+      }
+    });
+    
+    setFilteredLojas(filtered);
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...activeFilters, [field]: value };
+    setActiveFilters(newFilters);
+    applyFilters(lojas);
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilters({});
+    setFilteredLojas(lojas);
+  };
+
+  useEffect(() => {
+    applyFilters(lojas);
+  }, [activeFilters, lojas]);
   return <div className="w-full h-full p-6">
       <Card className="w-full">
       <CardHeader>
@@ -183,7 +225,14 @@ export default function ConfiguracaoTokenLoja() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="space-y-4">
+        <TableFilter
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          activeFilters={activeFilters}
+        />
+        <div className="p-0">
         <div className="w-full">
           <table className="w-full border-collapse table-fixed">
             <thead>
@@ -199,7 +248,7 @@ export default function ConfiguracaoTokenLoja() {
               </tr>
             </thead>
             <tbody>
-              {lojas.map(loja => <tr key={loja.cod_loja} className={`border-b hover:bg-gray-50 ${editedRows.has(loja.cod_loja) ? 'bg-yellow-50' : ''}`}>
+              {filteredLojas.map(loja => <tr key={loja.cod_loja} className={`border-b hover:bg-gray-50 ${editedRows.has(loja.cod_loja) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-3 font-medium text-sm">{loja.cod_loja}</td>
                   <td className="p-3">
                     <div className="text-sm truncate" title={loja.loja}>
@@ -239,6 +288,7 @@ export default function ConfiguracaoTokenLoja() {
                 </tr>)}
             </tbody>
           </table>
+        </div>
         </div>
       </CardContent>
     </Card>

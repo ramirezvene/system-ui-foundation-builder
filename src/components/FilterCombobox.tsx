@@ -20,7 +20,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-const filterOptions = [
+interface FilterOption {
+  value: string
+  label: string
+}
+
+interface FilterComboboxProps {
+  selectedFilter: string
+  onSelectFilter: (filter: string) => void
+  filterOptions?: FilterOption[]
+}
+
+const defaultFilterOptions = [
   { value: "cod_subgrupo", label: "ID" },
   { value: "nome_subgrupo", label: "Descrição" },
   { value: "condicao", label: "Condição" },
@@ -29,12 +40,7 @@ const filterOptions = [
   { value: "data_fim", label: "Data Fim" },
 ]
 
-interface FilterComboboxProps {
-  selectedFilter: string
-  onSelectFilter: (filter: string) => void
-}
-
-export function FilterCombobox({ selectedFilter, onSelectFilter }: FilterComboboxProps) {
+export function FilterCombobox({ selectedFilter, onSelectFilter, filterOptions = defaultFilterOptions }: FilterComboboxProps) {
   const [open, setOpen] = React.useState(false)
 
   return (

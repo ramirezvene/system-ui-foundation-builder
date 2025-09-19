@@ -12,11 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PercentageInput } from "@/components/PercentageInput";
 import { AddSubgrupoMargemDialog } from "@/components/AddSubgrupoMargemDialog";
+import { TableFilter } from "@/components/TableFilter";
 type SubgrupoMargem = Tables<"subgrupo_margem">;
 export default function ConfiguracaoDescontoSubgrupo() {
   const [subgrupos, setSubgrupos] = useState<SubgrupoMargem[]>([]);
+  const [filteredSubgrupos, setFilteredSubgrupos] = useState<SubgrupoMargem[]>([]);
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set());
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set());
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const {
     toast
   } = useToast();
@@ -31,6 +34,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
       } = await supabase.from("subgrupo_margem").select("*").order("cod_subgrupo");
       if (error) throw error;
       setSubgrupos(data || []);
+      setFilteredSubgrupos(data || []);
     } catch (error) {
       console.error("Erro ao buscar dados:", error);
       toast({
@@ -214,6 +218,46 @@ export default function ConfiguracaoDescontoSubgrupo() {
     if (subgrupos.length === 0) return 1;
     return Math.max(...subgrupos.map(sub => sub.cod_subgrupo)) + 1;
   };
+
+  const filterOptions = [
+    { value: "cod_subgrupo", label: "Cód Subgrupo" },
+    { value: "nome_subgrupo", label: "Nome Subgrupo" },
+    { value: "qtde_max", label: "Qtde Max" },
+    { value: "margem", label: "Margem" },
+    { value: "data_inicio", label: "Data Início" },
+    { value: "data_fim", label: "Data Fim" },
+    { value: "st_ativo", label: "Status" },
+  ];
+
+  const applyFilters = (data: SubgrupoMargem[]) => {
+    let filtered = [...data];
+    
+    Object.entries(activeFilters).forEach(([field, value]) => {
+      if (value) {
+        filtered = filtered.filter(item => {
+          const fieldValue = String(item[field as keyof SubgrupoMargem] || '').toLowerCase();
+          return fieldValue.includes(value.toLowerCase());
+        });
+      }
+    });
+    
+    setFilteredSubgrupos(filtered);
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...activeFilters, [field]: value };
+    setActiveFilters(newFilters);
+    applyFilters(subgrupos);
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilters({});
+    setFilteredSubgrupos(subgrupos);
+  };
+
+  useEffect(() => {
+    applyFilters(subgrupos);
+  }, [activeFilters, subgrupos]);
   return <div className="w-full h-full p-6">
       <Card className="w-full">
       <CardHeader>
@@ -231,7 +275,14 @@ export default function ConfiguracaoDescontoSubgrupo() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="space-y-4">
+        <TableFilter
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          activeFilters={activeFilters}
+        />
+        <div className="p-0">
         <div className="w-full">
           <table className="w-full border-collapse table-fixed">
             <thead>
@@ -251,7 +302,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
               </tr>
             </thead>
             <tbody>
-              {subgrupos.map(subgrupo => <tr key={subgrupo.cod_subgrupo} className={`border-b hover:bg-gray-50 ${editedRows.has(subgrupo.cod_subgrupo) ? 'bg-yellow-50' : ''}`}>
+              {filteredSubgrupos.map(subgrupo => <tr key={subgrupo.cod_subgrupo} className={`border-b hover:bg-gray-50 ${editedRows.has(subgrupo.cod_subgrupo) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-3 font-medium text-sm">{subgrupo.cod_subgrupo}</td>
                   <td className="p-3">
                     <Input value={subgrupo.nome_subgrupo} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'nome_subgrupo', e.target.value)} className="w-full bg-gray-100 text-sm h-8" disabled={true} readOnly={true} />
@@ -308,6 +359,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                 </tr>)}
             </tbody>
           </table>
+        </div>
         </div>
       </CardContent>
 

@@ -16,6 +16,7 @@ import { AddProdutoMargemDialog } from "./AddProdutoMargemDialog"
 import { EstadoCombobox } from "./EstadoCombobox"
 import { CurrencyInput } from "./CurrencyInput"
 import { PercentageInput } from "./PercentageInput"
+import { TableFilter } from "./TableFilter"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -27,10 +28,12 @@ interface ProdutoMargemExtended extends ProdutoMargem {
 
 export default function DescontoProdutoEstado() {
   const [produtoMargens, setProdutoMargens] = useState<ProdutoMargemExtended[]>([])
+  const [filteredProdutoMargens, setFilteredProdutoMargens] = useState<ProdutoMargemExtended[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [estados, setEstados] = useState<Estado[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function DescontoProdutoEstado() {
       })
 
       setProdutoMargens(margemExtended)
+      setFilteredProdutoMargens(margemExtended)
       setProdutos(produtosData || [])
       setEstados(estadosData || [])
     } catch (error) {
@@ -282,6 +286,52 @@ export default function DescontoProdutoEstado() {
     return estados.find(e => e.estado === item.tipo_referencia) || null
   }
 
+  const filterOptions = [
+    { value: "id_produto", label: "ID Produto" },
+    { value: "produto.nome_produto", label: "Nome Produto" },
+    { value: "tipo_referencia", label: "Estado" },
+    { value: "tipo_margem", label: "Tipo Margem" },
+    { value: "margem", label: "Margem" },
+    { value: "data_inicio", label: "Data Início" },
+    { value: "data_fim", label: "Data Fim" },
+    { value: "st_ativo", label: "Status" },
+  ];
+
+  const applyFilters = (data: ProdutoMargemExtended[]) => {
+    let filtered = [...data];
+    
+    Object.entries(activeFilters).forEach(([field, value]) => {
+      if (value) {
+        filtered = filtered.filter(item => {
+          let fieldValue = '';
+          if (field === 'produto.nome_produto') {
+            fieldValue = String(item.produto?.nome_produto || '').toLowerCase();
+          } else {
+            fieldValue = String(item[field as keyof ProdutoMargemExtended] || '').toLowerCase();
+          }
+          return fieldValue.includes(value.toLowerCase());
+        });
+      }
+    });
+    
+    setFilteredProdutoMargens(filtered);
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...activeFilters, [field]: value };
+    setActiveFilters(newFilters);
+    applyFilters(produtoMargens);
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilters({});
+    setFilteredProdutoMargens(produtoMargens);
+  };
+
+  useEffect(() => {
+    applyFilters(produtoMargens);
+  }, [activeFilters, produtoMargens]);
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -300,7 +350,14 @@ export default function DescontoProdutoEstado() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="space-y-4">
+        <TableFilter
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          activeFilters={activeFilters}
+        />
+        <div className="p-0">
         <div className="w-full">
           <table className="w-full border-collapse table-fixed">
             <thead>
@@ -322,7 +379,7 @@ export default function DescontoProdutoEstado() {
               </tr>
             </thead>
             <tbody>
-              {produtoMargens.map((item) => (
+              {filteredProdutoMargens.map((item) => (
                 <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-3 text-sm">{item.id_produto}</td>
                   <td className="p-3">
@@ -509,6 +566,7 @@ export default function DescontoProdutoEstado() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       </CardContent>
     </Card>

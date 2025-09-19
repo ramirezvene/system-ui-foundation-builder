@@ -16,6 +16,7 @@ import { AddProdutoMargemDialog } from "./AddProdutoMargemDialog"
 import { LojaCombobox } from "./LojaCombobox"
 import { CurrencyInput } from "./CurrencyInput"
 import { PercentageInput } from "./PercentageInput"
+import { TableFilter } from "./TableFilter"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -27,10 +28,12 @@ interface ProdutoMargemExtended extends ProdutoMargem {
 
 export default function DescontoProdutoLoja() {
   const [produtoMargens, setProdutoMargens] = useState<ProdutoMargemExtended[]>([])
+  const [filteredProdutoMargens, setFilteredProdutoMargens] = useState<ProdutoMargemExtended[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [lojas, setLojas] = useState<Loja[]>([])
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set())
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set())
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   useEffect(() => {
@@ -74,6 +77,7 @@ export default function DescontoProdutoLoja() {
       })
 
       setProdutoMargens(margemExtended)
+      setFilteredProdutoMargens(margemExtended)
       setProdutos(produtosData || [])
       setLojas(lojasData || [])
     } catch (error) {
@@ -251,6 +255,52 @@ export default function DescontoProdutoLoja() {
     return lojas.find(l => l.cod_loja.toString() === item.tipo_referencia) || null
   }
 
+  const filterOptions = [
+    { value: "id_produto", label: "ID Produto" },
+    { value: "produto.nome_produto", label: "Nome Produto" },
+    { value: "tipo_referencia", label: "Loja" },
+    { value: "tipo_margem", label: "Tipo Margem" },
+    { value: "margem", label: "Margem" },
+    { value: "data_inicio", label: "Data Início" },
+    { value: "data_fim", label: "Data Fim" },
+    { value: "st_ativo", label: "Status" },
+  ];
+
+  const applyFilters = (data: ProdutoMargemExtended[]) => {
+    let filtered = [...data];
+    
+    Object.entries(activeFilters).forEach(([field, value]) => {
+      if (value) {
+        filtered = filtered.filter(item => {
+          let fieldValue = '';
+          if (field === 'produto.nome_produto') {
+            fieldValue = String(item.produto?.nome_produto || '').toLowerCase();
+          } else {
+            fieldValue = String(item[field as keyof ProdutoMargemExtended] || '').toLowerCase();
+          }
+          return fieldValue.includes(value.toLowerCase());
+        });
+      }
+    });
+    
+    setFilteredProdutoMargens(filtered);
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...activeFilters, [field]: value };
+    setActiveFilters(newFilters);
+    applyFilters(produtoMargens);
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilters({});
+    setFilteredProdutoMargens(produtoMargens);
+  };
+
+  useEffect(() => {
+    applyFilters(produtoMargens);
+  }, [activeFilters, produtoMargens]);
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -269,7 +319,14 @@ export default function DescontoProdutoLoja() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="space-y-4">
+        <TableFilter
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          activeFilters={activeFilters}
+        />
+        <div className="p-0">
         <div className="w-full overflow-x-auto">
           <table className="w-full border-collapse table-fixed min-w-[1400px]">
             <thead>
@@ -291,7 +348,7 @@ export default function DescontoProdutoLoja() {
               </tr>
             </thead>
             <tbody>
-              {produtoMargens.map((item) => (
+              {filteredProdutoMargens.map((item) => (
                 <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-3 text-sm">{item.id_produto}</td>
                   <td className="p-3">
@@ -477,6 +534,7 @@ export default function DescontoProdutoLoja() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       </CardContent>
     </Card>

@@ -7,11 +7,14 @@ import { Download, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
+import { TableFilter } from "./TableFilter"
 
 type Estado = Tables<"cadastro_estado">
 
 export default function TokenEstado() {
   const [estados, setEstados] = useState<Estado[]>([])
+  const [filteredEstados, setFilteredEstados] = useState<Estado[]>([])
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   useEffect(() => {
@@ -27,6 +30,7 @@ export default function TokenEstado() {
       
       if (error) throw error
       setEstados(data || [])
+      setFilteredEstados(data || [])
     } catch (error) {
       console.error("Erro ao buscar estados:", error)
       toast({
@@ -90,6 +94,42 @@ export default function TokenEstado() {
     document.body.removeChild(link)
   }
 
+  const filterOptions = [
+    { value: "estado", label: "Estado" },
+    { value: "nome_estado", label: "Nome Estado" },
+    { value: "st_ativo", label: "Status" },
+  ];
+
+  const applyFilters = (data: Estado[]) => {
+    let filtered = [...data];
+    
+    Object.entries(activeFilters).forEach(([field, value]) => {
+      if (value) {
+        filtered = filtered.filter(item => {
+          const fieldValue = String(item[field as keyof Estado] || '').toLowerCase();
+          return fieldValue.includes(value.toLowerCase());
+        });
+      }
+    });
+    
+    setFilteredEstados(filtered);
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...activeFilters, [field]: value };
+    setActiveFilters(newFilters);
+    applyFilters(estados);
+  };
+
+  const handleClearFilters = () => {
+    setActiveFilters({});
+    setFilteredEstados(estados);
+  };
+
+  useEffect(() => {
+    applyFilters(estados);
+  }, [activeFilters, estados]);
+
   return (
     <div className="container mx-auto p-6">
       <Card className="w-full">
@@ -108,7 +148,14 @@ export default function TokenEstado() {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="space-y-4">
+        <TableFilter
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+          activeFilters={activeFilters}
+        />
+        <div className="p-0">
         <div className="w-full">
           <table className="w-full border-collapse table-fixed">
             <thead>
@@ -120,7 +167,7 @@ export default function TokenEstado() {
               </tr>
             </thead>
             <tbody>
-              {estados.map((estado) => (
+              {filteredEstados.map((estado) => (
                 <tr key={estado.id} className="border-b hover:bg-gray-50">
                   <td className="p-3 font-medium text-sm">{estado.estado}</td>
                   <td className="p-3">
@@ -143,6 +190,7 @@ export default function TokenEstado() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       </CardContent>
     </Card>
