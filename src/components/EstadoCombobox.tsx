@@ -61,7 +61,7 @@ export function EstadoCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between truncate"
           disabled={disabled}
         >
           {selectedEstado
