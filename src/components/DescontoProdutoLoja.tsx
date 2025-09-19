@@ -297,7 +297,7 @@ export default function DescontoProdutoLoja() {
                     </div>
                   </td>
                   <td className="p-3">
-                    <div className="w-full">
+                    <div className="w-full truncate">
                       <LojaCombobox
                         lojas={lojas}
                         selectedLoja={getSelectedLoja(item)}
