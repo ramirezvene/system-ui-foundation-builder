@@ -112,7 +112,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             <p className="text-sm font-mono">{formatCurrency(result.precoMinimo)}</p>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">CMG Produto</h3>
+            <h3 className="font-semibold mb-2">CMV Produto</h3>
             <p className="text-sm font-mono">{formatCurrency(result.cmgProduto)}</p>
           </div>
           <div>
@@ -146,10 +146,6 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
           <div>
             <h3 className="font-semibold mb-2">PISCOFINS UF</h3>
             <p className="text-sm font-mono">{result.piscofinsUF.toFixed(2)}%</p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2">Ruptura</h3>
-            <p className="text-sm font-mono">{result.ruptura === 0 ? "Não" : "Sim"}</p>
           </div>
         </div>
 
