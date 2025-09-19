@@ -281,9 +281,6 @@ export default function ConfiguracaoDescontoSubgrupo() {
                   <td className="p-3">
                     <div className="flex items-center space-x-2">
                       <Switch checked={subgrupo.st_ativo === 1} onCheckedChange={checked => handleFieldChange(subgrupo.cod_subgrupo, 'st_ativo', checked ? 1 : 0)} />
-                      <Label className="text-xs">
-                        {subgrupo.st_ativo === 1 ? 'Ativo' : 'Inativo'}
-                      </Label>
                     </div>
                   </td>
                   <td className="p-3">
