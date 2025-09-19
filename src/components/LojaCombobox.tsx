@@ -158,16 +158,6 @@ export function LojaCombobox({
         </PopoverContent>
       </Popover>
       
-      {selectedLoja && !disabled && (
-        // <Button
-        //   variant="outline"
-        //   size="icon"
-        //   onClick={handleClear}
-        //   className="shrink-0"
-        // >
-        //   <X className="h-4 w-4" />
-        // </Button>
-      )}
     </div>
   )
 }
