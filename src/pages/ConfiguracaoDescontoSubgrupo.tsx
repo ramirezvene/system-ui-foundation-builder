@@ -95,6 +95,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         margem: item.margem,
         margem_adc: item.margem_adc,
         desconto: item.desconto,
+        qtde_min: item.qtde_min,
         qtde_max: item.qtde_max,
         data_inicio: item.data_inicio,
         data_fim: item.data_fim,
@@ -152,6 +153,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
             if (!isNaN(cod_subgrupo)) {
               updates.push({
                 cod_subgrupo: cod_subgrupo,
+                qtde_min: parseInt(values[2]) || 0,
                 qtde_max: parseInt(values[2]) || 0,
                 margem: parseFloat(values[3]) || 0,
                 margem_adc: values[4] ? parseFloat(values[4]) : null,
@@ -166,6 +168,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
         }
         for (const update of updates) {
           await supabase.from("subgrupo_margem").update({
+            qtde_min: update.qtde_min,
             qtde_max: update.qtde_max,
             margem: update.margem,
             margem_adc: update.margem_adc,
@@ -258,7 +261,7 @@ export default function ConfiguracaoDescontoSubgrupo() {
                     <Input value={subgrupo.nome_subgrupo} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'nome_subgrupo', e.target.value)} className="w-full bg-gray-100 text-sm h-8" disabled={true} readOnly={true} />
                   </td>
                   <td className="p-3">
-                    <Input type="number" value={0} className="w-full bg-gray-100 text-sm h-8" disabled={true} readOnly={true} min="0" />
+                    <Input type="number" value={subgrupo.qtde_min} onChange={e => handleFieldChange(subgrupo.cod_sugrupo, 'qtde_min', parseInt(e.target.value) || 0)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disable={!isFieldEditable(subgrupo)} min="0" />
                   </td>
                   <td className="p-3">
                     <Input type="number" value={subgrupo.qtde_max} onChange={e => handleFieldChange(subgrupo.cod_subgrupo, 'qtde_max', parseInt(e.target.value) || 0)} className={`w-full text-sm h-8 ${!isFieldEditable(subgrupo) ? 'opacity-60' : ''}`} disabled={!isFieldEditable(subgrupo)} min="0" />
