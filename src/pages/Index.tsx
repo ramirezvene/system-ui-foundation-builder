@@ -140,26 +140,6 @@ const Index = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Package className="w-6 h-6 text-primary" />
-              <CardTitle>Desconto Produto</CardTitle>
-            </div>
-            <CardDescription>
-              Configure descontos específicos por produto.
-              Gerencie margens individuais e regras especiais.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/desconto-produto">
-              <Button className="w-full">
-                Configurar Produtos
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <div className="flex items-center gap-2">
               <Eye className="w-6 h-6 text-primary" />
               <CardTitle>Visualização Tokens</CardTitle>
             </div>
