@@ -362,20 +362,20 @@ export default function DescontoProdutoEstado() {
           <table className="w-full border-collapse table-fixed">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left p-3 w-20 text-sm font-medium">ID Produto</th>
-                <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Produto</th>
-                <th className="text-left p-3 w-32 text-sm font-medium">Estado</th>
-                <th className="text-left p-3 w-24 text-sm font-medium">Tipo Margem</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">Qtde Min</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">Qtde Max</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">Margem</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">Margem Adc</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">% Desc</th>
-                <th className="text-left p-3 w-28 text-sm font-medium">Data Início</th>
-                <th className="text-left p-3 w-28 text-sm font-medium">Data Fim</th>
-                <th className="text-left p-3 w-16 text-sm font-medium">Ativo</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">Obs</th>
-                <th className="text-left p-3 w-20 text-sm font-medium">Ações</th>
+                <th className="text-left p-3 w-[5%] text-sm font-medium">ID Produto</th>
+                <th className="text-left p-3 w-[25%] text-sm font-medium">Nome Produto</th>
+                <th className="text-left p-3 w-[10%] text-sm font-medium">Estado</th>
+                <th className="text-left p-3 w-[8%] text-sm font-medium">Tipo Margem</th>
+                <th className="text-left p-3 w-[5%] text-sm font-medium">Qtde Min</th>
+                <th className="text-left p-3 w-[5%] text-sm font-medium">Qtde Max</th>
+                <th className="text-left p-3 w-[8%] text-sm font-medium">Margem</th>
+                <th className="text-left p-3 w-[8%] text-sm font-medium">Margem Adc</th>
+                <th className="text-left p-3 w-[8%] text-sm font-medium">% Desc</th>
+                <th className="text-left p-3 w-[10%] text-sm font-medium">Data Início</th>
+                <th className="text-left p-3 w-[10%] text-sm font-medium">Data Fim</th>
+                <th className="text-left p-3 w-[5%] text-sm font-medium">Ativo</th>
+                <th className="text-left p-3 w-[5%] text-sm font-medium">Obs</th>
+                <th className="text-left p-3 w-[5%] text-sm font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
