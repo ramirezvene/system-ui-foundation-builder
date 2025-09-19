@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Download, Upload, MessageSquare } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -386,9 +387,10 @@ export default function DescontoProdutoLoja() {
                     />
                   </td>
                   <td className="p-3">
-                    <Badge variant={item.st_ativo === 1 ? "default" : "secondary"} className="text-xs px-2">
-                      {item.st_ativo === 1 ? "Ativo" : "Inativo"}
-                    </Badge>
+                    <Switch
+                      checked={item.st_ativo === 1}
+                      onCheckedChange={(checked) => handleFieldChange(item.id, 'st_ativo', checked ? 1 : 0)}
+                    />
                   </td>
                   <td className="p-3">
                     <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>
