@@ -271,7 +271,6 @@ export default function DescontoProdutoLoja() {
           <table className="w-full border-collapse table-fixed">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left p-3 w-16 text-sm font-medium">ID</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">ID Produto</th>
                 <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Produto</th>
                 <th className="text-left p-3 w-32 text-sm font-medium">Loja</th>
@@ -291,7 +290,6 @@ export default function DescontoProdutoLoja() {
             <tbody>
               {produtoMargens.map((item) => (
                 <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
-                  <td className="p-3 font-medium text-sm">{item.id}</td>
                   <td className="p-3 text-sm">{item.id_produto}</td>
                   <td className="p-3">
                     <div className="text-sm truncate" title={item.produto?.nome_produto}>
