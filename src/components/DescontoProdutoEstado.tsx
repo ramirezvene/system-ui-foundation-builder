@@ -8,6 +8,7 @@ import { Download, Upload, MessageSquare } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { supabase } from "@/integrations/supabase/client"
 import { Tables } from "@/integrations/supabase/types"
 import { useToast } from "@/hooks/use-toast"
@@ -133,6 +134,36 @@ export default function DescontoProdutoEstado() {
       toast({
         title: "Erro",
         description: "Erro ao salvar registro",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleStatusChange = async (id: number, newStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("produto_margem")
+        .update({
+          st_ativo: newStatus ? 1 : 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id)
+
+      if (error) throw error
+
+      setProdutoMargens(prev => prev.map(item => 
+        item.id === id ? { ...item, st_ativo: newStatus ? 1 : 0 } : item
+      ))
+
+      toast({
+        title: "Sucesso",
+        description: `Status ${newStatus ? 'ativado' : 'desativado'} com sucesso`
+      })
+    } catch (error) {
+      console.error("Erro ao alterar status:", error)
+      toast({
+        title: "Erro",
+        description: "Erro ao alterar status",
         variant: "destructive"
       })
     }
@@ -386,11 +417,13 @@ export default function DescontoProdutoEstado() {
                       className="w-full text-sm h-8"
                     />
                   </td>
-                  <td className="p-3">
-                    <Badge variant={item.st_ativo === 1 ? "default" : "secondary"} className="text-xs px-2">
-                      {item.st_ativo === 1 ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </td>
+                   <td className="p-3">
+                     <Switch
+                       checked={item.st_ativo === 1}
+                       onCheckedChange={(checked) => handleStatusChange(item.id, checked)}
+                       disabled={false}
+                     />
+                   </td>
                   <td className="p-3">
                     <Dialog open={observacaoDialogs.has(item.id)} onOpenChange={() => toggleObservacaoDialog(item.id)}>
                       <DialogTrigger asChild>
