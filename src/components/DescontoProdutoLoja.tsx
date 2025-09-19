@@ -273,7 +273,7 @@ export default function DescontoProdutoLoja() {
               <tr className="border-b bg-gray-50">
                 <th className="text-left p-3 w-20 text-sm font-medium">ID Produto</th>
                 <th className="text-left p-3 w-1/4 text-sm font-medium">Nome Produto</th>
-                <th className="text-left p-3 w-32 text-sm font-medium">Loja</th>
+                <th className="text-left p-3 w-24 text-sm font-medium">Loja</th>
                 <th className="text-left p-3 w-24 text-sm font-medium">Tipo Margem</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Qtde Min</th>
                 <th className="text-left p-3 w-20 text-sm font-medium">Qtde Max</th>
