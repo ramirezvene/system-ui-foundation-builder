@@ -346,8 +346,6 @@ export default function DescontoProdutoLoja() {
                     <th className="text-left p-3 w-[4.7%] text-sm font-medium">Obs</th>
                     <th className="text-left p-3 w-[5.9%] text-sm font-medium">Ações</th>
                   </tr>
-                </tr>
-              </tr>
             </thead>
             <tbody>
               {filteredProdutoMargens.map((item) => (
