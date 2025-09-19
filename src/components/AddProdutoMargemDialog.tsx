@@ -287,8 +287,8 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="percentual">Percentual</SelectItem>
-                  <SelectItem value="valor">Valor</SelectItem>
+                  <SelectItem value="percentual">%</SelectItem>
+                  <SelectItem value="valor">R$</SelectItem>
                 </SelectContent>
               </Select>
             </div>
