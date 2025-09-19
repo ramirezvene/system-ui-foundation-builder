@@ -157,39 +157,6 @@ const Index = () => {
           </CardContent>
         </Card>
       </div>
-
-      <div className="mt-12 p-6 bg-card rounded-lg border max-w-7xl">
-        <h2 className="text-xl font-semibold mb-4">Funcionalidades do Sistema</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h3 className="font-medium mb-2">Sistema de Vendas</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Solicitação de tokens para descontos especiais</li>
-              <li>• Aprovação automática baseada em regras</li>
-              <li>• Controle de margens por produto e região</li>
-              <li>• Histórico completo de transações</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium mb-2">Configurações</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Gestão de percentuais por subgrupo</li>
-              <li>• Controle de tokens por loja e estado</li>
-              <li>• Configurações específicas por produto</li>
-              <li>• Períodos de vigência personalizáveis</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium mb-2">Relatórios e Análise</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Relatórios detalhados de performance</li>
-              <li>• Visualização de tokens aprovados/rejeitados</li>
-              <li>• Top lojas com mais solicitações</li>
-              <li>• Análise de valores e percentuais</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
