@@ -228,10 +228,6 @@ export default function ConfiguracaoDescontoSubgrupo() {
               <Upload className="w-4 h-4 mr-2" />
               Importar CSV
             </Button>
-            <Button size="sm" onClick={() => setAddDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar
-            </Button>
           </div>
         </CardTitle>
       </CardHeader>
