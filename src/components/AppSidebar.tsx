@@ -95,11 +95,6 @@ const menuItems = [
     url: "/visualizacao-tokens",
     icon: Eye,
   },
-  {
-    title: "Relatórios",
-    url: "/relatorios",
-    icon: BarChart,
-  },
 ]
 
 export function AppSidebar() {
