@@ -16,7 +16,7 @@ import { AddProdutoMargemDialog } from "./AddProdutoMargemDialog"
 import { LojaCombobox } from "./LojaCombobox"
 import { CurrencyInput } from "./CurrencyInput"
 import { PercentageInput } from "./PercentageInput"
-import { TableFilter } from "./TableFilter"
+
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -255,16 +255,6 @@ export default function DescontoProdutoLoja() {
     return lojas.find(l => l.cod_loja.toString() === item.tipo_referencia) || null
   }
 
-  const filterOptions = [
-    { value: "id_produto", label: "ID Produto" },
-    { value: "produto.nome_produto", label: "Nome Produto" },
-    { value: "tipo_referencia", label: "Loja" },
-    { value: "tipo_margem", label: "Tipo Margem" },
-    { value: "margem", label: "Margem" },
-    { value: "data_inicio", label: "Data Início" },
-    { value: "data_fim", label: "Data Fim" },
-    { value: "st_ativo", label: "Status" },
-  ];
 
   const applyFilters = (data: ProdutoMargemExtended[]) => {
     let filtered = [...data];
@@ -320,52 +310,128 @@ export default function DescontoProdutoLoja() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <TableFilter
-          filterOptions={filterOptions}
-          onFilterChange={handleFilterChange}
-          onClearFilters={handleClearFilters}
-          activeFilters={activeFilters}
-        />
-        <div className="p-0">
-        <div className="w-full overflow-x-auto">
-          <table className="w-full border-collapse table-fixed min-w-[1400px]">
-            <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">ID Produto</th>
-                    <th className="text-left p-3 w-[18.8%] text-sm font-medium">Nome Produto</th>
-                    <th className="text-left p-3 w-[11.8%] text-sm font-medium">Loja</th>
-                    <th className="text-left p-3 w-[8.2%] text-sm font-medium">Tipo Margem</th>
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">Qtde Min</th>
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">Qtde Max</th>
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">Margem</th>
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">Margem Adc</th>
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">% Desc</th>
-                    <th className="text-left p-3 w-[8.2%] text-sm font-medium">Data Início</th>
-                    <th className="text-left p-3 w-[8.2%] text-sm font-medium">Data Fim</th>
-                    <th className="text-left p-3 w-[4.7%] text-sm font-medium">Ativo</th>
-                    <th className="text-left p-3 w-[4.7%] text-sm font-medium">Obs</th>
-                    <th className="text-left p-3 w-[5.9%] text-sm font-medium">Ações</th>
-                  </tr>
-            </thead>
-            <tbody>
-              {filteredProdutoMargens.map((item) => (
-                <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
-                  <td className="p-3 text-sm">{item.id_produto}</td>
-                  <td className="p-3">
-                    <div className="text-sm truncate" title={item.produto?.nome_produto}>
-                      {item.produto?.nome_produto}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="w-full truncate">
+        <div className="overflow-x-auto">
+          <div className="min-w-full inline-block align-middle">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left p-3 min-w-[80px] text-sm font-medium whitespace-nowrap">ID Produto</th>
+                  <th className="text-left p-3 min-w-[300px] text-sm font-medium">Nome Produto</th>
+                  <th className="text-left p-3 min-w-[150px] text-sm font-medium">Loja</th>
+                  <th className="text-left p-3 min-w-[75px] text-sm font-medium px-[12px]">Tipo Margem</th>
+                  <th className="text-left p-3 min-w-[75px] text-sm font-medium">Qtde Min</th>
+                  <th className="text-left p-3 min-w-[75px] text-sm font-medium">Qtde Max</th>
+                  <th className="text-left p-3 min-w-[100px] text-sm font-medium">Margem</th>
+                  <th className="text-left p-3 min-w-[100px] text-sm font-medium">Margem Adc</th>
+                  <th className="text-left p-3 min-w-[95px] text-sm font-medium">% Desc</th>
+                  <th className="text-left p-3 min-w-[130px] text-sm font-medium">Data Início</th>
+                  <th className="text-left p-3 min-w-[140px] text-sm font-medium">Data Fim</th>
+                  <th className="text-left p-3 min-w-[80px] text-sm font-medium">Ativo</th>
+                  <th className="text-left p-3 min-w-[80px] text-sm font-medium">Obs</th>
+                  <th className="text-left p-3 min-w-[100px] text-sm font-medium">Ações</th>
+                </tr>
+                <tr className="border-b bg-gray-100">
+                  <th className="p-2">
+                    <Input 
+                      placeholder="Filtrar..." 
+                      value={activeFilters.id_produto || ""} 
+                      onChange={(e) => handleFilterChange("id_produto", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2">
+                    <Input 
+                      placeholder="Filtrar..." 
+                      value={activeFilters["produto.nome_produto"] || ""} 
+                      onChange={(e) => handleFilterChange("produto.nome_produto", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2">
+                    <Input 
+                      placeholder="Filtrar..." 
+                      value={activeFilters.tipo_referencia || ""} 
+                      onChange={(e) => handleFilterChange("tipo_referencia", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2">
+                    <Input 
+                      placeholder="Filtrar..." 
+                      value={activeFilters.tipo_margem || ""} 
+                      onChange={(e) => handleFilterChange("tipo_margem", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2"></th>
+                  <th className="p-2"></th>
+                  <th className="p-2">
+                    <Input 
+                      placeholder="Filtrar..." 
+                      value={activeFilters.margem || ""} 
+                      onChange={(e) => handleFilterChange("margem", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2"></th>
+                  <th className="p-2"></th>
+                  <th className="p-2">
+                    <Input 
+                      type="date" 
+                      value={activeFilters.data_inicio || ""} 
+                      onChange={(e) => handleFilterChange("data_inicio", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2">
+                    <Input 
+                      type="date" 
+                      value={activeFilters.data_fim || ""} 
+                      onChange={(e) => handleFilterChange("data_fim", e.target.value)} 
+                      className="h-8 text-xs"
+                    />
+                  </th>
+                  <th className="p-2">
+                    <select 
+                      value={activeFilters.st_ativo || ""} 
+                      onChange={(e) => handleFilterChange("st_ativo", e.target.value)} 
+                      className="w-full h-8 text-xs border rounded px-2 bg-background"
+                    >
+                      <option value="">Todos</option>
+                      <option value="1">Ativo</option>
+                      <option value="0">Inativo</option>
+                    </select>
+                  </th>
+                  <th className="p-2"></th>
+                  <th className="p-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleClearFilters}
+                      className="h-8 text-xs w-full"
+                    >
+                      Limpar
+                    </Button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProdutoMargens.map((item) => (
+                  <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
+                    <td className="p-3 text-sm">{item.id_produto}</td>
+                    <td className="p-3">
+                      <div className="text-sm whitespace-normal" title={item.produto?.nome_produto}>
+                        {item.produto?.nome_produto}
+                      </div>
+                    </td>
+                    <td className="p-3">
                       <LojaCombobox
                         lojas={lojas}
                         selectedLoja={getSelectedLoja(item)}
                         onLojaChange={(loja) => handleTipoReferenciaChange(item.id, loja)}
                         disabled={item.st_ativo === 0}
                       />
-                    </div>
-                  </td>
+                    </td>
                    <td className="p-3">
                      <select
                        value={item.tipo_margem}
@@ -532,7 +598,7 @@ export default function DescontoProdutoLoja() {
                   </td>
                 </tr>
               ))}
-            </tbody>
+              </tbody>
           </table>
         </div>
         </div>
