@@ -577,7 +577,7 @@ export default function DescontoProdutoEstado() {
                         type="date"
                         value={item.data_inicio}
                         onChange={(e) => handleFieldChange(item.id, "data_inicio", e.target.value)}
-                        disabled={item.st_ativo === 0}
+                        disabled={false}
                         className="w-full text-sm h-8"
                       />
                     </td>
@@ -586,7 +586,7 @@ export default function DescontoProdutoEstado() {
                         type="date"
                         value={item.data_fim}
                         onChange={(e) => handleFieldChange(item.id, "data_fim", e.target.value)}
-                        disabled={item.st_ativo === 0}
+                        disabled={false}
                         className="w-full text-sm h-8"
                       />
                     </td>
