@@ -1,28 +1,28 @@
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
-import { Plus } from "lucide-react"
-import { Tables } from "@/integrations/supabase/types"
-import { PercentageInput } from "@/components/PercentageInput"
-import { CurrencyInput } from "@/components/CurrencyInput"
-import { ProdutoCombobox } from "@/components/ProdutoCombobox"
-import { EstadoCombobox } from "@/components/EstadoCombobox"
-import { LojaCombobox } from "@/components/LojaCombobox"
-import { supabase } from "@/integrations/supabase/client"
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
+import { PercentageInput } from "@/components/PercentageInput";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { ProdutoCombobox } from "@/components/ProdutoCombobox";
+import { EstadoCombobox } from "@/components/EstadoCombobox";
+import { LojaCombobox } from "@/components/LojaCombobox";
+import { supabase } from "@/integrations/supabase/client";
 
-type CadastroProduto = Tables<"cadastro_produto">
-type Estado = Tables<"cadastro_estado">
-type Loja = Tables<"cadastro_loja">
+type CadastroProduto = Tables<"cadastro_produto">;
+type Estado = Tables<"cadastro_estado">;
+type Loja = Tables<"cadastro_loja">;
 
 interface AddProdutoMargemDialogProps {
-  produtos: CadastroProduto[]
-  onAdd: () => void
-  tipoFixo?: "estado" | "loja"
+  produtos: CadastroProduto[];
+  onAdd: () => void;
+  tipoFixo?: "estado" | "loja";
 }
 
 export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProdutoMargemDialogProps) {
@@ -36,139 +36,130 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
     tipo_aplicacao: tipoFixo || "estado",
     tipo_margem: "percentual",
     tipo_referencia: "estado",
-    data_inicio: new Date().toISOString().split('T')[0],
+    data_inicio: new Date().toISOString().split("T")[0],
     data_fim: "2030-12-31",
     observacao: "",
-    st_ativo: 1
-  })
+    st_ativo: 1,
+  });
 
-  const [selectedProduto, setSelectedProduto] = useState<CadastroProduto | null>(null)
-  const [selectedEstado, setSelectedEstado] = useState<Estado | null>(null)
-  const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null)
-  const [estados, setEstados] = useState<Estado[]>([])
-  const [lojas, setLojas] = useState<Loja[]>([])
+  const [selectedProduto, setSelectedProduto] = useState<CadastroProduto | null>(null);
+  const [selectedEstado, setSelectedEstado] = useState<Estado | null>(null);
+  const [selectedLoja, setSelectedLoja] = useState<Loja | null>(null);
+  const [estados, setEstados] = useState<Estado[]>([]);
+  const [lojas, setLojas] = useState<Loja[]>([]);
 
-  const [margemDisplay, setMargemDisplay] = useState("0,00%")
-  const [margemAdcDisplay, setMargemAdcDisplay] = useState("0,00%")
-  const [descontoDisplay, setDescontoDisplay] = useState("0,00%")
-  const [isOpen, setIsOpen] = useState(false)
+  const [margemDisplay, setMargemDisplay] = useState("0,00%");
+  const [margemAdcDisplay, setMargemAdcDisplay] = useState("0,00%");
+  const [descontoDisplay, setDescontoDisplay] = useState("0,00%");
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      fetchEstados()
-      fetchLojas()
+      fetchEstados();
+      fetchLojas();
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const fetchEstados = async () => {
     try {
-      const { data, error } = await supabase
-        .from("cadastro_estado")
-        .select("*")
-        .eq("st_ativo", 1)
-        .order("estado")
-      
-      if (error) throw error
-      setEstados(data || [])
+      const { data, error } = await supabase.from("cadastro_estado").select("*").eq("st_ativo", 1).order("estado");
+
+      if (error) throw error;
+      setEstados(data || []);
     } catch (error) {
-      console.error("Erro ao buscar estados:", error)
+      console.error("Erro ao buscar estados:", error);
     }
-  }
+  };
 
   const fetchLojas = async () => {
     try {
-      const { data, error } = await supabase
-        .from("cadastro_loja")
-        .select("*")
-        .order("cod_loja")
-      
-      if (error) throw error
-      setLojas(data || [])
+      const { data, error } = await supabase.from("cadastro_loja").select("*").order("cod_loja");
+
+      if (error) throw error;
+      setLojas(data || []);
     } catch (error) {
-      console.error("Erro ao buscar lojas:", error)
+      console.error("Erro ao buscar lojas:", error);
     }
-  }
+  };
 
   const handleMargemChange = (value: string) => {
-    setMargemDisplay(value)
+    setMargemDisplay(value);
     if (formData.tipo_margem === "percentual") {
-      const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
-      setFormData(prev => ({ ...prev, margem: numericValue }))
+      const numericValue = parseFloat(value.replace("%", "").replace(",", ".")) || 0;
+      setFormData((prev) => ({ ...prev, margem: numericValue }));
     } else {
-      const numericValue = parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.')) / 100 || 0
-      setFormData(prev => ({ ...prev, margem: numericValue }))
+      const numericValue = parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) / 100 || 0;
+      setFormData((prev) => ({ ...prev, margem: numericValue }));
     }
-  }
+  };
 
   const handleMargemAdcChange = (value: string) => {
-    setMargemAdcDisplay(value)
+    setMargemAdcDisplay(value);
     if (formData.tipo_margem === "percentual") {
-      const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
-      setFormData(prev => ({ ...prev, margem_adc: numericValue }))
+      const numericValue = parseFloat(value.replace("%", "").replace(",", ".")) || 0;
+      setFormData((prev) => ({ ...prev, margem_adc: numericValue }));
     } else {
-      const numericValue = parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.')) / 100 || 0
-      setFormData(prev => ({ ...prev, margem_adc: numericValue }))
+      const numericValue = parseFloat(value.replace("R$", "").replace(/\./g, "").replace(",", ".")) / 100 || 0;
+      setFormData((prev) => ({ ...prev, margem_adc: numericValue }));
     }
-  }
+  };
 
   const handleDescontoChange = (value: string) => {
-    setDescontoDisplay(value)
-    const numericValue = parseFloat(value.replace('%', '').replace(',', '.')) || 0
-    setFormData(prev => ({ ...prev, desconto: numericValue }))
-  }
+    setDescontoDisplay(value);
+    const numericValue = parseFloat(value.replace("%", "").replace(",", ".")) || 0;
+    setFormData((prev) => ({ ...prev, desconto: numericValue }));
+  };
 
   const handleTipoMargemChange = (value: string) => {
-    setFormData(prev => ({ ...prev, tipo_margem: value }))
+    setFormData((prev) => ({ ...prev, tipo_margem: value }));
     // Reset display values when changing type
     if (value === "percentual") {
-      setMargemDisplay("0,00%")
-      setMargemAdcDisplay("0,00%")
-      setDescontoDisplay("0,00%")
+      setMargemDisplay("0,00%");
+      setMargemAdcDisplay("0,00%");
+      setDescontoDisplay("0,00%");
     } else {
-      setMargemDisplay("R$ 0,00")
-      setMargemAdcDisplay("R$ 0,00")
-      setDescontoDisplay("0,00%") // Desconto sempre percentual
+      setMargemDisplay("R$ 0,00");
+      setMargemAdcDisplay("R$ 0,00");
+      setDescontoDisplay("0,00%"); // Desconto sempre percentual
     }
-    setFormData(prev => ({ ...prev, margem: 0, margem_adc: 0, desconto: 0 }))
-  }
+    setFormData((prev) => ({ ...prev, margem: 0, margem_adc: 0, desconto: 0 }));
+  };
 
   const handleSubmit = async () => {
-    if (!selectedProduto) return
+    if (!selectedProduto) return;
 
-    let tipoReferencia = ""
-    const tipoAplicacao = tipoFixo || formData.tipo_aplicacao
+    let tipoReferencia = "";
+    const tipoAplicacao = tipoFixo || formData.tipo_aplicacao;
 
     if (tipoAplicacao === "estado" && selectedEstado) {
-      tipoReferencia = selectedEstado.estado
+      tipoReferencia = selectedEstado.estado;
     } else if (tipoAplicacao === "loja" && selectedLoja) {
-      tipoReferencia = selectedLoja.cod_loja.toString()
+      tipoReferencia = selectedLoja.cod_loja.toString();
     }
 
-    if (!tipoReferencia) return
+    if (!tipoReferencia) return;
 
     try {
-      const { error } = await supabase
-        .from("produto_margem")
-        .insert({
-          id_produto: selectedProduto.id_produto,
-          margem: formData.margem,
-          margem_adc: formData.margem_adc,
-          desconto: formData.desconto,
-          qtde_min: formData.qtde_min,
-          qtde_max: formData.qtde_max,
-          tipo_aplicacao: tipoAplicacao,
-          tipo_margem: formData.tipo_margem,
-          tipo_referencia: tipoReferencia,
-          data_inicio: formData.data_inicio,
-          data_fim: formData.data_fim,
-          observacao: formData.observacao,
-          st_ativo: formData.st_ativo
-        })
+      const { error } = await supabase.from("produto_margem").insert({
+        id_produto: selectedProduto.id_produto,
+        margem: formData.margem,
+        margem_adc: formData.margem_adc,
+        desconto: formData.desconto,
+        qtde_min: formData.qtde_min,
+        qtde_max: formData.qtde_max,
+        tipo_aplicacao: tipoAplicacao,
+        tipo_margem: formData.tipo_margem,
+        tipo_referencia: tipoReferencia,
+        data_inicio: formData.data_inicio,
+        data_fim: formData.data_fim,
+        observacao: formData.observacao,
+        st_ativo: formData.st_ativo,
+      });
 
-      if (error) throw error
+      if (error) throw error;
 
-      onAdd()
-      
+      onAdd();
+
       // Reset form
       setFormData({
         id_produto: 0,
@@ -180,31 +171,31 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
         tipo_aplicacao: tipoFixo || "estado",
         tipo_margem: "percentual",
         tipo_referencia: "estado",
-        data_inicio: new Date().toISOString().split('T')[0],
+        data_inicio: new Date().toISOString().split("T")[0],
         data_fim: "2030-12-31",
         observacao: "",
-        st_ativo: 1
-      })
-      setSelectedProduto(null)
-      setSelectedEstado(null)
-      setSelectedLoja(null)
-      setMargemDisplay("0,00%")
-      setMargemAdcDisplay("0,00%")
-      setDescontoDisplay("0,00%")
-      setIsOpen(false)
+        st_ativo: 1,
+      });
+      setSelectedProduto(null);
+      setSelectedEstado(null);
+      setSelectedLoja(null);
+      setMargemDisplay("0,00%");
+      setMargemAdcDisplay("0,00%");
+      setDescontoDisplay("0,00%");
+      setIsOpen(false);
     } catch (error) {
-      console.error("Erro ao adicionar produto:", error)
+      console.error("Erro ao adicionar produto:", error);
     }
-  }
+  };
 
-  const shouldShowField = (field: 'margem' | 'margem_adc' | 'desconto') => {
-    if (formData.tipo_margem === 'valor') {
-      return field === 'margem' || field === 'margem_adc'
-    } else if (formData.tipo_margem === 'percentual') {
-      return true // mostra todos os campos
+  const shouldShowField = (field: "margem" | "margem_adc" | "desconto") => {
+    if (formData.tipo_margem === "valor") {
+      return field === "margem" || field === "margem_adc";
+    } else if (formData.tipo_margem === "percentual") {
+      return true; // mostra todos os campos
     }
-    return false
-  }
+    return false;
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -218,12 +209,12 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
         <DialogHeader>
           <DialogTitle>Adicionar Produto Margem</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div className="flex items-center space-x-2 pb-2 border-b">
             <Switch
               checked={formData.st_ativo === 1}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, st_ativo: checked ? 1 : 0 }))}
+              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, st_ativo: checked ? 1 : 0 }))}
             />
             <Label>Ativo</Label>
           </div>
@@ -238,13 +229,15 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             />
           </div>
 
-          <div className={`grid ${tipoFixo ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+          <div className={`grid ${tipoFixo ? "grid-cols-1" : "grid-cols-2"} gap-4`}>
             {!tipoFixo && (
               <div>
                 <Label>Tipo</Label>
                 <Select
                   value={formData.tipo_aplicacao}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_aplicacao: value as "estado" | "loja" }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, tipo_aplicacao: value as "estado" | "loja" }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -283,7 +276,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
               <Input
                 type="number"
                 value={formData.qtde_min}
-                onChange={(e) => setFormData(prev => ({ ...prev, qtde_min: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, qtde_min: parseInt(e.target.value) || 0 }))}
                 min="0"
                 disabled={formData.st_ativo === 0}
               />
@@ -294,7 +287,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
               <Input
                 type="number"
                 value={formData.qtde_max}
-                onChange={(e) => setFormData(prev => ({ ...prev, qtde_max: parseInt(e.target.value) || 0 }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, qtde_max: parseInt(e.target.value) || 0 }))}
                 min="0"
                 disabled={formData.st_ativo === 0}
               />
@@ -321,8 +314,8 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
           <div className="grid grid-cols-3 gap-4">
             <div>
               <Label>Margem</Label>
-              {shouldShowField('margem') && (
-                formData.tipo_margem === "percentual" ? (
+              {shouldShowField("margem") &&
+                (formData.tipo_margem === "percentual" ? (
                   <PercentageInput
                     value={margemDisplay}
                     onChange={handleMargemChange}
@@ -337,14 +330,13 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     placeholder="R$ 0,00"
                     disabled={formData.st_ativo === 0}
                   />
-                )
-              )}
+                ))}
             </div>
 
             <div>
               <Label>Margem Adc</Label>
-              {shouldShowField('margem_adc') && (
-                formData.tipo_margem === "percentual" ? (
+              {shouldShowField("margem_adc") &&
+                (formData.tipo_margem === "percentual" ? (
                   <PercentageInput
                     value={margemAdcDisplay}
                     onChange={handleMargemAdcChange}
@@ -359,19 +351,13 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     placeholder="R$ 0,00"
                     disabled={formData.st_ativo === 0}
                   />
-                )
-              )}
+                ))}
             </div>
 
             <div>
               <Label>% Desc</Label>
-              {shouldShowField('desconto') && formData.tipo_margem === 'percentual' && (
-                <PercentageInput
-                  value={descontoDisplay}
-                  onChange={handleDescontoChange}
-                  className="w-full"
-                  disabled={formData.st_ativo === 0}
-                />
+              {shouldShowField("desconto") && formData.tipo_margem === "percentual" && (
+                <PercentageInput value={descontoDisplay} onChange={handleDescontoChange} className="w-full" />
               )}
             </div>
           </div>
@@ -382,8 +368,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
               <Input
                 type="date"
                 value={formData.data_inicio}
-                onChange={(e) => setFormData(prev => ({ ...prev, data_inicio: e.target.value }))}
-                disabled={formData.st_ativo === 0}
+                onChange={(e) => setFormData((prev) => ({ ...prev, data_inicio: e.target.value }))}
               />
             </div>
             <div>
@@ -391,7 +376,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
               <Input
                 type="date"
                 value={formData.data_fim}
-                onChange={(e) => setFormData(prev => ({ ...prev, data_fim: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, data_fim: e.target.value }))}
                 disabled={formData.st_ativo === 0}
               />
             </div>
@@ -401,7 +386,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             <Label>Observação</Label>
             <Textarea
               value={formData.observacao}
-              onChange={(e) => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, observacao: e.target.value }))}
               placeholder="Digite uma observação..."
             />
           </div>
@@ -417,5 +402,5 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
