@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Plus, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tables } from "@/integrations/supabase/types";
 import { PercentageInput } from "@/components/PercentageInput";
 import { CurrencyInput } from "@/components/CurrencyInput";
@@ -313,7 +314,23 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label>Margem</Label>
+              <div className="flex items-center gap-1 mb-2">
+                <Label>Margem</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-sm font-semibold mb-1">Fórmula de Cálculo:</p>
+                      <p className="text-xs">Margem = 1 - (CMG / (Preço × (1 - (ALIQ + PISCOFINS))))</p>
+                      <p className="text-xs mt-2 text-muted-foreground">
+                        CMG, ALIQ e PISCOFINS variam por estado (RS, SC, PR)
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               {shouldShowField("margem") &&
                 (formData.tipo_margem === "percentual" ? (
                   <PercentageInput
