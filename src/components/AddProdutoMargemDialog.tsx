@@ -357,8 +357,11 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             <div>
               <Label>% Desc</Label>
               {shouldShowField("desconto") && formData.tipo_margem === "percentual" && (
-                <PercentageInput value={descontoDisplay} onChange={handleDescontoChange} className="w-full" 
-                disabled={formData.st_ativo ===0}
+                <PercentageInput
+                  value={descontoDisplay}
+                  onChange={handleDescontoChange}
+                  className="w-full"
+                  disabled={formData.st_ativo === 0}
                 />
               )}
             </div>
@@ -379,7 +382,6 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                 type="date"
                 value={formData.data_fim}
                 onChange={(e) => setFormData((prev) => ({ ...prev, data_fim: e.target.value }))}
-
               />
             </div>
           </div>
@@ -397,7 +399,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={!selectedProduto}>
+            <Button onClick={handleSubmit} disabled={(!selectedProduto, !selectedEstado)}>
               Adicionar
             </Button>
           </div>
