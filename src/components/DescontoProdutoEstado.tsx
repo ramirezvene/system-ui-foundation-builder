@@ -454,7 +454,7 @@ export default function DescontoProdutoEstado() {
                         estados={estados}
                         selectedEstado={getSelectedEstado(item)}
                         onEstadoChange={(estado) => handleTipoReferenciaChange(item.id, estado)}
-                        disabled={item.st_ativo === 0}
+                        disabled={false}
                       />
                     </td>
                     <td className="p-3">
