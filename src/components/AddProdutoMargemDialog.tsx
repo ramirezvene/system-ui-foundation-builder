@@ -321,14 +321,16 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     <TooltipTrigger asChild>
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
+                    <TooltipContent className="max-w-sm p-4">
                       <p className="text-sm font-semibold mb-1">Cálculo de Viabilidade:</p>
-                      <p className="text-xs">
+                      <p className="text-xs mb-2">
                         Valida se o valor líquido da venda cobre custos e impostos, garantindo que o desconto não gere
                         prejuízo.
                       </p>
                       <p className="text-sm font-semibold mb-1">Fórmula Aplicada:</p>
-                      <p className="text-xs">((Preço * (1 - %Impostos)) - CMV) / (Preço * (1 - %Impostos))</p>
+                      <p className="text-xs break-words">
+                        ((Preço * (1 - %Impostos)) - CMV) / (Preço * (1 - %Impostos))
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
