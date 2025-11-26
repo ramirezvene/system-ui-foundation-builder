@@ -348,7 +348,7 @@ export default function DescontoProdutoEstado() {
                   <th className="text-left p-3 min-w-[75px] text-sm font-medium px-[12px]">Tipo Margem</th>
                   <th className="text-left p-3 min-w-[75px] text-sm font-medium">Qtde Min</th>
                   <th className="text-left p-3 min-w-[75px] text-sm font-medium">Qtde Max</th>
-                  <th className="text-left p-3 min-w-[120px] text-sm font-medium">Margem</th>
+                  <th className="text-left p-3 min-w-[75px] text-sm font-medium">Margem</th>
                   <th className="text-left p-3 min-w-[120px] text-sm font-medium">Margem Adc</th>
                   <th className="text-left p-3 min-w-[120px] text-sm font-medium">% Desc</th>
                   <th className="text-left p-3 min-w-[140px] text-sm font-medium">Data Início</th>
