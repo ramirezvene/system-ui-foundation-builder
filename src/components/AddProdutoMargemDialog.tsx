@@ -31,6 +31,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
     margem: 0,
     margem_adc: 0,
     desconto: 0,
+    qtde_min: 0,
     qtde_max: 0,
     tipo_aplicacao: tipoFixo || "estado",
     tipo_margem: "percentual",
@@ -153,6 +154,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
           margem: formData.margem,
           margem_adc: formData.margem_adc,
           desconto: formData.desconto,
+          qtde_min: formData.qtde_min,
           qtde_max: formData.qtde_max,
           tipo_aplicacao: tipoAplicacao,
           tipo_margem: formData.tipo_margem,
@@ -173,6 +175,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
         margem: 0,
         margem_adc: 0,
         desconto: 0,
+        qtde_min: 0,
         qtde_max: 0,
         tipo_aplicacao: tipoFixo || "estado",
         tipo_margem: "percentual",
@@ -217,6 +220,14 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
         </DialogHeader>
         
         <div className="space-y-4">
+          <div className="flex items-center space-x-2 pb-2 border-b">
+            <Switch
+              checked={formData.st_ativo === 1}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, st_ativo: checked ? 1 : 0 }))}
+            />
+            <Label>Ativo</Label>
+          </div>
+
           <div>
             <Label>Produto</Label>
             <ProdutoCombobox
@@ -266,7 +277,18 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Qtde Min</Label>
+              <Input
+                type="number"
+                value={formData.qtde_min}
+                onChange={(e) => setFormData(prev => ({ ...prev, qtde_min: parseInt(e.target.value) || 0 }))}
+                min="0"
+                disabled={formData.st_ativo === 0}
+              />
+            </div>
+
             <div>
               <Label>Qtde Max</Label>
               <Input
@@ -274,6 +296,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                 value={formData.qtde_max}
                 onChange={(e) => setFormData(prev => ({ ...prev, qtde_max: parseInt(e.target.value) || 0 }))}
                 min="0"
+                disabled={formData.st_ativo === 0}
               />
             </div>
 
@@ -282,8 +305,9 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
               <Select
                 value={formData.tipo_margem}
                 onValueChange={handleTipoMargemChange}
+                disabled={formData.st_ativo === 0}
               >
-                <SelectTrigger>
+                <SelectTrigger disabled={formData.st_ativo === 0}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -303,6 +327,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     value={margemDisplay}
                     onChange={handleMargemChange}
                     className="w-full"
+                    disabled={formData.st_ativo === 0}
                   />
                 ) : (
                   <CurrencyInput
@@ -310,6 +335,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     onChange={handleMargemChange}
                     className="w-full"
                     placeholder="R$ 0,00"
+                    disabled={formData.st_ativo === 0}
                   />
                 )
               )}
@@ -323,6 +349,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     value={margemAdcDisplay}
                     onChange={handleMargemAdcChange}
                     className="w-full"
+                    disabled={formData.st_ativo === 0}
                   />
                 ) : (
                   <CurrencyInput
@@ -330,6 +357,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                     onChange={handleMargemAdcChange}
                     className="w-full"
                     placeholder="R$ 0,00"
+                    disabled={formData.st_ativo === 0}
                   />
                 )
               )}
@@ -342,6 +370,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                   value={descontoDisplay}
                   onChange={handleDescontoChange}
                   className="w-full"
+                  disabled={formData.st_ativo === 0}
                 />
               )}
             </div>
@@ -354,6 +383,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                 type="date"
                 value={formData.data_inicio}
                 onChange={(e) => setFormData(prev => ({ ...prev, data_inicio: e.target.value }))}
+                disabled={formData.st_ativo === 0}
               />
             </div>
             <div>
@@ -362,16 +392,9 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                 type="date"
                 value={formData.data_fim}
                 onChange={(e) => setFormData(prev => ({ ...prev, data_fim: e.target.value }))}
+                disabled={formData.st_ativo === 0}
               />
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={formData.st_ativo === 1}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, st_ativo: checked ? 1 : 0 }))}
-            />
-            <Label>Ativo</Label>
           </div>
 
           <div>
