@@ -399,7 +399,10 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={(!selectedProduto, !selectedEstado)}>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!selectedProduto || (formData.tipo_aplicacao === 'estado' ? !selectedEstado : !selectedLoja)}
+            >
               Adicionar
             </Button>
           </div>
