@@ -16,7 +16,6 @@ import { AddProdutoMargemDialog } from "./AddProdutoMargemDialog"
 import { EstadoCombobox } from "./EstadoCombobox"
 import { CurrencyInput } from "./CurrencyInput"
 import { PercentageInput } from "./PercentageInput"
-import { TableFilter } from "./TableFilter"
 
 type ProdutoMargem = Tables<"produto_margem">
 type Produto = Tables<"cadastro_produto">
@@ -286,17 +285,6 @@ export default function DescontoProdutoEstado() {
     return estados.find(e => e.estado === item.tipo_referencia) || null
   }
 
-  const filterOptions = [
-    { value: "id_produto", label: "ID Produto" },
-    { value: "produto.nome_produto", label: "Nome Produto" },
-    { value: "tipo_referencia", label: "Estado" },
-    { value: "tipo_margem", label: "Tipo Margem" },
-    { value: "margem", label: "Margem" },
-    { value: "data_inicio", label: "Data Início" },
-    { value: "data_fim", label: "Data Fim" },
-    { value: "st_ativo", label: "Status" },
-  ];
-
   const applyFilters = (data: ProdutoMargemExtended[]) => {
     let filtered = [...data];
     
@@ -351,12 +339,6 @@ export default function DescontoProdutoEstado() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <TableFilter
-          filterOptions={filterOptions}
-          onFilterChange={handleFilterChange}
-          onClearFilters={handleClearFilters}
-          activeFilters={activeFilters}
-        />
         <div className="overflow-x-auto">
         <div className="min-w-full inline-block align-middle">
           <table className="w-full border-collapse">
@@ -376,6 +358,90 @@ export default function DescontoProdutoEstado() {
                 <th className="text-left p-3 min-w-[80px] text-sm font-medium">Ativo</th>
                 <th className="text-left p-3 min-w-[80px] text-sm font-medium">Obs</th>
                 <th className="text-left p-3 min-w-[100px] text-sm font-medium">Ações</th>
+              </tr>
+              <tr className="border-b bg-gray-100">
+                <th className="p-2">
+                  <Input
+                    placeholder="Filtrar..."
+                    value={activeFilters.id_produto || ""}
+                    onChange={(e) => handleFilterChange("id_produto", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2">
+                  <Input
+                    placeholder="Filtrar..."
+                    value={activeFilters["produto.nome_produto"] || ""}
+                    onChange={(e) => handleFilterChange("produto.nome_produto", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2">
+                  <Input
+                    placeholder="Filtrar..."
+                    value={activeFilters.tipo_referencia || ""}
+                    onChange={(e) => handleFilterChange("tipo_referencia", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2">
+                  <Input
+                    placeholder="Filtrar..."
+                    value={activeFilters.tipo_margem || ""}
+                    onChange={(e) => handleFilterChange("tipo_margem", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2"></th>
+                <th className="p-2"></th>
+                <th className="p-2">
+                  <Input
+                    placeholder="Filtrar..."
+                    value={activeFilters.margem || ""}
+                    onChange={(e) => handleFilterChange("margem", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2"></th>
+                <th className="p-2"></th>
+                <th className="p-2">
+                  <Input
+                    type="date"
+                    value={activeFilters.data_inicio || ""}
+                    onChange={(e) => handleFilterChange("data_inicio", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2">
+                  <Input
+                    type="date"
+                    value={activeFilters.data_fim || ""}
+                    onChange={(e) => handleFilterChange("data_fim", e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </th>
+                <th className="p-2">
+                  <select
+                    value={activeFilters.st_ativo || ""}
+                    onChange={(e) => handleFilterChange("st_ativo", e.target.value)}
+                    className="w-full h-8 text-xs border rounded px-2 bg-background"
+                  >
+                    <option value="">Todos</option>
+                    <option value="1">Ativo</option>
+                    <option value="0">Inativo</option>
+                  </select>
+                </th>
+                <th className="p-2"></th>
+                <th className="p-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="h-8 text-xs w-full"
+                  >
+                    Limpar
+                  </Button>
+                </th>
               </tr>
             </thead>
             <tbody>
