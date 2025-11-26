@@ -329,7 +329,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                       </p>
                       <p className="text-sm font-semibold mb-1">Fórmula Aplicada:</p>
                       <p className="text-xs break-words">
-                        ((Preço * (1 - %Impostos)) - CMV) / (Preço * (1 - %Impostos))
+                        ((Preço Solic. * (1 - %Impostos)) - CMV) / (Preço Solic. * (1 - %Impostos))
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -370,7 +370,7 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                       </p>
                       <p className="text-sm font-semibold mb-1">Fórmula Aplicada:</p>
                       <p className="text-xs break-words">
-                        ((Preço * (1 - %Impostos)) - CMV) / (Preço * (1 - %Impostos))
+                        ((Preço Solic. * (1 - %Impostos)) - CMV) / (Preço Solic. * (1 - %Impostos))
                       </p>
                     </TooltipContent>
                   </Tooltip>
