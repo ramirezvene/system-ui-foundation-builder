@@ -357,25 +357,25 @@ export default function DescontoProdutoEstado() {
           onClearFilters={handleClearFilters}
           activeFilters={activeFilters}
         />
-        <div className="p-0">
-        <div className="w-full">
-          <table className="w-full border-collapse table-fixed">
+        <div className="overflow-x-auto">
+        <div className="min-w-full inline-block align-middle">
+          <table className="w-full border-collapse">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="text-left p-3 w-[5%] text-sm font-medium">ID Produto</th>
-                <th className="text-left p-3 w-[25%] text-sm font-medium">Nome Produto</th>
-                <th className="text-left p-3 w-[10%] text-sm font-medium">Estado</th>
-                <th className="text-left p-3 w-[8%] text-sm font-medium">Tipo Margem</th>
-                <th className="text-left p-3 w-[5%] text-sm font-medium">Qtde Min</th>
-                <th className="text-left p-3 w-[5%] text-sm font-medium">Qtde Max</th>
-                <th className="text-left p-3 w-[8%] text-sm font-medium">Margem</th>
-                <th className="text-left p-3 w-[8%] text-sm font-medium">Margem Adc</th>
-                <th className="text-left p-3 w-[8%] text-sm font-medium">% Desc</th>
-                <th className="text-left p-3 w-[10%] text-sm font-medium">Data Início</th>
-                <th className="text-left p-3 w-[10%] text-sm font-medium">Data Fim</th>
-                <th className="text-left p-3 w-[5%] text-sm font-medium">Ativo</th>
-                <th className="text-left p-3 w-[5%] text-sm font-medium">Obs</th>
-                <th className="text-left p-3 w-[5%] text-sm font-medium">Ações</th>
+                <th className="text-left p-3 min-w-[80px] text-sm font-medium whitespace-nowrap">ID Produto</th>
+                <th className="text-left p-3 min-w-[300px] text-sm font-medium">Nome Produto</th>
+                <th className="text-left p-3 min-w-[120px] text-sm font-medium">Estado</th>
+                <th className="text-left p-3 min-w-[120px] text-sm font-medium">Tipo Margem</th>
+                <th className="text-left p-3 min-w-[100px] text-sm font-medium">Qtde Min</th>
+                <th className="text-left p-3 min-w-[100px] text-sm font-medium">Qtde Max</th>
+                <th className="text-left p-3 min-w-[120px] text-sm font-medium">Margem</th>
+                <th className="text-left p-3 min-w-[120px] text-sm font-medium">Margem Adc</th>
+                <th className="text-left p-3 min-w-[120px] text-sm font-medium">% Desc</th>
+                <th className="text-left p-3 min-w-[140px] text-sm font-medium">Data Início</th>
+                <th className="text-left p-3 min-w-[140px] text-sm font-medium">Data Fim</th>
+                <th className="text-left p-3 min-w-[80px] text-sm font-medium">Ativo</th>
+                <th className="text-left p-3 min-w-[80px] text-sm font-medium">Obs</th>
+                <th className="text-left p-3 min-w-[100px] text-sm font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -383,19 +383,17 @@ export default function DescontoProdutoEstado() {
                 <tr key={item.id} className={`border-b hover:bg-gray-50 ${editedRows.has(item.id) ? 'bg-yellow-50' : ''}`}>
                   <td className="p-3 text-sm">{item.id_produto}</td>
                   <td className="p-3">
-                    <div className="text-sm truncate" title={item.produto?.nome_produto}>
+                    <div className="text-sm whitespace-normal" title={item.produto?.nome_produto}>
                       {item.produto?.nome_produto}
                     </div>
                   </td>
                   <td className="p-3">
-                    <div className="w-full">
-                      <EstadoCombobox
-                        estados={estados}
-                        selectedEstado={getSelectedEstado(item)}
-                        onEstadoChange={(estado) => handleTipoReferenciaChange(item.id, estado)}
-                        disabled={item.st_ativo === 0}
-                      />
-                    </div>
+                    <EstadoCombobox
+                      estados={estados}
+                      selectedEstado={getSelectedEstado(item)}
+                      onEstadoChange={(estado) => handleTipoReferenciaChange(item.id, estado)}
+                      disabled={item.st_ativo === 0}
+                    />
                   </td>
                    <td className="p-3">
                      <select
