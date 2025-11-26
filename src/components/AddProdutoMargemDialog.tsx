@@ -322,11 +322,13 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
                       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p className="text-sm font-semibold mb-1">Fórmula de Cálculo:</p>
-                      <p className="text-xs">Margem = 1 - (CMG / (Preço × (1 - (ALIQ + PISCOFINS))))</p>
-                      <p className="text-xs mt-2 text-muted-foreground">
-                        CMG, ALIQ e PISCOFINS variam por estado (RS, SC, PR)
+                      <p className="text-sm font-semibold mb-1">Cálculo de Viabilidade:</p>
+                      <p className="text-xs">
+                        Valida se o valor líquido da venda cobre custos e impostos, garantindo que o desconto não gere
+                        prejuízo.
                       </p>
+                      <p className="text-sm font-semibold mb-1">Fórmula Aplicada:</p>
+                      <p className="text-xs">((Preço * (1 - %Impostos)) - CMV) / (Preço * (1 - %Impostos))</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -416,9 +418,9 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={!selectedProduto || (formData.tipo_aplicacao === 'estado' ? !selectedEstado : !selectedLoja)}
+            <Button
+              onClick={handleSubmit}
+              disabled={!selectedProduto || (formData.tipo_aplicacao === "estado" ? !selectedEstado : !selectedLoja)}
             >
               Adicionar
             </Button>
