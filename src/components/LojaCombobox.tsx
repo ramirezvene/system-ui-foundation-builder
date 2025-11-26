@@ -83,14 +83,7 @@ export function LojaCombobox({
   return <div className="flex gap-2">
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            role="combobox" 
-            aria-expanded={open} 
-            disabled={disabled} 
-            className="flex-1 justify-between min-w-[180px] w-full"
-            title={selectedLoja ? `${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}` : placeholder}
-          >
+          <Button variant="outline" role="combobox" aria-expanded={open} disabled={disabled} title={selectedLoja ? `${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}` : placeholder} className="flex-1 justify-between min-w-[130px] w-full">
             <span className="truncate">
               {selectedLoja ? `${selectedLoja.cod_loja} - ${selectedLoja.loja} - ${selectedLoja.estado}` : placeholder}
             </span>
