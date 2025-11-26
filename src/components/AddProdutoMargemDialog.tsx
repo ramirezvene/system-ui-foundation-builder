@@ -206,12 +206,12 @@ export function AddProdutoMargemDialog({ produtos, onAdd, tipoFixo }: AddProduto
           Adicionar
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Adicionar Produto Margem</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
           <div className="flex items-center space-x-2 pb-2 border-b">
             <Switch
               checked={formData.st_ativo === 1}
