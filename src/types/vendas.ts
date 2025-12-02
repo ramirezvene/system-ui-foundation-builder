@@ -23,19 +23,18 @@ export interface SolicitacaoResult {
   precoSolicitado: number
   desconto: number
   quantidade: number
-  tokenDisponivel: number
-  tokenDisponipelAtualizado: number
-  retorno: string
-  aprovado: boolean
+  subgrupo: string
   precoMinimo: number
-  cmgProduto: number
-  descontoAlcada: string
-  margemUF: string
+  margemCalculo: string
   margem: string
   margemAdc: string
-  aliqUF: number
-  piscofinsUF: number
-  ruptura: number
+  cmvLoja: number
+  cmvEstado: number
+  icms: number
+  pis: number
+  cofins: number
+  retorno: string
+  aprovado: boolean
   observacaoRejeicao?: string
   regraAplicada?: RegraAplicada
   regraId?: number | string
