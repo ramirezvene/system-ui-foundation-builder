@@ -95,7 +95,8 @@ export default function Emulador() {
       piscofinsUF: additionalInfo.piscofinsUF,
       ruptura: additionalInfo.ruptura,
       observacaoRejeicao: validation.observacao,
-      regraAplicada: validation.regraAplicada
+      regraAplicada: validation.regraAplicada,
+      regraId: validation.regraId
     }
 
     setSolicitacaoResult(result)

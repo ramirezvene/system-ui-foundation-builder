@@ -38,4 +38,5 @@ export interface SolicitacaoResult {
   ruptura: number
   observacaoRejeicao?: string
   regraAplicada?: RegraAplicada
+  regraId?: number | string
 }
