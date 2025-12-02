@@ -4,13 +4,15 @@ import { calculateMinPrice, calculateUFMargin } from "./priceCalculations"
 
 export interface AdditionalInfo {
   precoMinimo: number
-  cmgProduto: number
-  descontoAlcada: string
-  margemUF: string
+  subgrupo: string
+  margemCalculo: string
   margem: string
   margemAdc: string
-  aliqUF: number
-  piscofinsUF: number
+  cmvLoja: number
+  cmvEstado: number
+  icms: number
+  pis: number
+  cofins: number
   ruptura: number
 }
 
@@ -57,22 +59,33 @@ export const calculateAdditionalInfo = (
     : null
 
   const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
-  const margemUF = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
+  const margemCalculo = calculateUFMargin(novoPreco, selectedProduto, selectedLoja)
 
   const estado = selectedLoja.estado.toLowerCase()
-  let cmgProduto = 0
-  let aliqUF = 0
+  let cmvEstado = 0
+  let icms = 0
 
   if (estado === 'rs') {
-    cmgProduto = selectedProduto.cmg_rs || 0
-    aliqUF = selectedProduto.aliq_rs || 0
+    cmvEstado = selectedProduto.cmg_rs || 0
+    icms = selectedProduto.aliq_rs || 0
   } else if (estado === 'sc') {
-    cmgProduto = selectedProduto.cmg_sc || 0
-    aliqUF = selectedProduto.aliq_sc || 0
+    cmvEstado = selectedProduto.cmg_sc || 0
+    icms = selectedProduto.aliq_sc || 0
   } else if (estado === 'pr') {
-    cmgProduto = selectedProduto.cmg_pr || 0
-    aliqUF = selectedProduto.aliq_pr || 0
+    cmvEstado = selectedProduto.cmg_pr || 0
+    icms = selectedProduto.aliq_pr || 0
   }
+
+  // CMV Loja (usando o CMV do estado por loja)
+  const cmvLoja = cmvEstado
+
+  // PIS e COFINS (usando piscofins combinado e dividindo)
+  const piscofins = selectedProduto.piscofins || 0
+  const pis = piscofins * 0.38 // Aproximação: PIS representa ~38% do total PIS+COFINS
+  const cofins = piscofins * 0.62 // Aproximação: COFINS representa ~62% do total PIS+COFINS
+
+  // Nome do subgrupo
+  const subgrupoNome = subgrupoMargem?.nome_subgrupo || selectedProduto.subgrupo_id?.toString() || "N/A"
 
   // Obter margens baseadas na fonte (produto_margem ou subgrupo_margem)
   let margem = "N/A"
@@ -101,13 +114,15 @@ export const calculateAdditionalInfo = (
 
   return {
     precoMinimo,
-    cmgProduto,
-    descontoAlcada: selectedProduto.alcada === 0 ? "SEM OUTROS" : "COM OUTROS",
-    margemUF: `${margemUF.toFixed(2)}%`,
+    subgrupo: subgrupoNome,
+    margemCalculo: `${margemCalculo.toFixed(2)}%`,
     margem,
     margemAdc,
-    aliqUF,
-    piscofinsUF: selectedProduto.piscofins || 0,
+    cmvLoja,
+    cmvEstado,
+    icms,
+    pis,
+    cofins,
     ruptura: selectedProduto.st_ruptura || 0
   }
 }

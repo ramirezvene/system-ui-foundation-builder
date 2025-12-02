@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react"
 import { SolicitacaoResult, RegraAplicada } from "@/types/vendas"
-import { useState, useEffect } from "react"
-import { supabase } from "@/integrations/supabase/client"
 
 const getRegraLabel = (regra: RegraAplicada): string => {
   switch (regra) {
@@ -36,28 +34,6 @@ interface SolicitacaoResultCardProps {
 }
 
 export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoResultCardProps) {
-  const [tokensUtilizados, setTokensUtilizados] = useState(0)
-
-  useEffect(() => {
-    const calcularTokensUtilizados = async () => {
-      if (!result.loja) return
-
-      try {
-        const { data } = await supabase
-          .from("token_loja")
-          .select("id")
-          .eq("cod_loja", result.loja.cod_loja)
-          .eq("st_aprovado", 1)
-
-        setTokensUtilizados(data?.length || 0)
-      } catch (error) {
-        console.error("Erro ao calcular tokens utilizados:", error)
-      }
-    }
-
-    calcularTokensUtilizados()
-  }, [result.loja])
-  // Verificar se é um motivo específico de reprovação que deve ser destacado
   const motivosDestaque = [
     "Maior que desconto máximo",
     "Não possuí margem",
@@ -94,7 +70,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Informações básicas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <h3 className="font-semibold mb-2">Loja</h3>
             <p className="text-sm text-muted-foreground">
@@ -106,6 +82,17 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             <p className="text-sm text-muted-foreground">
               {result.produto?.id_produto} - {result.produto?.nome_produto}
             </p>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2">Quantidade</h3>
+            <p className="text-sm text-muted-foreground">{result.quantidade}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 className="font-semibold mb-2">Subgrupo</h3>
+            <p className="text-sm text-muted-foreground">{result.subgrupo}</p>
           </div>
         </div>
 
@@ -124,32 +111,16 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             <p className="text-lg font-mono">{result.desconto.toFixed(2)}%</p>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Quantidade</h3>
-            <p className="text-lg font-mono">{result.quantidade}</p>
-          </div>
-        </div>
-
-        {/* Informações de margem e custos */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
             <h3 className="font-semibold mb-2">Preço Mínimo</h3>
-            <p className="text-sm font-mono">{formatCurrency(result.precoMinimo)}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2">CMV Produto</h3>
-            <p className="text-sm font-mono">{formatCurrency(result.cmgProduto)}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2">Outros Descontos</h3>
-            <p className="text-sm font-mono">{result.descontoAlcada}</p>
+            <p className="text-lg font-mono">{formatCurrency(result.precoMinimo)}</p>
           </div>
         </div>
 
         {/* Informações de margem */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <h3 className="font-semibold mb-2">Margem UF</h3>
-            <p className="text-sm font-mono">{result.margemUF}</p>
+            <h3 className="font-semibold mb-2">Margem Cálculo</h3>
+            <p className="text-sm font-mono">{result.margemCalculo}</p>
           </div>
           <div>
             <h3 className="font-semibold mb-2">Margem</h3>
@@ -161,30 +132,27 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
           </div>
         </div>
 
-        {/* Informações fiscais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* CMV e Impostos */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
-            <h3 className="font-semibold mb-2">Alíquota UF</h3>
-            <p className="text-sm font-mono">{result.aliqUF.toFixed(2)}%</p>
+            <h3 className="font-semibold mb-2">CMV Loja</h3>
+            <p className="text-sm font-mono">{formatCurrency(result.cmvLoja)}</p>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">PISCOFINS UF</h3>
-            <p className="text-sm font-mono">{result.piscofinsUF.toFixed(2)}%</p>
+            <h3 className="font-semibold mb-2">CMV Estado</h3>
+            <p className="text-sm font-mono">{formatCurrency(result.cmvEstado)}</p>
           </div>
-        </div>
-
-        {/* Tokens */}
-        <div className="grid grid-cols-1 gap-4">
           <div>
-            <h3 className="font-semibold mb-2">Tokens</h3>
-            <div className="text-sm space-y-1">
-              <div className="font-mono">
-                {result.tokenDisponivel + tokensUtilizados} / {tokensUtilizados} / {result.tokenDisponipelAtualizado}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Total / Usado / Restante
-              </div>
-            </div>
+            <h3 className="font-semibold mb-2">ICMS</h3>
+            <p className="text-sm font-mono">{result.icms.toFixed(2)}%</p>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2">PIS</h3>
+            <p className="text-sm font-mono">{result.pis.toFixed(2)}%</p>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2">COFINS</h3>
+            <p className="text-sm font-mono">{result.cofins.toFixed(2)}%</p>
           </div>
         </div>
 
