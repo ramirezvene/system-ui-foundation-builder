@@ -9,7 +9,7 @@ import { Download, Upload, Plus, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { PercentageInput } from "@/components/PercentageInput";
 import { AddSubgrupoMargemDialog } from "@/components/AddSubgrupoMargemDialog";
 import { TableFilter } from "@/components/TableFilter";
@@ -20,6 +20,8 @@ export default function ConfiguracaoDescontoSubgrupo() {
   const [editedRows, setEditedRows] = useState<Set<number>>(new Set());
   const [observacaoDialogs, setObservacaoDialogs] = useState<Set<number>>(new Set());
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const {
     toast
   } = useToast();
@@ -146,58 +148,73 @@ export default function ConfiguracaoDescontoSubgrupo() {
     input.onchange = async e => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-      const text = await file.text();
-      const lines = text.split("\n");
-      try {
-        const updates = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(",");
-          if (values.length >= 10) {
-            const cod_subgrupo = parseInt(values[0]);
-            if (!isNaN(cod_subgrupo)) {
-              updates.push({
-                cod_subgrupo: cod_subgrupo,
-                qtde_min: parseInt(values[2]) || 0,
-                qtde_max: parseInt(values[2]) || 0,
-                margem: parseFloat(values[3]) || 0,
-                margem_adc: values[4] ? parseFloat(values[4]) : null,
-                desconto: values[5] ? parseFloat(values[5]) : null,
-                data_inicio: values[6],
-                data_fim: values[7],
-                st_ativo: values[8] === "Ativo" ? 1 : 0,
-                observacao: values[9] || null
-              });
-            }
-          }
-        }
-        for (const update of updates) {
-          await supabase.from("subgrupo_margem").update({
-            qtde_min: update.qtde_min,
-            qtde_max: update.qtde_max,
-            margem: update.margem,
-            margem_adc: update.margem_adc,
-            desconto: update.desconto,
-            data_inicio: update.data_inicio,
-            data_fim: update.data_fim,
-            st_ativo: update.st_ativo,
-            observacao: update.observacao
-          }).eq("cod_subgrupo", update.cod_subgrupo);
-        }
-        await fetchData();
-        toast({
-          title: "Sucesso",
-          description: "Dados importados com sucesso"
-        });
-      } catch (error) {
-        console.error("Erro ao importar CSV:", error);
-        toast({
-          title: "Erro",
-          description: "Erro ao importar arquivo CSV",
-          variant: "destructive"
-        });
-      }
+      setPendingImportFile(file);
+      setImportConfirmOpen(true);
     };
     input.click();
+  };
+
+  const handleConfirmImport = async () => {
+    if (!pendingImportFile) return;
+    
+    const text = await pendingImportFile.text();
+    const lines = text.split("\n");
+    try {
+      const updates = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",");
+        if (values.length >= 10) {
+          const cod_subgrupo = parseInt(values[0]);
+          if (!isNaN(cod_subgrupo)) {
+            updates.push({
+              cod_subgrupo: cod_subgrupo,
+              qtde_min: parseInt(values[2]) || 0,
+              qtde_max: parseInt(values[2]) || 0,
+              margem: parseFloat(values[3]) || 0,
+              margem_adc: values[4] ? parseFloat(values[4]) : null,
+              desconto: values[5] ? parseFloat(values[5]) : null,
+              data_inicio: values[6],
+              data_fim: values[7],
+              st_ativo: values[8] === "Ativo" ? 1 : 0,
+              observacao: values[9] || null
+            });
+          }
+        }
+      }
+      for (const update of updates) {
+        await supabase.from("subgrupo_margem").update({
+          qtde_min: update.qtde_min,
+          qtde_max: update.qtde_max,
+          margem: update.margem,
+          margem_adc: update.margem_adc,
+          desconto: update.desconto,
+          data_inicio: update.data_inicio,
+          data_fim: update.data_fim,
+          st_ativo: update.st_ativo,
+          observacao: update.observacao
+        }).eq("cod_subgrupo", update.cod_subgrupo);
+      }
+      await fetchData();
+      toast({
+        title: "Sucesso",
+        description: "Dados importados com sucesso"
+      });
+    } catch (error) {
+      console.error("Erro ao importar CSV:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao importar arquivo CSV",
+        variant: "destructive"
+      });
+    } finally {
+      setImportConfirmOpen(false);
+      setPendingImportFile(null);
+    }
+  };
+
+  const handleCancelImport = () => {
+    setImportConfirmOpen(false);
+    setPendingImportFile(null);
   };
   const toggleObservacaoDialog = (cod_subgrupo: number) => {
     setObservacaoDialogs(prev => {
@@ -364,6 +381,25 @@ export default function ConfiguracaoDescontoSubgrupo() {
       </CardContent>
 
       <AddSubgrupoMargemDialog onAdd={fetchData} isOpen={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxCodSubgrupo={getMaxCodSubgrupo()} />
+
+      <Dialog open={importConfirmOpen} onOpenChange={setImportConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmação de Importação</DialogTitle>
+            <DialogDescription>
+              Deseja prosseguir com esta importação do Subgrupo?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCancelImport}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmImport}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
     </div>;
 }
