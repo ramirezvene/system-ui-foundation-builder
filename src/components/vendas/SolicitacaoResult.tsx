@@ -200,7 +200,7 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
                 variant="outline" 
                 className={`text-sm px-3 py-1 ${getRegraColor(result.regraAplicada)}`}
               >
-                {getRegraLabel(result.regraAplicada)}
+                {getRegraLabel(result.regraAplicada)}{result.regraId ? ` - ${result.regraId}` : ''}
               </Badge>
             </div>
           </div>
