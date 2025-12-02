@@ -99,7 +99,8 @@ export default function Vendas() {
       aliqUF: additionalInfo.aliqUF,
       piscofinsUF: additionalInfo.piscofinsUF,
       ruptura: additionalInfo.ruptura,
-      observacaoRejeicao: validation.observacao
+      observacaoRejeicao: validation.observacao,
+      regraAplicada: validation.regraAplicada
     }
 
     setSolicitacaoResult(result)

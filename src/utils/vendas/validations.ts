@@ -1,10 +1,11 @@
 
-import { Produto, Loja, ProdutoMargem, SubgrupoMargem, Estado } from "@/types/vendas"
+import { Produto, Loja, ProdutoMargem, SubgrupoMargem, Estado, RegraAplicada } from "@/types/vendas"
 import { calculateMinPrice, calculateUFMargin } from "./priceCalculations"
 
 export interface ValidationResult {
   error: string | null
   observacao?: string
+  regraAplicada?: RegraAplicada
 }
 
 export const validateHierarchy = (
@@ -34,20 +35,20 @@ export const validateHierarchy = (
   const estadoInfo = estados.find(e => e.estado === selectedLoja.estado)
   if (!estadoInfo || estadoInfo.st_ativo !== 1) {
     console.log("Estado sem permissão")
-    return { error: "Estado sem permissão solicitação." }
+    return { error: "Estado sem permissão solicitação.", regraAplicada: "estado" }
   }
 
   // ETAPA 2: Validar Loja
   // 2.1 - Status token da loja
   if (selectedLoja.st_token !== 1) {
     console.log("Loja sem permissão")
-    return { error: "Loja sem permissão solicitação." }
+    return { error: "Loja sem permissão solicitação.", regraAplicada: "loja" }
   }
 
   // 2.2 - Quantidade de tokens disponíveis
   if ((selectedLoja.qtde_token || 0) <= 0) {
     console.log("Loja sem tokens disponíveis")
-    return { error: "Não possuí token disponível." }
+    return { error: "Não possuí token disponível.", regraAplicada: "token" }
   }
 
   // ETAPA 3: Validar Produto
@@ -108,32 +109,35 @@ export const validateHierarchy = (
     return isValid
   })
 
+  // Determinar tipo de regra aplicada para produto
+  const regraAplicadaProduto: RegraAplicada = produtoMargem?.tipo_aplicacao === "loja" ? "produto_loja" : "produto_estado"
+
   if (produtoMargem) {
     console.log("Produto_margem encontrado - APLICANDO TODAS as validações do produto")
     
     // 3.1 - Status pricing do produto
     if (selectedProduto.st_pricing !== 0) {
       console.log("Produto com pricing desativado")
-      return { error: "Desativado Pricing Produto." }
+      return { error: "Desativado Pricing Produto.", regraAplicada: regraAplicadaProduto }
     }
 
     // 3.2 - Status ruptura do produto
     if (selectedProduto.st_ruptura !== 0) {
       console.log("Produto com ruptura")
-      return { error: "Produto Ruptura." }
+      return { error: "Produto Ruptura.", regraAplicada: regraAplicadaProduto }
     }
 
     // 3.3 - Preço mínimo
     const precoMinimo = calculateMinPrice(selectedProduto, selectedLoja, subgrupoMargens)
     if (novoPreco < precoMinimo) {
       console.log("Preço menor que mínimo")
-      return { error: "Menor que Preço Mínimo." }
+      return { error: "Menor que Preço Mínimo.", regraAplicada: regraAplicadaProduto }
     }
 
     // 3.4 - Preço regular
     if (novoPreco >= precoAtual) {
       console.log("Preço maior ou igual que regular")
-      return { error: "Maior que Preço Regular." }
+      return { error: "Maior que Preço Regular.", regraAplicada: regraAplicadaProduto }
     }
 
     // 3.5 - % Desconto máximo do produto (PRIORIDADE ABSOLUTA)
@@ -142,14 +146,15 @@ export const validateHierarchy = (
       console.log("Desconto maior que máximo do produto - REJEITADO")
       return { 
         error: "Maior que desconto máximo Produto.",
-        observacao: produtoMargem.observacao || undefined
+        observacao: produtoMargem.observacao || undefined,
+        regraAplicada: regraAplicadaProduto
       }
     }
 
     // 3.6 - Outros descontos (alçada)
     if (selectedProduto.alcada !== 0) {
       console.log("Produto possui outros descontos")
-      return { error: "Outros descontos, não permite." }
+      return { error: "Outros descontos, não permite.", regraAplicada: regraAplicadaProduto }
     }
 
     // 3.7 - Data de vigência já validada na busca
@@ -170,7 +175,8 @@ export const validateHierarchy = (
         if (novoPreco < margemRequerida) {
           return { 
             error: `Preço solicitado (${novoPreco.toFixed(2)}) menor que margem requerida do produto (${margemRequerida.toFixed(2)}).`,
-            observacao: produtoMargem.observacao || undefined
+            observacao: produtoMargem.observacao || undefined,
+            regraAplicada: regraAplicadaProduto
           }
         }
       } else {
@@ -178,7 +184,8 @@ export const validateHierarchy = (
         if (novoPreco < produtoMargem.margem) {
           return { 
             error: `Preço solicitado (${novoPreco.toFixed(2)}) menor que margem requerida do produto (${produtoMargem.margem.toFixed(2)}).`,
-            observacao: produtoMargem.observacao || undefined
+            observacao: produtoMargem.observacao || undefined,
+            regraAplicada: regraAplicadaProduto
           }
         }
       }
@@ -192,7 +199,8 @@ export const validateHierarchy = (
         if (margemUFLojaPercentual < margemRequerida) {
           return { 
             error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${margemRequerida.toFixed(2)}%).`,
-            observacao: produtoMargem.observacao || undefined
+            observacao: produtoMargem.observacao || undefined,
+            regraAplicada: regraAplicadaProduto
           }
         }
       } else {
@@ -200,7 +208,8 @@ export const validateHierarchy = (
         if (margemUFLojaPercentual < produtoMargem.margem) {
           return { 
             error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do produto (${produtoMargem.margem.toFixed(2)}%).`,
-            observacao: produtoMargem.observacao || undefined
+            observacao: produtoMargem.observacao || undefined,
+            regraAplicada: regraAplicadaProduto
           }
         }
       }
@@ -208,7 +217,7 @@ export const validateHierarchy = (
 
     // Se chegou aqui, produto passou em TODAS as validações - vai direto para loja
     console.log("Produto passou em TODAS as validações - indo DIRETO para validação da loja")
-    return validateLoja(selectedLoja)
+    return validateLoja(selectedLoja, regraAplicadaProduto)
   }
 
   // ETAPA 4: Validar Subgrupo (SOMENTE se NÃO encontrou produto_margem ativo/válido)
@@ -223,7 +232,7 @@ export const validateHierarchy = (
     )
     
     if (!subgrupoMargem) {
-      return { error: "Não possúi produto/subgrupo token Desconto." }
+      return { error: "Não possúi produto/subgrupo token Desconto.", regraAplicada: "subgrupo" }
     }
 
     console.log("Subgrupo_margem encontrado:", {
@@ -244,7 +253,8 @@ export const validateHierarchy = (
       if (margemUFLojaPercentual < margemRequerida) {
         return { 
           error: `Margem UF Loja (${margemUFLojaPercentual.toFixed(2)}%) menor que margem requerida do subgrupo (${margemRequerida.toFixed(2)}%).`,
-          observacao: subgrupoMargem.observacao || undefined
+          observacao: subgrupoMargem.observacao || undefined,
+          regraAplicada: "subgrupo"
         }
       }
     } else {
@@ -252,7 +262,8 @@ export const validateHierarchy = (
       if (margemUFLojaPercentual < subgrupoMargem.margem) {
         return { 
           error: "Não possuí margem produto/subgrupo.",
-          observacao: subgrupoMargem.observacao || undefined
+          observacao: subgrupoMargem.observacao || undefined,
+          regraAplicada: "subgrupo"
         }
       }
     }
@@ -263,32 +274,33 @@ export const validateHierarchy = (
       console.log("Desconto maior que máximo do subgrupo")
       return { 
         error: "Maior que desconto máximo Subgrupo.",
-        observacao: subgrupoMargem.observacao || undefined
+        observacao: subgrupoMargem.observacao || undefined,
+        regraAplicada: "subgrupo"
       }
     }
 
     // 4.5 - Data de vigência já validada no find
   } else {
-    return { error: "Não possúi produto/subgrupo token Desconto." }
+    return { error: "Não possúi produto/subgrupo token Desconto.", regraAplicada: "subgrupo" }
   }
 
   // ETAPA 5: Validar Loja final
-  return validateLoja(selectedLoja)
+  return validateLoja(selectedLoja, "subgrupo")
 }
 
-const validateLoja = (selectedLoja: Loja): ValidationResult => {
+const validateLoja = (selectedLoja: Loja, regraOrigem: RegraAplicada = null): ValidationResult => {
   // 5.1 - Meta da loja
   if (selectedLoja.meta_loja !== 1) {
     console.log("Meta loja irregular")
-    return { error: "Meta Loja Irregular" }
+    return { error: "Meta Loja Irregular", regraAplicada: "loja" }
   }
 
   // 5.2 - DRE da loja
   if (selectedLoja.dre_negativo !== 1) {
     console.log("DRE irregular")
-    return { error: "DRE Loja Irregular" }
+    return { error: "DRE Loja Irregular", regraAplicada: "loja" }
   }
 
   console.log("Validação passou - token aprovado")
-  return { error: null }
+  return { error: null, regraAplicada: regraOrigem }
 }

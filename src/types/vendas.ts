@@ -7,6 +7,15 @@ export type ProdutoMargem = Tables<"produto_margem">
 export type SubgrupoMargem = Tables<"subgrupo_margem">
 export type Estado = Tables<"cadastro_estado">
 
+export type RegraAplicada = 
+  | "estado" 
+  | "loja" 
+  | "produto_loja" 
+  | "produto_estado" 
+  | "subgrupo" 
+  | "token"
+  | null
+
 export interface SolicitacaoResult {
   loja: Loja | null
   produto: Produto | null
@@ -28,4 +37,5 @@ export interface SolicitacaoResult {
   piscofinsUF: number
   ruptura: number
   observacaoRejeicao?: string
+  regraAplicada?: RegraAplicada
 }

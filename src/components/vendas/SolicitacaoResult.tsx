@@ -1,10 +1,34 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react"
-import { SolicitacaoResult } from "@/types/vendas"
+import { CheckCircle, XCircle, AlertTriangle, Info } from "lucide-react"
+import { SolicitacaoResult, RegraAplicada } from "@/types/vendas"
 import { useState, useEffect } from "react"
 import { supabase } from "@/integrations/supabase/client"
+
+const getRegraLabel = (regra: RegraAplicada): string => {
+  switch (regra) {
+    case "estado": return "Estado"
+    case "loja": return "Loja"
+    case "produto_loja": return "Produto Loja"
+    case "produto_estado": return "Produto Estado"
+    case "subgrupo": return "Subgrupo"
+    case "token": return "Token"
+    default: return "N/A"
+  }
+}
+
+const getRegraColor = (regra: RegraAplicada): string => {
+  switch (regra) {
+    case "estado": return "bg-purple-100 text-purple-800 border-purple-200"
+    case "loja": return "bg-blue-100 text-blue-800 border-blue-200"
+    case "produto_loja": return "bg-orange-100 text-orange-800 border-orange-200"
+    case "produto_estado": return "bg-green-100 text-green-800 border-green-200"
+    case "subgrupo": return "bg-yellow-100 text-yellow-800 border-yellow-200"
+    case "token": return "bg-red-100 text-red-800 border-red-200"
+    default: return "bg-muted text-muted-foreground"
+  }
+}
 
 interface SolicitacaoResultCardProps {
   result: SolicitacaoResult
@@ -163,6 +187,24 @@ export function SolicitacaoResultCard({ result, formatCurrency }: SolicitacaoRes
             </div>
           </div>
         </div>
+
+        {/* Regra Aplicada */}
+        {result.regraAplicada && (
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                Regra Aplicada
+              </h3>
+              <Badge 
+                variant="outline" 
+                className={`text-sm px-3 py-1 ${getRegraColor(result.regraAplicada)}`}
+              >
+                {getRegraLabel(result.regraAplicada)}
+              </Badge>
+            </div>
+          </div>
+        )}
 
         {/* Retorno com destaque para reprovações */}
         <div>
